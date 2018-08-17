@@ -55,9 +55,9 @@ Proof. reflexivity. Qed.
 Definition ASN_bounded (m : positive) (e : Z) : bool :=
   let mo := octets m in
   let eo := twos_octets e in
-    if Pos.ltb 3 eo
-    then Pos.ltb (mo + eo) 124
-    else Pos.ltb (mo + eo) 127.
+    if Pos.gtb eo 3
+    then Pos.leb (mo + eo) 125
+    else Pos.leb (mo + eo) 126.
 
 (* is radix accepted in ASN BER *)
 (* definitely subject to change *)
