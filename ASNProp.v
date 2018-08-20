@@ -22,6 +22,18 @@ Qed.
 
 Lemma gt_octets_O (p : positive) :
   octets p > 0.
+Proof.
+  unfold octets, bits_to_octets.
+  assert(H: bits p  > 0) by apply gt_bits_O.
+  revert H.
+  generalize (bits p). clear p.
+  intros n H.
+  destruct n.
+  -
+    inversion H.
+  -
+    rewrite Nat.add_succ_comm.
+
 Admitted.
 
 Lemma twos_octets_correct (z : Z) :
