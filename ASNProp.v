@@ -25,24 +25,16 @@ Lemma gt_octets_O (p : positive) :
   octets p > 0.
 Proof.
   unfold octets, bits_to_octets.
-  assert(H: bits p  > 0) by apply gt_bits_O.
-  revert H.
-  generalize (bits p). clear p.
-  intros n H.
-  destruct n.
-  -
-    inversion H.
-  -
-    clear H.
-    simpl.
-    generalize (Nat.divmod_spec (n+7) 7 0 6).
-    intros H.
-    assert(S: 6<=7) by auto.
-    specialize (H S). clear S.
-    destruct (Nat.divmod (n + 7) 7 0 6).
-    destruct H as [H1 H2].
-    simpl.
-    lia.
+  assert(B: bits p  > 0) by apply gt_bits_O.
+  Opaque bits. simpl.
+  generalize (Nat.divmod_spec (bits p+7) 7 0 7).
+  intros H.
+  assert(S: 7<=7) by auto.
+  specialize (H S). clear S.
+  destruct (Nat.divmod (bits p + 7) 7 0 7).
+  destruct H as [H1 H2].
+  simpl.
+  lia.
 Qed.
 
 Lemma twos_octets_correct (z : Z) :
