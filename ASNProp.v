@@ -1,4 +1,5 @@
 Require Import PArith ZArith.
+Require Import Lia.
 Require Import ASNDef ASNCalc.
 
 Lemma gt_bits_O (p : positive) :
@@ -32,9 +33,17 @@ Proof.
   -
     inversion H.
   -
-    rewrite Nat.add_succ_comm.
-
-Admitted.
+    clear H.
+    simpl.
+    generalize (Nat.divmod_spec (n+7) 7 0 6).
+    intros H.
+    assert(S: 6<=7) by auto.
+    specialize (H S). clear S.
+    destruct (Nat.divmod (n + 7) 7 0 6).
+    destruct H as [H1 H2].
+    simpl.
+    lia.
+Qed.
 
 Lemma twos_octets_correct (z : Z) :
   twos_bits z <= 8 * (twos_octets z) < twos_bits z + 8.
