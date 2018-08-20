@@ -5,12 +5,16 @@ Require Import ASNDef.
   calculate two's complement of an integer _z_
   on a given number of bits _b_
 *)
-Definition twos_complement (b : positive) (z : Z) : Z :=
-  z mod (2 ^ Zpos b).
+Let twos_complement (b : nat) (z : Z) : nat :=
+  match z with
+  | Z0 => 0
+  | Zpos p => Pos.to_nat p
+  | Zneg p => (2 ^ b) - Pos.to_nat p
+  end.
 
 (*
   calculate two's complement of an integer _z_
   on the smallest number of octets possible
 *)
-Definition ASN_twos_complement (z : Z) : Z :=
+Definition ASN_twos_complement (z : Z) : nat :=
   twos_complement (twos_octets z) z.
