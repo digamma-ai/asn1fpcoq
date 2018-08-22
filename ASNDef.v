@@ -84,6 +84,8 @@ Proof. reflexivity. Qed.
 Example twos_octets_n128 : twos_octets (- 128) = 1.
 Proof. reflexivity. Qed.
 
+Section ASN.
+
 (*
   for practical purposes ASN reals are encoded in short form
   thus having a limit of
@@ -103,7 +105,7 @@ Proof. reflexivity. Qed.
   thus the total number of octets,
   taken up by significand and exponent, needs to be <= 125
 *)
-Definition ASN_bounded (m : positive) (e : Z) : bool :=
+Definition bounded (m : positive) (e : Z) : bool :=
   let mo := octets m in
   let eo := twos_octets e in
   if 3 <? eo
@@ -114,7 +116,7 @@ Definition ASN_bounded (m : positive) (e : Z) : bool :=
   binary radices defined in ASN.1 BER: 2, 4, 8, 16
   [ 8.5.7.2 ]
 *)
-Definition ASN_good_radix (b : radix) : bool :=
+Definition good_radix (b : radix) : bool :=
   match (radix_val b) with
   | 2%Z => true
   | 4%Z => true
@@ -123,6 +125,13 @@ Definition ASN_good_radix (b : radix) : bool :=
   | _ => false
   end.
 
+(*
+  is a given triple (m,e,b)
+  (which is encoding the number m*(b^e))
+  in a format accepted by ASN.1
+*)
+Definition good_real (m : positive) (e : Z) (b : radix) : bool :=
+  andb (bounded m e) (good_radix b).
 (*
   ASN.1 BER "RealSpecialValues":
   +inf, -inf, NaN, -0
@@ -134,9 +143,21 @@ Definition ASN_good_radix (b : radix) : bool :=
   the value "+0" is defined separately in [ 8.5.3 ]
   and, in our scope, shall be treated as a special value
 *)
-Inductive ASN_real :=
+Inductive real :=
   | ASN_zero (s : bool)
   | ASN_infinity (s : bool)
   | ASN_nan
-  | ASN_finite (s : bool) (m : positive) (b : radix) (e : Z) :
-    andb (ASN_bounded m e) (ASN_good_radix b) = true -> ASN_real.
+  | ASN_finite (s : bool) (b : radix) (m : positive) (e : Z) :
+    (good_real m e b = true) -> real.
+
+(*
+  is the encoding a finite real number
+*)
+Definition is_finite (r : real) : bool :=
+  match r with
+  | ASN_zero _ => true
+  | ASN_finite _ _ _ _ _ => true
+  | _ => false
+  end.
+
+End ASN.
