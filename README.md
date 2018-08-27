@@ -5,10 +5,10 @@ ASN.1 Floating Point encoding formalized in Coq
 * TODO: Bit-string encoding of ASN.1 real numbers
 * TODO: Conversion between ASN.1 and Flocq IEEE-745
 ## Prerequisites
-* [Coq](https://coq.inria.fr/)
-`opam repo add coq-released http://coq.inria.fr/opam/released`
-`opam install coq`
-* [Flocq](http://flocq.gforge.inria.fr/)
+* [Coq](https://coq.inria.fr/)  
+`opam repo add coq-released http://coq.inria.fr/opam/released`  
+`opam install coq`  
+* [Flocq](http://flocq.gforge.inria.fr/)  
 `opam install coq-flocq`
 ## Acknowledgements
 * Thanks to [Sylvie Boldo](https://www.lri.fr/~sboldo/) and [Guillaume Melquiond](https://www.lri.fr/~melquion/) for their development of the [Floats for Coq](http://flocq.gforge.inria.fr/) library, on which this project heavily relies both abstractly and with code.
