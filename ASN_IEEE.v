@@ -1,30 +1,48 @@
-Require Import ZArith.
-Require Import Flocq.IEEE754.Binary Flocq.Core.Zaux.
+Require Import ZArith Datatypes.
+Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux.
 Require Import ASNDef.
 
-Variable prec emax : Z.
+Inductive convertible_IEEE :=
+  | Bin32 (f : binary32)
+  | Bin64 (f : binary64).
 
-Lemma subset_IEEE_ASN (m : positive) (e : Z) :
-  (Binary.bounded prec emax m e = true) -> (good_real m e radix2 = true).
-Proof.
-  intros H1.
-  unfold Binary.bounded in H1.
-  apply andb_prop in H1.
-  inversion H1 as [H2 H3]. clear H1.
-  unfold canonical_mantissa in H2.
-  apply Zeq_bool_eq in H2.
-  unfold FLT.FLT_exp in H2.
-Abort.
+Lemma bin32_finite_convertible (m : positive) (e : Z) :
+  Binary.bounded 24 128 m e = true -> good_real m e radix2 = true.
+Admitted.
 
-(*
-Definition IEEE_to_ASN (b : binary_float prec emax) :=
-  match b with
-  | B754_zero _ _ s => ASN_zero s
-  | B754_infinity _ _ s => ASN_infinity s
-  | B754_nan _ _ _ _ _ => ASN_nan
-  | B754_finite _ _ s m e H => ASN_finite s m radix2 e (subset_IEEE_ASN m e H)
+Lemma bin64_finite_convertible (m : positive) (e : Z) :
+  Binary.bounded 53 1024 m e = true -> good_real m e radix2 = true.
+Admitted.
+
+Definition IEEE_to_ASN (f : convertible_IEEE) : ASN_real :=
+  match f with
+  | Bin32 f32 => match f32 with
+              | B754_zero _ _ s => ASN_zero s
+              | B754_infinity _ _ s => ASN_infinity s
+              | B754_nan _ _ _ _ _ => ASN_nan
+              | B754_finite _ _ s m e H =>
+                ASN_finite s radix2 m e (bin32_finite_convertible m e H)
+              end
+  | Bin64 f64 => match f64 with
+              | B754_zero _ _ s => ASN_zero s
+              | B754_infinity _ _ s => ASN_infinity s
+              | B754_nan _ _ _ _ _ => ASN_nan
+              | B754_finite _ _ s m e H =>
+                ASN_finite s radix2 m e (bin64_finite_convertible m e H)
+              end
   end.
 
-Theorem IEEE_to_ASN_inj  (x y : ASN.real) :
-  IEEE_to_ASN x = IEEE_to_ASN y -> x = y.
-*)
+Definition convertible_ASN : ASN_real -> bool.
+Admitted.
+
+Definition ASN_to_IEEE (r : ASN_real) :
+  convertible_ASN r = true -> convertible_IEEE.
+Admitted.
+
+Lemma IEEE_to_ASN_reversible (f : convertible_IEEE) :
+  convertible_ASN (IEEE_to_ASN f) = true.
+Admitted.
+
+Lemma round_trip (f : convertible_IEEE) :
+  ASN_to_IEEE (IEEE_to_ASN f) (IEEE_to_ASN_reversible f) = f.
+Admitted.
