@@ -38,19 +38,30 @@ Definition ASN_to_IEEE (prec emax: Z) (r : real) : option (binary_float prec ema
       end
     end.
 
+Definition option_bind {A B: Type}
+           (f: A -> option B):
+  (option A -> option B) :=
+  fun oa => match oa with
+         | Some a => f a
+         | None => None
+         end.
 
+Definition my_binary_float_eq {prec emax: Z} (a b : binary_float prec emax): bool.
+Admitted.
 
+Definition my_option_cmp {prec emax: Z}
+           (a b : option (binary_float prec emax)): bool :=
+  match a,b with
+  | None, None => true
+  | Some a, Some b => my_binary_float_eq a b
+  | _ , _ => false
+  end.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+Lemma roundtrip {prec emax: Z} (f : binary_float prec emax):
+  my_option_cmp
+    (option_bind
+       (ASN_to_IEEE prec emax)
+       (IEEE_to_ASN f))
+    (Some f) = true.
+Proof.
+Admitted.
