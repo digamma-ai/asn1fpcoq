@@ -143,17 +143,17 @@ Definition good_real (m : positive) (e : Z) (b : radix) : bool :=
   the value "+0" is defined separately in [ 8.5.3 ]
   and, in our scope, shall be treated as a special value
 *)
-Inductive real :=
+Inductive ASN_real :=
   | ASN_zero (s : bool)
   | ASN_infinity (s : bool)
   | ASN_nan
   | ASN_finite (s : bool) (b : radix) (m : positive) (e : Z) :
-    (good_real m e b = true) -> real.
+    (good_real m e b = true) -> ASN_real.
 
 (*
   is the encoding a finite real number
 *)
-Definition is_finite (r : real) : bool :=
+Definition is_finite (r : ASN_real) : bool :=
   match r with
   | ASN_zero _ => true
   | ASN_finite _ _ _ _ _ => true
