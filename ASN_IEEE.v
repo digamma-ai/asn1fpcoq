@@ -51,30 +51,69 @@ Definition option_bind
          | None => None
          end.
 
-Definition meaningful_float_eqb {prec emax : Z} (x y : float prec emax) :=
+Definition float_eqb_nan_t {prec emax : Z} (x y : float prec emax) :=
   match Bcompare prec emax x y with
   | Some Eq => true
   | None => true
   | _ => false
   end.
     
-Definition option_float_eq {prec emax: Z}
+Definition option_float_eqb {prec emax: Z}
            (a b : option (float prec emax)): bool :=
   match a,b with
   | None, None => true
-  | Some a, Some b => meaningful_float_eqb a b
+  | Some a, Some b => float_eqb_nan_t a b
   | _ , _ => false
   end.
 
 (* this statement is currently wrong *)
 Lemma roundtrip {prec emax: Z} (pc : (prec > 1)%Z) (f : float prec emax):
-  option_float_eq
+  option_float_eqb
     (option_bind
        (ASN_to_IEEE prec emax pc)
        (IEEE_to_ASN f))
     (Some f) = true.
 Proof.
-  destruct (IEEE_to_ASN f) eqn:I2Af.
+  destruct IEEE_to_ASN eqn:I2Af.
   - admit.
   - simpl.
+Abort.
+
+(*
+   in line with the current approach,
+   second case is simple
+
+   a separate option_float_eqb' function
+   is meaningless, thus leaving the orb
+*)
+Lemma roundtrip_or_none {prec emax : Z} (pc : (prec > 1)%Z) (f : float prec emax) :
+  let round_f := (option_bind (ASN_to_IEEE prec emax pc) (IEEE_to_ASN f)) in
+  orb
+  (option_float_eqb round_f (Some f))
+  (option_float_eqb round_f None)
+  = true.
+Abort.
+
+(*
+  worst of both worlds
+  not the strongest statement
+*)
+Lemma roundtrip_if_exists {prec emax : Z} (pc : (prec > 1)%Z) (f : float prec emax) :
+  let round_f := (option_bind (ASN_to_IEEE prec emax pc) (IEEE_to_ASN f)) in
+  (exists r : ASN_real, IEEE_to_ASN f = Some r) ->
+  option_float_eqb round_f (Some f) = true.
+Abort.
+
+(*
+  old approach, with all the difficulties
+  gathered in one statement
+
+  similar to _exists, but a stronger statement
+*)
+Definition fits_in_ASN (prec emax : Z) : bool. Admitted.
+
+Lemma roundtrip_prop {prec emax : Z} (pc : (prec > 1)%Z) (f : float prec emax) :
+  let round_f := (option_bind (ASN_to_IEEE prec emax pc) (IEEE_to_ASN f)) in
+  (fits_in_ASN prec emax = true) ->
+  option_float_eqb round_f (Some f) = true.
 Abort.
