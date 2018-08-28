@@ -23,15 +23,20 @@ Definition IEEE_to_ASN {prec emax: Z} (f : float prec emax)
     end
   end.
 
-Fact def_NAN (prec : Z) : nan_pl prec 1 = true.
-Admitted.
+Fact def_NAN (prec : Z) (pc : (prec > 1)%Z) : nan_pl prec 1 = true.
+Proof.
+  unfold nan_pl. simpl.
+  apply Zlt_is_lt_bool.
+  apply Z.gt_lt.
+  apply pc.
+Qed.
 
-Definition ASN_to_IEEE (prec emax: Z) (r : ASN_real)
+Definition ASN_to_IEEE (prec emax: Z) (pc : (prec > 1)%Z) (r : ASN_real)
   : option (float prec emax) :=
     match r with
     | ASN_zero s => Some (B754_zero prec emax s)
     | ASN_infinity s => Some (B754_infinity prec emax s)
-    | ASN_nan => Some (B754_nan prec emax true 1 (def_NAN prec))
+    | ASN_nan => Some (B754_nan prec emax true 1 (def_NAN prec pc))
     | ASN_finite s b m e x =>
       match binary_bounded_sumbool prec emax m e with
       | left B => Some (B754_finite prec emax s m e B)
@@ -61,10 +66,15 @@ Definition option_float_eq {prec emax: Z}
   | _ , _ => false
   end.
 
-Lemma roundtrip {prec emax: Z} (f : float prec emax):
+(* this statement is currently wrong *)
+Lemma roundtrip {prec emax: Z} (pc : (prec > 1)%Z) (f : float prec emax):
   option_float_eq
     (option_bind
-       (ASN_to_IEEE prec emax)
+       (ASN_to_IEEE prec emax pc)
        (IEEE_to_ASN f))
     (Some f) = true.
-Admitted.
+Proof.
+  destruct (IEEE_to_ASN f) eqn:I2Af.
+  - admit.
+  - simpl.
+Abort.
