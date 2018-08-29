@@ -23,7 +23,19 @@ Definition IEEE_to_ASN {prec emax: Z} (f : float prec emax)
     end
   end.
 
-Fact def_NAN (prec : Z) (pc : (prec > 1)%Z) : nan_pl prec 1 = true.
+Definition prec_gt_1 (prec : Z) : Prop := (prec > 1)%Z.
+
+Definition reasonable_float (prec emax : Z) : bool.
+Admitted.
+
+Lemma reasonable_prec_gt_1 {prec emax : Z} (R : reasonable_float prec emax = true) : prec_gt_1 prec.
+Admitted.
+
+Definition reasonable_float_sumbool (prec emax : Z) :=
+  sumbool_of_bool (reasonable_float prec emax).
+
+Fact def_NAN (prec : Z) (pc : prec_gt_1 prec) :
+  nan_pl prec 1 = true.
 Proof.
   unfold nan_pl. simpl.
   apply Zlt_is_lt_bool.
@@ -31,18 +43,22 @@ Proof.
   apply pc.
 Qed.
 
-Definition ASN_to_IEEE (prec emax: Z) (pc : (prec > 1)%Z) (r : ASN_real)
+Definition ASN_to_IEEE (prec emax: Z) (r : ASN_real)
   : option (float prec emax) :=
+  match reasonable_float_sumbool prec emax with
+  | left R =>
     match r with
     | ASN_zero s => Some (B754_zero prec emax s)
     | ASN_infinity s => Some (B754_infinity prec emax s)
-    | ASN_nan => Some (B754_nan prec emax true 1 (def_NAN prec pc))
+    | ASN_nan => Some (B754_nan prec emax true 1 (def_NAN prec (reasonable_prec_gt_1 R)))
     | ASN_finite s b m e x =>
       match binary_bounded_sumbool prec emax m e with
       | left B => Some (B754_finite prec emax s m e B)
       | right _ => None
       end
-    end.
+    end
+  | right _ => None
+  end.
 
 Definition float_eqb_nan_t {prec emax : Z} (x y : float prec emax) : bool :=
   match Bcompare prec emax x y with
@@ -51,8 +67,8 @@ Definition float_eqb_nan_t {prec emax : Z} (x y : float prec emax) : bool :=
   | _ => false
   end.
 
-Lemma roundtrip_if_some {prec emax : Z} (pc : (prec > 1)%Z) (f : float prec emax) :
-  let opt_ASN_to_IEEE := option_bind (ASN_to_IEEE prec emax pc) in
+Lemma roundtrip_if_some {prec emax : Z} (f : float prec emax) :
+  let opt_ASN_to_IEEE := option_bind (ASN_to_IEEE prec emax) in
   let opt_float_eqb_nan_t := bin_bool_option_bind float_eqb_nan_t in
   let ASN_f := IEEE_to_ASN f in
   let round_f := (opt_ASN_to_IEEE ASN_f) in
