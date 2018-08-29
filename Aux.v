@@ -1,3 +1,5 @@
+
+(* Monadic `bind` operation for `option` Monad *)
 Definition option_bind
            {A B: Type} (f: A -> option B) : (option A -> option B) :=
   fun oa => match oa with
@@ -5,12 +7,13 @@ Definition option_bind
          | None => None
          end.
 
-Definition bin_bool_option_bind {A B: Type} (f: A -> B -> bool) : (option A -> option B -> bool) :=
+(* Monadic `liftM2` operation for `option` Monad *)
+Definition option_liftM2
+           {A B C: Type} (f: A -> B -> C) : (option A -> option B -> option C) :=
   fun oa ob => match oa, ob with
-             | None, None => true
-             | Some a, Some b => f a b
-             | _ , _ => false
-             end.
+         | Some a, Some b => Some (f a b)
+         | _, _ => None
+         end.
 
 Definition is_None_b {A : Type} (x : option A) : bool :=
   match x with

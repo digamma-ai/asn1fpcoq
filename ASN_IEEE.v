@@ -76,9 +76,30 @@ Definition float_eqb_nan_t {prec emax : Z} (x y : float prec emax) : bool :=
   | _ => false
   end.
 
+(*
 Lemma roundtrip_if_some {prec emax : Z} (f : float prec emax) :
   let ASN_f := IEEE_to_ASN f in
-  let round_f := (option_bind (ASN_to_IEEE prec emax) ASN_f) in
+  is_Some_b ASN_f = true ->
+  (bin_bool_option_bind float_eqb_nan_t
+                        (option_bind (ASN_to_IEEE prec emax) ASN_f) (Some f)) = true.
+ *)
 
-    is_Some_b ASN_f = true ->
-    (bin_bool_option_bind float_eqb_nan_t round_f (Some f)) = true.
+
+Definition roundtrip {A B: Type}
+           (f: A -> option B)
+           (b: B -> option A)
+           (r: A -> bool) (* restriction on A for which roundtrip must work *)
+           (R: forall (a:A), r a = true -> is_Some_b (f a) = true) (* forward pass guaranteed to work on restriced value *)
+           (e: A -> A -> bool)
+           (x: A): Prop
+  :=
+    option_liftM2 e (option_bind b (f x)) (Some x) = Some true.
+
+Lemma roundtrip_if_some' {prec emax : Z} (f : float prec emax):
+  roundtrip
+    IEEE_to_ASN
+    (ASN_to_IEEE prec emax)
+    is_supported_float
+    all_supported_convert_to_ASN_without_error
+    (float_eqb_nan_t)
+    f.
