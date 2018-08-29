@@ -25,11 +25,20 @@ Definition IEEE_to_ASN {prec emax: Z} (f : float prec emax)
 
 Definition prec_gt_1 (prec : Z) : Prop := (prec > 1)%Z.
 
-Definition reasonable_float (prec emax : Z) : bool.
-Admitted.
+Definition reasonable_float (prec emax : Z) : bool :=
+  andb
+    (Z.gtb prec  1)
+    (Z.gtb emax prec).
 
 Lemma reasonable_prec_gt_1 {prec emax : Z} : reasonable_float prec emax = true -> prec_gt_1 prec.
-Admitted.
+Proof.
+  intros H.
+  unfold reasonable_float in H.
+  apply andb_prop in H.
+  destruct H as [H H1]. clear H1.
+  apply Zgt_is_gt_bool.
+  apply H.
+Qed.
 
 Definition reasonable_float_sumbool (prec emax : Z) :=
   sumbool_of_bool (reasonable_float prec emax).
