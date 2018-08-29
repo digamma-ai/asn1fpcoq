@@ -28,7 +28,7 @@ Definition prec_gt_1 (prec : Z) : Prop := (prec > 1)%Z.
 Definition reasonable_float (prec emax : Z) : bool.
 Admitted.
 
-Lemma reasonable_prec_gt_1 {prec emax : Z} (R : reasonable_float prec emax = true) : prec_gt_1 prec.
+Lemma reasonable_prec_gt_1 {prec emax : Z} : reasonable_float prec emax = true -> prec_gt_1 prec.
 Admitted.
 
 Definition reasonable_float_sumbool (prec emax : Z) :=
@@ -68,10 +68,8 @@ Definition float_eqb_nan_t {prec emax : Z} (x y : float prec emax) : bool :=
   end.
 
 Lemma roundtrip_if_some {prec emax : Z} (f : float prec emax) :
-  let opt_ASN_to_IEEE := option_bind (ASN_to_IEEE prec emax) in
-  let opt_float_eqb_nan_t := bin_bool_option_bind float_eqb_nan_t in
   let ASN_f := IEEE_to_ASN f in
-  let round_f := (opt_ASN_to_IEEE ASN_f) in
+  let round_f := (option_bind (ASN_to_IEEE prec emax) ASN_f) in
 
     is_Some_b ASN_f = true ->
-    (opt_float_eqb_nan_t round_f (Some f)) = true.
+    (bin_bool_option_bind float_eqb_nan_t round_f (Some f)) = true.
