@@ -76,30 +76,105 @@ Definition float_eqb_nan_t {prec emax : Z} (x y : float prec emax) : bool :=
   | _ => false
   end.
 
-(*
-Lemma roundtrip_if_some {prec emax : Z} (f : float prec emax) :
-  let ASN_f := IEEE_to_ASN f in
-  is_Some_b ASN_f = true ->
-  (bin_bool_option_bind float_eqb_nan_t
-                        (option_bind (ASN_to_IEEE prec emax) ASN_f) (Some f)) = true.
- *)
-
+Definition pass_guarantee {A B : Type} (r : A -> bool) (f : A -> option B) : Prop :=
+  forall (a : A), (r a = true -> is_Some_b (f a) = true).
 
 Definition roundtrip {A B: Type}
-           (f: A -> option B)
-           (b: B -> option A)
-           (r: A -> bool) (* restriction on A for which roundtrip must work *)
-           (R: forall (a:A), r a = true -> is_Some_b (f a) = true) (* forward pass guaranteed to work on restriced value *)
-           (e: A -> A -> bool)
-           (x: A): Prop
-  :=
+           (f: A -> option B) (* forward pass *)
+           (b: B -> option A) (* backward pass *)
+           (r: A -> bool) (* subset of A on which roundtrip works *)
+           (R: pass_guarantee r f) (* r guarantees f happens *)
+           (e: A -> A -> bool) (* equivalence on A *)
+           (x: A) (* value *)
+  : Prop :=
+    r x = true ->
     option_liftM2 e (option_bind b (f x)) (Some x) = Some true.
 
-Lemma roundtrip_if_some' {prec emax : Z} (f : float prec emax):
+Definition is_convertible_IEEE (prec emax : Z) (f : float prec emax) : bool :=
+  if (reasonable_float prec emax)
+  then match f with
+       | B754_finite _ _ _ m e _ => good_real m e radix2
+       | _ => true
+       end
+  else false.
+
+Lemma conv_pass_guarantee (prec emax : Z) :
+  pass_guarantee (is_convertible_IEEE prec emax) IEEE_to_ASN.
+Proof.
+  unfold pass_guarantee.
+  intros a.
+  unfold is_convertible_IEEE.
+  destruct (reasonable_float prec emax).
+  - (* reasonable_float = true *)
+    case a.
+      (* B754_zero *)
+        reflexivity.
+      (* B754_infinity *)
+        reflexivity.
+      (* B754_nan *)
+        reflexivity.
+      (* B754_finite *)
+        intros s m e B.
+        unfold IEEE_to_ASN.
+        case good_real_sumbool.
+          (* good_real = true *)
+            reflexivity.
+          (* good_real = false *)
+            intros H1 H2.
+            rewrite -> H1 in H2.
+            inversion H2.
+  - (* reasonable_float = false *)
+    intros H.
+    inversion H.
+Qed.
+
+Lemma IEEE_ASN_roundtrip {prec emax : Z} (f : float prec emax):
   roundtrip
     IEEE_to_ASN
     (ASN_to_IEEE prec emax)
-    is_supported_float
-    all_supported_convert_to_ASN_without_error
+    (is_convertible_IEEE prec emax)
+    (conv_pass_guarantee prec emax)
     (float_eqb_nan_t)
     f.
+Proof.
+  unfold roundtrip.
+  unfold option_liftM2.
+  unfold option_bind.
+  destruct (IEEE_to_ASN f) eqn:ASN_f.
+  - (* ASN_f = Some a *)
+    intros H.
+
+    destruct ASN_to_IEEE eqn:round_f.
+    + (* Some b *)
+      destruct f.
+      * (* zero *)
+        apply Some_elim.
+        unfold float_eqb_nan_t.
+        admit.
+      * (* infinity *)
+        apply Some_elim.
+        unfold float_eqb_nan_t.
+        admit.
+      * (* nan *)
+        apply Some_elim.
+        unfold float_eqb_nan_t.
+        admit.
+      * (* finite *)
+        apply Some_elim.
+        unfold float_eqb_nan_t.
+        admit.
+
+    + (* None *)
+      exfalso.
+      admit.
+
+  - (* ASN_f = None *)
+    intros H.
+    exfalso.
+    generalize (conv_pass_guarantee prec emax).
+    unfold pass_guarantee.
+    intros H1.
+    apply H1 in H. clear H1.
+    rewrite -> ASN_f in H.
+    inversion H.
+Abort.

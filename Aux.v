@@ -1,4 +1,3 @@
-
 (* Monadic `bind` operation for `option` Monad *)
 Definition option_bind
            {A B: Type} (f: A -> option B) : (option A -> option B) :=
@@ -26,3 +25,15 @@ Definition is_Some_b {A : Type} (x : option A) : bool :=
   | Some _ => true
   | _ => false
   end.
+
+Lemma Some_elim {A : Type} (x y : A) :
+  Some x = Some y <-> x = y.
+Proof.
+  split.
+  - intros H.
+    inversion H.
+    reflexivity.
+  - intros H.
+    rewrite H.
+    reflexivity.
+Qed.

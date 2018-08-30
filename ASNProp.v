@@ -21,8 +21,6 @@ Proof.
     + apply gt_Sn_O.
 Qed.
 
-Check Nat.divmod_spec (8 + 7) 7 0 7.
-
 Lemma gt_bitstooctets_O (b : nat) :
   b > 0 -> bits_to_octets b > 0.
 Proof.
