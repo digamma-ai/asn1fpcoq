@@ -1,6 +1,7 @@
 Require Import ZArith Datatypes Sumbool Bool.
 Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux.
 Require Import ASNDef Aux.
+Require Import StructTactics.
 
 Notation float := Binary.binary_float.
 
@@ -27,7 +28,7 @@ Definition prec_gt_1 (prec : Z) : Prop := (prec > 1)%Z.
 
 Definition reasonable_float (prec emax : Z) : bool :=
   andb
-    (Z.gtb prec  1)
+    (Z.gtb prec 1)
     (Z.gtb emax prec).
 
 Lemma reasonable_prec_gt_1 {prec emax : Z} : reasonable_float prec emax = true -> prec_gt_1 prec.
@@ -76,21 +77,17 @@ Definition float_eqb_nan_t {prec emax : Z} (x y : float prec emax) : bool :=
   | _ => false
   end.
 
-Definition pass_guarantee {A B : Type} (r : A -> bool) (f : A -> option B) : Prop :=
-  forall (a : A), (r a = true -> is_Some_b (f a) = true).
-
 Definition roundtrip {A B: Type}
            (f: A -> option B) (* forward pass *)
            (b: B -> option A) (* backward pass *)
-           (r: A -> bool) (* subset of A on which roundtrip works *)
-           (R: pass_guarantee r f) (* r guarantees f happens *)
            (e: A -> A -> bool) (* equivalence on A *)
            (x: A) (* value *)
   : Prop :=
-    r x = true ->
+    is_Some_b (f x) = true ->
     option_liftM2 e (option_bind b (f x)) (Some x) = Some true.
 
-Definition is_convertible_IEEE (prec emax : Z) (f : float prec emax) : bool :=
+(* This defines a subset of float values we support *)
+Definition is_convertible_IEEE {prec emax : Z} (f : float prec emax) : bool :=
   if (reasonable_float prec emax)
   then match f with
        | B754_finite _ _ _ m e _ => good_real m e radix2
@@ -98,10 +95,10 @@ Definition is_convertible_IEEE (prec emax : Z) (f : float prec emax) : bool :=
        end
   else false.
 
-Lemma IEEE_ASN_pass_guarantee (prec emax : Z) :
-  pass_guarantee (is_convertible_IEEE prec emax) IEEE_to_ASN.
+(* Guarantees that for all supported float value forwaed pass does not generate an error *)
+Theorem IEEE_ASN_pass_guarantee (prec emax : Z) :
+  forall (a : float prec emax), (is_convertible_IEEE a = true -> is_Some_b (IEEE_to_ASN a) = true).
 Proof.
-  unfold pass_guarantee.
   intros a.
   unfold is_convertible_IEEE.
   destruct (reasonable_float prec emax).
@@ -128,15 +125,48 @@ Proof.
     inversion H.
 Qed.
 
-Lemma IEEE_ASN_roundtrip {prec emax : Z} (f : float prec emax):
+Ltac some_none :=
+  match goal with
+  | [ H: Some _ = None |- _ ] => inversion H
+  | [ H: None = Some _ |- _ ] => inversion H
+  end.
+
+Ltac true_is_false :=
+  match goal with
+  | [ H: true = false |- _ ] => inversion H
+  | [ H: false = true |- _ ] => inversion H
+  end.
+
+Ltac some_inv :=
+  match goal with
+  | [ H: Some _ = Some _ |- _ ] => inversion H; clear H
+  end.
+
+(*
+Ltac compare_inv :=
+  match goal with
+  | [ H: (?e ?= ?e)%Z = Lt ] => ....
+  | [ H: (?e ?= ?e)%Z = Gt ] => ....
+  end.
+ *)
+
+Theorem IEEE_ASN_roundtrip {prec emax : Z} (f : float prec emax):
   roundtrip
     IEEE_to_ASN
     (ASN_to_IEEE prec emax)
-    (is_convertible_IEEE prec emax)
-    (IEEE_ASN_pass_guarantee prec emax)
     (float_eqb_nan_t)
     f.
 Proof.
+  intros a.
+  unfold float_eqb_nan_t, option_liftM2, option_bind, IEEE_to_ASN, ASN_to_IEEE, is_convertible_IEEE, Bcompare in *.
+  repeat break_match; try some_none; try true_is_false; (repeat try some_inv); subst; try reflexivity.
+
+
+  TODO
+
+
+
+
   unfold roundtrip.
   unfold option_liftM2.
   unfold option_bind.
