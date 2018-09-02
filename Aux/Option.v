@@ -1,6 +1,6 @@
 (* Monadic `bind` operation for `option` Monad *)
 Definition option_bind
-           {A B: Type} (f: A -> option B) : (option A -> option B) :=
+           {A B : Type} (f : A -> option B) : (option A -> option B) :=
   fun oa => match oa with
          | Some a => f a
          | None => None
@@ -8,7 +8,7 @@ Definition option_bind
 
 (* Monadic `liftM2` operation for `option` Monad *)
 Definition option_liftM2
-           {A B C: Type} (f: A -> B -> C) : (option A -> option B -> option C) :=
+           {A B C : Type} (f : A -> B -> C) : (option A -> option B -> option C) :=
   fun oa ob => match oa, ob with
          | Some a, Some b => Some (f a b)
          | _, _ => None
@@ -25,15 +25,3 @@ Definition is_Some_b {A : Type} (x : option A) : bool :=
   | Some _ => true
   | _ => false
   end.
-
-Lemma Some_elim {A : Type} (x y : A) :
-  Some x = Some y <-> x = y.
-Proof.
-  split.
-  - intros H.
-    inversion H.
-    reflexivity.
-  - intros H.
-    rewrite H.
-    reflexivity.
-Qed.

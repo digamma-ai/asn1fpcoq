@@ -1,7 +1,6 @@
 Require Import ZArith Datatypes Sumbool Bool.
 Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux.
-Require Import ASNDef Aux.
-Require Import StructTactics.
+Require Import ASNDef Option StructTactics.
 
 Notation float := Binary.binary_float.
 
@@ -86,7 +85,7 @@ Definition roundtrip {A B: Type}
     is_Some_b (f x) = true ->
     option_liftM2 e (option_bind b (f x)) (Some x) = Some true.
 
-(* This defines a subset of float values we support *)
+(* Indicator function on the subset of the supported float subset *)
 Definition is_convertible_IEEE {prec emax : Z} (f : float prec emax) : bool :=
   if (reasonable_float prec emax)
   then match f with
@@ -125,13 +124,13 @@ Proof.
     inversion H.
 Qed.
 
-Ltac some_none :=
+Ltac some_eq_none_inv :=
   match goal with
   | [ H: Some _ = None |- _ ] => inversion H
   | [ H: None = Some _ |- _ ] => inversion H
   end.
 
-Ltac true_is_false :=
+Ltac true_eq_false_inv :=
   match goal with
   | [ H: true = false |- _ ] => inversion H
   | [ H: false = true |- _ ] => inversion H
@@ -140,6 +139,11 @@ Ltac true_is_false :=
 Ltac some_inv :=
   match goal with
   | [ H: Some _ = Some _ |- _ ] => inversion H; clear H
+  end.
+
+Ltac check_contradiction :=
+  match goal with
+  | [ H1: ?P = true, H2 : ?P = false |- _ ] => rewrite -> H1 in H2; inversion H2
   end.
 
 Ltac compare_nrefl :=
@@ -162,12 +166,6 @@ Ltac compare_nrefl :=
     rewrite -> Pos.compare_cont_refl in H; inversion H
   end.
 
-Ltac my_contradiction :=
-  match goal with
-  | [ H1: ?P = true, H2 : ?P = false |- _ ] => rewrite -> H1 in H2; inversion H2
-  end.
-
-
 Theorem IEEE_ASN_roundtrip {prec emax : Z} (f : float prec emax):
   reasonable_float prec emax = true ->
   roundtrip
@@ -183,7 +181,8 @@ Proof.
 
   repeat break_match; try some_none; (repeat try some_inv); subst;
     try reflexivity; try true_is_false;
-    try compare_nrefl; try my_contradiction.
-    (* if initial conversion does not work *)
-    inversion FPT.
+    try compare_nrefl; try check_contradiction.
+
+  (* if initial conversion does not work *)
+  inversion FPT.
 Qed.
