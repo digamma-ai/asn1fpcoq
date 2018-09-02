@@ -95,7 +95,7 @@ Definition is_convertible_IEEE {prec emax : Z} (f : float prec emax) : bool :=
        end
   else false.
 
-(* Guarantees that for all supported float value forwaed pass does not generate an error *)
+(* Guarantees that for all supported float value forward pass does not generate an error *)
 Theorem IEEE_ASN_pass_guarantee (prec emax : Z) :
   forall (a : float prec emax), (is_convertible_IEEE a = true -> is_Some_b (IEEE_to_ASN a) = true).
 Proof.
@@ -142,348 +142,48 @@ Ltac some_inv :=
   | [ H: Some _ = Some _ |- _ ] => inversion H; clear H
   end.
 
-(*
-Ltac compare_inv :=
+Ltac compare_nrefl :=
   match goal with
-  | [ H: (?e ?= ?e)%Z = Lt ] => ....
-  | [ H: (?e ?= ?e)%Z = Gt ] => ....
+  | [ H: (?z ?= ?z)%Z = Lt |- _ ] =>
+    rewrite -> Z.compare_refl in H; inversion H
+  | [ H: (?z ?= ?z)%Z = Gt |- _ ] =>
+    rewrite -> Z.compare_refl in H; inversion H
+  | [ H: (?p ?= ?p)%positive = Lt |- _ ] =>
+    rewrite -> Pos.compare_refl in H; inversion H
+  | [ H: (?p ?= ?p)%positive = Gt |- _ ] =>
+    rewrite -> Pos.compare_refl in H; inversion H
+  | [ H: _ (Pos.compare_cont Eq ?p ?p) = Lt |- _ ] =>
+    rewrite -> Pos.compare_cont_refl in H; inversion H
+  | [ H: _ (Pos.compare_cont Eq ?p ?p) = Gt |- _ ] =>
+    rewrite -> Pos.compare_cont_refl in H; inversion H
+  | [ H: (Pos.compare_cont Eq ?p ?p) = Lt |- _ ] =>
+    rewrite -> Pos.compare_cont_refl in H; inversion H
+  | [ H: (Pos.compare_cont Eq ?p ?p) = Gt |- _ ] =>
+    rewrite -> Pos.compare_cont_refl in H; inversion H
   end.
- *)
+
+Ltac my_contradiction :=
+  match goal with
+  | [ H1: ?P = true, H2 : ?P = false |- _ ] => rewrite -> H1 in H2; inversion H2
+  end.
+
 
 Theorem IEEE_ASN_roundtrip {prec emax : Z} (f : float prec emax):
+  reasonable_float prec emax = true ->
   roundtrip
     IEEE_to_ASN
     (ASN_to_IEEE prec emax)
     (float_eqb_nan_t)
     f.
 Proof.
-  intros a.
-  unfold float_eqb_nan_t, option_liftM2, option_bind, IEEE_to_ASN, ASN_to_IEEE, is_convertible_IEEE, Bcompare in *.
-  repeat break_match; try some_none; try true_is_false; (repeat try some_inv); subst; try reflexivity.
+  intros RF FPT.
 
+  unfold float_eqb_nan_t, option_liftM2, option_bind,
+  IEEE_to_ASN, ASN_to_IEEE, Bcompare in *.
 
-  TODO
-
-
-
-
-  unfold roundtrip.
-  unfold option_liftM2.
-  unfold option_bind.
-  destruct (IEEE_to_ASN f) eqn:ASN_f.
-  - (* f -> Some a *)
-    intros H.
-    destruct ASN_to_IEEE eqn:round_f.
-
-    + (* f -> Some a -> Some b *)
-      destruct f.
-
-      * (* f = zero *)
-        apply Some_elim.
-        unfold float_eqb_nan_t.
-        destruct b.
-          (* round_f = zero *)
-            reflexivity.
-          (* round_f = infinity *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            rewrite -> Some_elim in ASN_f.
-            rewrite <- ASN_f in round_f.
-            unfold ASN_to_IEEE in round_f.
-            destruct reasonable_float_sumbool in round_f.
-              (* reasonable = true *)
-                inversion round_f.
-              (* reasonable = false *)
-                inversion round_f.
-          (* round_f = nan *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            rewrite -> Some_elim in ASN_f.
-            rewrite <- ASN_f in round_f.
-            unfold ASN_to_IEEE in round_f.
-            destruct reasonable_float_sumbool in round_f.
-              (* reasonable = true *)
-                inversion round_f.
-              (* reasonable = false *)
-                inversion round_f.
-          (* round_f = finite *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            rewrite -> Some_elim in ASN_f.
-            rewrite <- ASN_f in round_f.
-            unfold ASN_to_IEEE in round_f.
-            destruct reasonable_float_sumbool in round_f.
-              (* reasonable = true *)
-                inversion round_f.
-              (* reasonable = false *)
-                inversion round_f.
-
-      * (* f = infinity *)
-        apply Some_elim.
-        unfold float_eqb_nan_t.
-        destruct b.
-          (* round_f = zero *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            rewrite -> Some_elim in ASN_f.
-            rewrite <- ASN_f in round_f.
-            unfold ASN_to_IEEE in round_f.
-            destruct reasonable_float_sumbool in round_f.
-              (* reasonable = true *)
-                inversion round_f.
-              (* reasonable = false *)
-                inversion round_f.
-          (* round_f = infinity *)
-            unfold IEEE_to_ASN in ASN_f.
-            rewrite -> Some_elim in ASN_f.
-            rewrite <- ASN_f in round_f.
-            unfold ASN_to_IEEE in round_f.
-            destruct reasonable_float_sumbool in round_f.
-              (* reasonable = true *)
-                inversion round_f.
-                admit. (* trivial *)
-              (* reasonable = false *)
-                inversion round_f.
-          (* round_f = nan *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            rewrite -> Some_elim in ASN_f.
-            rewrite <- ASN_f in round_f.
-            unfold ASN_to_IEEE in round_f.
-            destruct reasonable_float_sumbool in round_f.
-              (* reasonable = true *)
-                inversion round_f.
-              (* reasonable = false *)
-                inversion round_f.
-          (* round_f = finite *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            rewrite -> Some_elim in ASN_f.
-            rewrite <- ASN_f in round_f.
-            unfold ASN_to_IEEE in round_f.
-            destruct reasonable_float_sumbool in round_f.
-              (* reasonable = true *)
-                inversion round_f.
-              (* reasonable = false *)
-                inversion round_f.
-
-      * (* f = nan *)
-        apply Some_elim.
-        unfold float_eqb_nan_t.
-        destruct b.
-          (* round_f = zero *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            rewrite -> Some_elim in ASN_f.
-            rewrite <- ASN_f in round_f.
-            unfold ASN_to_IEEE in round_f.
-            destruct reasonable_float_sumbool in round_f.
-              (* reasonable = true *)
-                inversion round_f.
-              (* reasonable = false *)
-                inversion round_f.
-          (* round_f = infinity *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            rewrite -> Some_elim in ASN_f.
-            rewrite <- ASN_f in round_f.
-            unfold ASN_to_IEEE in round_f.
-            destruct reasonable_float_sumbool in round_f.
-              (* reasonable = true *)
-                inversion round_f.
-              (* reasonable = false *)
-                inversion round_f.
-          (* round_f = nan *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            rewrite -> Some_elim in ASN_f.
-            rewrite <- ASN_f in round_f.
-            unfold ASN_to_IEEE in round_f.
-            destruct reasonable_float_sumbool in round_f.
-              (* reasonable = true *)
-                inversion round_f.
-                admit.
-              (* reasonable = false *)
-                inversion round_f.
-
-          (* round_f = finite *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            rewrite -> Some_elim in ASN_f.
-            rewrite <- ASN_f in round_f.
-            unfold ASN_to_IEEE in round_f.
-            destruct reasonable_float_sumbool in round_f.
-              (* reasonable = true *)
-                inversion round_f.
-              (* reasonable = false *)
-                inversion round_f.
-
-      * (* f = finite *)
-        apply Some_elim.
-        unfold float_eqb_nan_t.
-        destruct b.
-          (* round_f = zero *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            unfold is_convertible_IEEE in H.
-            destruct good_real_sumbool.
-              (* good_real = true *)
-                inversion ASN_f.
-                rewrite <- H1 in round_f.
-                unfold ASN_to_IEEE in round_f.
-                destruct binary_bounded_sumbool.
-                  (* bounded = true *)
-                    destruct reasonable_float_sumbool.
-                      (* reasonable = true *)
-                        inversion round_f.
-                      (* reasonable = false *)
-                        inversion round_f.
-                   (* bounded = false *)
-                        rewrite -> e0 in e2.
-                        inversion e2.
-              (* good_real = false *)
-                inversion ASN_f.
-
-          (* round_f = infinity *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            unfold is_convertible_IEEE in H.
-            destruct good_real_sumbool.
-              (* good_real = true *)
-                inversion ASN_f.
-                rewrite <- H1 in round_f.
-                unfold ASN_to_IEEE in round_f.
-                destruct binary_bounded_sumbool.
-                  (* bounded = true *)
-                    destruct reasonable_float_sumbool.
-                      (* reasonable = true *)
-                        inversion round_f.
-                      (* reasonable = false *)
-                        inversion round_f.
-                   (* bounded = false *)
-                        rewrite -> e0 in e2.
-                        inversion e2.
-              (* good_real = false *)
-                inversion ASN_f.
-          (* round_f = nan *)
-            exfalso.
-            unfold IEEE_to_ASN in ASN_f.
-            unfold is_convertible_IEEE in H.
-            destruct good_real_sumbool.
-              (* good_real = true *)
-                inversion ASN_f.
-                rewrite <- H1 in round_f.
-                unfold ASN_to_IEEE in round_f.
-                destruct binary_bounded_sumbool.
-                  (* bounded = true *)
-                    destruct reasonable_float_sumbool.
-                      (* reasonable = true *)
-                        inversion round_f.
-                      (* reasonable = false *)
-                        inversion round_f.
-                   (* bounded = false *)
-                        rewrite -> e0 in e3.
-                        inversion e3.
-              (* good_real = false *)
-                inversion ASN_f.
-          (* round_f = finite *)
-            unfold IEEE_to_ASN in ASN_f.
-            unfold is_convertible_IEEE in H.
-            destruct (reasonable_float_sumbool prec emax).
-              (* reasonable_float = true *)
-                rewrite -> e3 in H.
-                destruct good_real_sumbool.
-                  (* good_real = true *)
-                    inversion ASN_f.
-                    rewrite <- H1 in round_f.
-                    unfold ASN_to_IEEE in round_f.
-                    destruct reasonable_float_sumbool.
-                      (* reasonable_float = true *)
-                        destruct binary_bounded_sumbool.
-                          (* binary_bounded = true *)
-                            admit.
-                          (* binary_bounded = false *)
-                            rewrite -> e0 in e6.
-                            inversion e6.
-                      (* reasonable_float = false *)
-                        rewrite -> e3 in e5.
-                        inversion e5.
-                  (* good_real = false *)
-                    rewrite -> e4 in H.
-                    inversion H.
-              (* reasonable_float = false *)
-                rewrite -> e3 in H.
-                inversion H.
-
-
-    + (* round_f = None *)
-      exfalso.
-      destruct f.
-        (* f = zero *)
-          simpl in ASN_f.
-          inversion ASN_f.
-          rewrite <- H1 in round_f.
-          unfold ASN_to_IEEE in round_f.
-          destruct reasonable_float_sumbool.
-            (* reasonable = true *)
-              inversion round_f.
-            (* reasonable = false *) 
-              unfold is_convertible_IEEE in H.
-              rewrite -> e in H.
-              inversion H.
-       (* f = infinity *)
-          simpl in ASN_f.
-          inversion ASN_f.
-          rewrite <- H1 in round_f.
-          unfold ASN_to_IEEE in round_f.
-          destruct reasonable_float_sumbool.
-            (* reasonable = true *)
-              inversion round_f.
-            (* reasonable = false *) 
-              unfold is_convertible_IEEE in H.
-              rewrite -> e in H.
-              inversion H.
-       (* f = nan *)
-          simpl in ASN_f.
-          inversion ASN_f.
-          rewrite <- H1 in round_f.
-          unfold ASN_to_IEEE in round_f.
-          destruct reasonable_float_sumbool.
-            (* reasonable = true *)
-              inversion round_f.
-            (* reasonable = false *) 
-              unfold is_convertible_IEEE in H.
-              rewrite -> e0 in H.
-              inversion H.
-       (* f = finite *)
-          simpl in ASN_f.
-          destruct good_real_sumbool.
-            (* good_real = true *)
-              inversion ASN_f.
-              rewrite <- H1 in round_f.
-              unfold ASN_to_IEEE in round_f.
-              destruct reasonable_float_sumbool.
-                (* reasonable = true *)
-                  destruct binary_bounded_sumbool.
-                    (* bounded = false *)
-                      inversion round_f.
-                    (* bounded = true *)
-                      rewrite -> e0 in e3.
-                      inversion e3.
-                (* reasonable = false *)
-                unfold is_convertible_IEEE in H.
-                rewrite -> e2 in H.
-                inversion H.
-            (* good_real = false *)
-              inversion ASN_f.
-
-  - (* ASN_f = None *)
-    intros H.
-    exfalso.
-    generalize (IEEE_ASN_pass_guarantee prec emax).
-    unfold pass_guarantee.
-    intros H1.
-    apply H1 in H. clear H1.
-    rewrite -> ASN_f in H.
-    inversion H.
-Admitted.
+  repeat break_match; try some_none; (repeat try some_inv); subst;
+    try reflexivity; try true_is_false;
+    try compare_nrefl; try my_contradiction.
+    (* if initial conversion does not work *)
+    inversion FPT.
+Qed.
