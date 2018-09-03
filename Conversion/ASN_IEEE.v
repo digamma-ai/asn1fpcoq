@@ -1,8 +1,6 @@
 Require Import ZArith Datatypes Sumbool Bool.
 Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux.
-Add LoadPath "../ASN".
-Add LoadPath "../Aux".
-Require Import ASNDef Option StructTactics AuxTactics.
+Require Import ASN.ASNDef Aux.Option Aux.StructTactics Aux.Tactics.
 
 Notation float := Binary.binary_float.
 
@@ -89,6 +87,7 @@ Definition roundtrip {A B: Type}
     is_Some_b (f x) = true ->
     option_liftM2 e (option_bind b (f x)) (Some x) = Some true.
 
+(*
 (* Indicator function on the subset of the supported float subset *)
 Definition is_convertible_IEEE {prec emax : Z} (f : float prec emax) : bool :=
   if (reasonable_float prec emax)
@@ -97,6 +96,7 @@ Definition is_convertible_IEEE {prec emax : Z} (f : float prec emax) : bool :=
        | _ => true
        end
   else false.
+*)
 
 (*
 (* Guarantees that for all supported float value forward pass does not generate an error *)
