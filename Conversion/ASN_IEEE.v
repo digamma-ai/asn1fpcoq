@@ -1,6 +1,6 @@
 Require Import ZArith Datatypes Sumbool Bool.
 Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux.
-Require Import ASNDef Option StructTactics.
+Require Import ASNDef Option StructTactics AuxTactics.
 
 Notation float := Binary.binary_float.
 
@@ -9,19 +9,6 @@ Definition good_real_sumbool (m : positive) (e : Z) (b : radix) :=
 
 Definition binary_bounded_sumbool (prec emax: Z) (m: positive) (e:Z) :=
   sumbool_of_bool (Binary.bounded prec emax m e).
-
-Definition IEEE_to_ASN {prec emax: Z} (f : float prec emax)
-  : option ASN_real :=
-  match f with
-  | B754_zero _ _ s => Some (ASN_zero s)
-  | B754_infinity _ _ s => Some (ASN_infinity s)
-  | B754_nan _ _ _ _ _ => Some (ASN_nan)
-  | B754_finite _ _ s m e _ =>
-    match good_real_sumbool m e radix2 with
-    | left G => Some (ASN_finite s radix2 m e G)
-    | right _ => None
-    end
-  end.
 
 Definition prec_gt_1 (prec : Z) : Prop := (prec > 1)%Z.
 
@@ -51,6 +38,21 @@ Proof.
   apply Z.gt_lt.
   apply pc.
 Qed.
+
+Definition IEEE_to_ASN {prec emax: Z} (f : float prec emax)
+  : option ASN_real :=
+  if (reasonable_float prec emax)
+  then match f with
+       | B754_zero _ _ s => Some (ASN_zero s)
+       | B754_infinity _ _ s => Some (ASN_infinity s)
+       | B754_nan _ _ _ _ _ => Some (ASN_nan)
+       | B754_finite _ _ s m e _ =>
+         match good_real_sumbool m e radix2 with
+         | left G => Some (ASN_finite s radix2 m e G)
+         | right _ => None
+         end
+       end
+  else None.
 
 Definition ASN_to_IEEE (prec emax: Z) (r : ASN_real)
   : option (float prec emax) :=
@@ -94,6 +96,7 @@ Definition is_convertible_IEEE {prec emax : Z} (f : float prec emax) : bool :=
        end
   else false.
 
+(*
 (* Guarantees that for all supported float value forward pass does not generate an error *)
 Theorem IEEE_ASN_pass_guarantee (prec emax : Z) :
   forall (a : float prec emax), (is_convertible_IEEE a = true -> is_Some_b (IEEE_to_ASN a) = true).
@@ -123,66 +126,25 @@ Proof.
     intros H.
     inversion H.
 Qed.
-
-Ltac some_eq_none_inv :=
-  match goal with
-  | [ H: Some _ = None |- _ ] => inversion H
-  | [ H: None = Some _ |- _ ] => inversion H
-  end.
-
-Ltac true_eq_false_inv :=
-  match goal with
-  | [ H: true = false |- _ ] => inversion H
-  | [ H: false = true |- _ ] => inversion H
-  end.
-
-Ltac some_inv :=
-  match goal with
-  | [ H: Some _ = Some _ |- _ ] => inversion H; clear H
-  end.
-
-Ltac check_contradiction :=
-  match goal with
-  | [ H1: ?P = true, H2 : ?P = false |- _ ] => rewrite -> H1 in H2; inversion H2
-  end.
-
-Ltac compare_nrefl :=
-  match goal with
-  | [ H: (?z ?= ?z)%Z = Lt |- _ ] =>
-    rewrite -> Z.compare_refl in H; inversion H
-  | [ H: (?z ?= ?z)%Z = Gt |- _ ] =>
-    rewrite -> Z.compare_refl in H; inversion H
-  | [ H: (?p ?= ?p)%positive = Lt |- _ ] =>
-    rewrite -> Pos.compare_refl in H; inversion H
-  | [ H: (?p ?= ?p)%positive = Gt |- _ ] =>
-    rewrite -> Pos.compare_refl in H; inversion H
-  | [ H: _ (Pos.compare_cont Eq ?p ?p) = Lt |- _ ] =>
-    rewrite -> Pos.compare_cont_refl in H; inversion H
-  | [ H: _ (Pos.compare_cont Eq ?p ?p) = Gt |- _ ] =>
-    rewrite -> Pos.compare_cont_refl in H; inversion H
-  | [ H: (Pos.compare_cont Eq ?p ?p) = Lt |- _ ] =>
-    rewrite -> Pos.compare_cont_refl in H; inversion H
-  | [ H: (Pos.compare_cont Eq ?p ?p) = Gt |- _ ] =>
-    rewrite -> Pos.compare_cont_refl in H; inversion H
-  end.
+*)
 
 Theorem IEEE_ASN_roundtrip {prec emax : Z} (f : float prec emax):
-  reasonable_float prec emax = true ->
   roundtrip
     IEEE_to_ASN
     (ASN_to_IEEE prec emax)
     (float_eqb_nan_t)
     f.
 Proof.
-  intros RF FPT.
+  intros FPT.
 
   unfold float_eqb_nan_t, option_liftM2, option_bind,
   IEEE_to_ASN, ASN_to_IEEE, Bcompare in *.
 
-  repeat break_match; try some_none; (repeat try some_inv); subst;
-    try reflexivity; try true_is_false;
+  repeat break_match; try some_eq_none_inv; (repeat try some_inv); subst;
+    try reflexivity; try true_eq_false_inv;
     try compare_nrefl; try check_contradiction.
 
   (* if initial conversion does not work *)
+  inversion FPT.
   inversion FPT.
 Qed.
