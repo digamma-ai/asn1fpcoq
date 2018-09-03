@@ -22,6 +22,10 @@ Ltac check_contradiction :=
   | [ H1: ?P = true, H2 : ?P = false |- _ ] => rewrite -> H1 in H2; inversion H2
   end.
 
+(*
+  different cases for
+  (a ?= a) != Eq
+*)
 Ltac compare_nrefl :=
   match goal with
   | [ H: (Z.compare ?z ?z) = Lt |- _ ] => rewrite -> Z.compare_refl in H; inversion H
