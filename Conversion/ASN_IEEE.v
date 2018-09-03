@@ -1,5 +1,7 @@
 Require Import ZArith Datatypes Sumbool Bool.
 Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux.
+Add LoadPath "../ASN".
+Add LoadPath "../Aux".
 Require Import ASNDef Option StructTactics AuxTactics.
 
 Notation float := Binary.binary_float.
