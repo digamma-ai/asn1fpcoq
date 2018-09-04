@@ -2,7 +2,7 @@ This project's ASN.1 Real encoding implementation  is designed to comply with th
 
 However, the following limitations currently apply:
 
-* Only binary encoding [8.5.7] is considered, leaving decimal encoding [8.5.8] out of the project`s scope.
+* Only binary encoding [8.5.7] is considered, leaving decimal encoding [8.5.8] out of the project's scope.
 * Only short form [8.1.3.4] encoding is considered, leaving long form [8.1.3.5] out of the project's scope.
 * No rounding  or arithmetic rules are imposed on ASN.1 reals, as those are not specified by the standard.
 * Conversion between formats corresponding to IEEE-754 and ASN.1 have the following restrictions:
