@@ -152,7 +152,6 @@ Definition roundtrip {A B: Type}
     is_Some_b (f x) = true ->
     option_liftM2 e (option_bind b (f x)) (Some x) = Some true.
 
-(*
 (* Indicator function on the subset of the supported float subset *)
 Definition is_convertible_IEEE {prec emax : Z} (f : float prec emax) : bool :=
   if (meaningful_float prec emax)
@@ -168,7 +167,8 @@ Theorem IEEE_ASN_pass_guarantee (prec emax : Z) :
 Proof.
   intros a.
   unfold is_convertible_IEEE.
-  destruct (meaningful_float prec emax).
+  unfold IEEE_to_ASN.
+  destruct (meaningful_float prec emax) eqn:MF.
   - (* meaningful_float = true *)
     case a.
       (* B754_zero *)
@@ -182,6 +182,7 @@ Proof.
         unfold IEEE_to_ASN.
         case good_real_sumbool.
           (* good_real = true *)
+            intros GR1 GR2.
             reflexivity.
           (* good_real = false *)
             intros H1 H2.
@@ -191,7 +192,6 @@ Proof.
     intros H.
     inversion H.
 Qed.
-*)
 
 
 (*
