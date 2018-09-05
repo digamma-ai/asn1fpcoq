@@ -83,9 +83,6 @@ Definition IEEE_to_ASN {prec emax: Z} (f : float prec emax)
        end
   else None.
 
-                                                                                (* !!!TODO!!! *)
-                                                      (* ASN radix>2 is converted into radix2 *)
-
 (*
   for any "meaningful" `float prec emax` format
   and any ASN.1 real number s*m*(b^e)
@@ -111,10 +108,12 @@ Definition ASN_to_IEEE (prec emax: Z) (r : ASN_real)
     | ASN_infinity s => Some (B754_infinity prec emax s)
     | ASN_nan => Some (B754_nan prec emax true 1 (def_NAN prec (meaningful_prec_gt_1 R)))
     | ASN_finite s b m e x =>
-      match binary_bounded_sumbool prec emax m e with
-      | left B => Some (B754_finite prec emax s m e B)
-      | right _ => None
-      end
+      if Z.eqb (radix_val b) 2
+      then match binary_bounded_sumbool prec emax m e with
+           | left B => Some (B754_finite prec emax s m e B)
+           | right _ => None
+           end
+      else None
     end
   | right _ => None
   end.
@@ -151,6 +150,42 @@ Definition roundtrip {A B: Type}
   : Prop :=
     is_Some_b (f x) = true ->
     option_liftM2 e (option_bind b (f x)) (Some x) = Some true.
+
+(*
+  roundtrip statement for IEEE->ASN->IEEE conversion
+  (see `roundtrip`)
+
+  if
+    IEEE->ASN happens
+  then
+      ASN->IEEE happens
+    and
+      yields en element, equivalent to
+      the starting one
+*)
+Theorem IEEE_ASN_roundtrip {prec emax : Z} (f : float prec emax):
+  roundtrip
+    IEEE_to_ASN
+    (ASN_to_IEEE prec emax)
+    (float_eqb_nan_t)
+    f.
+Proof.
+  intros FPT.
+
+  unfold float_eqb_nan_t, option_liftM2, option_bind,
+  IEEE_to_ASN, ASN_to_IEEE, Bcompare in *.
+
+  repeat break_match; try some_eq_none_inv; (repeat try some_inv); subst;
+    try reflexivity; try true_eq_false_inv;
+    try compare_nrefl; try check_contradiction.
+
+  (* if initial conversion returns radix != 2 *)
+  inversion Heqb0.
+
+  (* if initial conversion does not work *)
+  inversion FPT.
+  inversion FPT.
+Qed.
 
 (* Indicator function on the subset of the supported float subset *)
 Definition is_convertible_IEEE {prec emax : Z} (f : float prec emax) : bool :=
@@ -191,38 +226,4 @@ Proof.
   - (* meaningful_float = false *)
     intros H.
     inversion H.
-Qed.
-
-
-(*
-  roundtrip statement for IEEE->ASN->IEEE conversion
-  (see `roundtrip`)
-
-  if
-    IEEE->ASN happens
-  then
-      ASN->IEEE happens
-    and
-      yields en element, equivalent to
-      the starting one
-*)
-Theorem IEEE_ASN_roundtrip {prec emax : Z} (f : float prec emax):
-  roundtrip
-    IEEE_to_ASN
-    (ASN_to_IEEE prec emax)
-    (float_eqb_nan_t)
-    f.
-Proof.
-  intros FPT.
-
-  unfold float_eqb_nan_t, option_liftM2, option_bind,
-  IEEE_to_ASN, ASN_to_IEEE, Bcompare in *.
-
-  repeat break_match; try some_eq_none_inv; (repeat try some_inv); subst;
-    try reflexivity; try true_eq_false_inv;
-    try compare_nrefl; try check_contradiction.
-
-  (* if initial conversion does not work *)
-  inversion FPT.
-  inversion FPT.
 Qed.
