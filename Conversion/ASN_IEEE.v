@@ -130,6 +130,29 @@ Definition float_eqb_nan_t {prec emax : Z} (x y : float prec emax) : bool :=
   | _ => false
   end.
 
+
+(*
+Definition float_eqb_nan_t' {prec1 emax1 prec2 emax2 : Z} (x: float prec1 emax1) (y: float prec2 emax2): bool.
+Proof.
+  destruct (Z_eq_dec prec1 prec2), (Z_eq_dec emax1 emax2).
+  -
+    subst.
+    exact (float_eqb_nan_t y x).
+  - exact false.
+  - exact false.
+  - exact false.
+Defined.
+*)
+Definition float_eqb_nan_t' {prec1 emax1 prec2 emax2 : Z} (x: float prec1 emax1) (y: float prec2 emax2): bool:=
+  match Z.eq_dec prec1 prec2, Z.eq_dec emax1 emax2 with
+  | left Ep, left Ee =>
+    eq_rec_r (fun prec' : Z => float prec' emax1 -> bool)
+             (eq_rec_r (fun emax' : Z => float prec2 emax' -> bool)
+                       (float_eqb_nan_t y) Ee)
+             Ep x
+  | _, _ => false
+  end.
+
 (*
     f    b
   A -> B -> A
