@@ -1,6 +1,13 @@
 Require Import ZArith Datatypes Sumbool Bool.
-Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux.
+Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux Flocq.Core.FLX.
 Require Import ASN.ASNDef Aux.Option Aux.StructTactics Aux.Tactics.
+
+
+(* Variable prec emax : Z.                     *)
+(* Context (prec1_gt_0_ : Prec_gt_0 prec).     *)
+(* Let emin := (3 - emax - prec)%Z.            *)
+(* Hypothesis Hmax : (prec < emax)%Z.          *)
+(* Let binary_float := binary_float prec emax. *)
 
 (*
   a meaningful binary_float format is that, for which
@@ -9,11 +16,12 @@ Require Import ASN.ASNDef Aux.Option Aux.StructTactics Aux.Tactics.
     (prec > 1) 
  *)
 Definition meaningful_float (prec emax : Z) : bool :=
-(*andb*)
+andb
     (Z.gtb prec 1)
-    (*(Z.gtb emax prec)*).
+    (Z.ltb prec emax).
 
 Definition prec_gt_1 (prec : Z) : Prop := (prec > 1)%Z.
+Definition prec_gt_0 (prec : Z) : Prop := (prec > 0)%Z.
 
 (*
   any "meaningful" float has precision > 1
@@ -23,18 +31,25 @@ Lemma meaningful_prec_gt_1 {prec emax : Z} :
 Proof.
   intros H.
   unfold meaningful_float in H.
-  (*apply andb_prop in H. 
-  destruct H as [H H1]. clear H1.*)
+  apply andb_prop in H. 
+  destruct H as [H H1]. clear H1.
   apply Zgt_is_gt_bool.
   apply H.
 Qed.
+
+Lemma meaningful_prec_gt_0 {prec emax : Z} :
+  meaningful_float prec emax = true -> Prec_gt_0 prec.
+Admitted.
+Lemma meaningful_hmax {prec emax : Z} :
+  meaningful_float prec emax = true -> Z.lt prec emax.
+Admitted.
 
 (*
   for any meaningful precision, a NaN payload of 1 is encodable
 *)
 Fact def_NAN (prec : Z) (pc : prec_gt_1 prec) :
   nan_pl prec 1 = true.
-Proof.
+
   unfold nan_pl. simpl.
   apply Zlt_is_lt_bool.
   apply Z.gt_lt.
@@ -97,7 +112,7 @@ Definition IEEE_to_BER {prec emax: Z} (f : binary_float prec emax)
      float's NaN payload is set to 0
      (meaning 1, if implicit significand bit is included)
 *)
-Definition BER_to_IEEE (prec emax: Z) (r : BER_float)
+Definition BER_to_IEEE_exact (prec emax: Z) (r : BER_float)
   : option (binary_float prec emax) :=
   match meaningful_float_sumbool prec emax with
   | left R =>
@@ -111,6 +126,22 @@ Definition BER_to_IEEE (prec emax: Z) (r : BER_float)
            | left B => Some (B754_finite prec emax s m e B)
            | right _ => None
            end
+      else None
+    end
+  | right _ => None
+  end.
+
+Definition BER_to_IEEE_round (prec emax: Z) (r : BER_float) (rounding : mode)
+  : option (binary_float prec emax) :=
+  match meaningful_float_sumbool prec emax with
+  | left R =>
+    match r with
+    | BER_zero s => Some (B754_zero prec emax s)
+    | BER_infinity s => Some (B754_infinity prec emax s)
+    | BER_nan => Some (B754_nan prec emax true 1 (def_NAN prec (meaningful_prec_gt_1 R)))
+    | BER_finite s b m e x =>
+      if Z.eqb (radix_val b) 2
+      then Some (binary_normalize prec emax (meaningful_prec_gt_0 R) (meaningful_hmax R) rounding (cond_Zopp s (Zpos m)) e s)
       else None
     end
   | right _ => None
