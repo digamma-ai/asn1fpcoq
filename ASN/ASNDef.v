@@ -3,7 +3,7 @@ Require Import Flocq.Core.Zaux Flocq.Core.Digits.
 (* ISO/IEC 8825-1:2015 *)
 
 (*
-  reals encoded in ASN.1 can have base 2,4,8,16
+  floats encoded in ASN.1 can have base 2,4,8,16
   [ 8.5.7.2 ]
 *)
 Definition radix4  := Build_radix  4 (refl_equal _).
@@ -84,10 +84,10 @@ Proof. reflexivity. Qed.
 Example twos_octets_n128 : twos_octets (- 128) = 1.
 Proof. reflexivity. Qed.
 
-Section ASN.
+Section BER.
 
 (*
-  for practical purposes ASN reals are encoded in short form
+  for practical purposes ASN.1 BER floats are encoded in short form
   thus having a limit of
   127 content octets [ 8.1.3.4 ]
 
@@ -98,6 +98,7 @@ Section ASN.
 
   the total number of octets,
   taken up by significand and exponent, needs to be <= 126
+
 
   if exponent takes up more than 3 octets,
   an additional octet is required to encode exponent's lenth,
@@ -116,7 +117,7 @@ Definition bounded (m : positive) (e : Z) : bool :=
   binary radices defined in ASN.1 BER: 2, 4, 8, 16
   [ 8.5.7.2 ]
 *)
-Definition good_radix (b : radix) : bool :=
+Definition valid_radix (b : radix) : bool :=
   match (radix_val b) with
   | 2%Z => true
   | 4%Z => true
@@ -127,11 +128,11 @@ Definition good_radix (b : radix) : bool :=
 
 (*
   is a given triple (m,e,b)
-  (which is encoding the number m*(b^e))
-  in a format accepted by ASN.1
+  (encoding the number m*(b^e))
+  in a format accepted by ASN.1 BER
 *)
-Definition good_real (m : positive) (e : Z) (b : radix) : bool :=
-  andb (bounded m e) (good_radix b).
+Definition valid_BER (m : positive) (e : Z) (b : radix) : bool :=
+  andb (bounded m e) (valid_radix b).
 (*
   ASN.1 BER "RealSpecialValues":
   +inf, -inf, NaN, -0
@@ -143,21 +144,21 @@ Definition good_real (m : positive) (e : Z) (b : radix) : bool :=
   the value "+0" is defined separately in [ 8.5.3 ]
   and, in our scope, shall be treated as a special value
 *)
-Inductive ASN_real :=
-  | ASN_zero (s : bool)
-  | ASN_infinity (s : bool)
-  | ASN_nan
-  | ASN_finite (s : bool) (b : radix) (m : positive) (e : Z) :
-    (good_real m e b = true) -> ASN_real.
+Inductive BER_float :=
+  | BER_zero (s : bool)
+  | BER_infinity (s : bool)
+  | BER_nan
+  | BER_finite (s : bool) (b : radix) (m : positive) (e : Z) :
+    (valid_BER m e b = true) -> BER_float.
 
 (*
   is the encoding a finite real number
 *)
-Definition is_finite (r : ASN_real) : bool :=
+Definition is_finite (r : BER_float) : bool :=
   match r with
-  | ASN_zero _ => true
-  | ASN_finite _ _ _ _ _ => true
+  | BER_zero _ => true
+  | BER_finite _ _ _ _ _ => true
   | _ => false
   end.
 
-End ASN.
+End BER.

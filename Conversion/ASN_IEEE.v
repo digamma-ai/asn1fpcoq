@@ -2,8 +2,6 @@ Require Import ZArith Datatypes Sumbool Bool.
 Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux.
 Require Import ASN.ASNDef Aux.Option Aux.StructTactics Aux.Tactics.
 
-Notation float := Binary.binary_float.
-
 (*
   a meaningful binary_float format is that, for which
 
@@ -43,8 +41,8 @@ Proof.
   apply pc.
 Qed.
 
-Definition good_real_sumbool (m : positive) (e : Z) (b : radix) :=
-  sumbool_of_bool (good_real m e b).
+Definition valid_BER_sumbool (m : positive) (e : Z) (b : radix) :=
+  sumbool_of_bool (valid_BER m e b).
 
 Definition binary_bounded_sumbool (prec emax: Z) (m: positive) (e:Z) :=
   sumbool_of_bool (Binary.bounded prec emax m e).
@@ -54,7 +52,7 @@ Definition meaningful_float_sumbool (prec emax : Z) :=
 
 (*
   for any "meaningful" float s*m*(2^e)
-  return its ASN.1 representation if possible
+  return its ASN.1 BER representation if possible
 
   NOTE:
   1) ASN.1 representation is set to have radix = 2
@@ -68,16 +66,16 @@ Definition meaningful_float_sumbool (prec emax : Z) :=
   4) After the conversion, IEEE-754 NaN payload is lost,
      as it is not supported by the ASN.1 standard
 *)
-Definition IEEE_to_ASN {prec emax: Z} (f : float prec emax)
-  : option ASN_real :=
+Definition IEEE_to_BER {prec emax: Z} (f : binary_float prec emax)
+  : option BER_float :=
   if (meaningful_float prec emax)
   then match f with
-       | B754_zero _ _ s => Some (ASN_zero s)
-       | B754_infinity _ _ s => Some (ASN_infinity s)
-       | B754_nan _ _ _ _ _ => Some (ASN_nan)
+       | B754_zero _ _ s => Some (BER_zero s)
+       | B754_infinity _ _ s => Some (BER_infinity s)
+       | B754_nan _ _ _ _ _ => Some (BER_nan)
        | B754_finite _ _ s m e _ =>
-         match good_real_sumbool m e radix2 with
-         | left G => Some (ASN_finite s radix2 m e G)
+         match valid_BER_sumbool m e radix2 with
+         | left G => Some (BER_finite s radix2 m e G)
          | right _ => None
          end
        end
@@ -99,15 +97,15 @@ Definition IEEE_to_ASN {prec emax: Z} (f : float prec emax)
      float's NaN payload is set to 0
      (meaning 1, if implicit significand bit is included)
 *)
-Definition ASN_to_IEEE (prec emax: Z) (r : ASN_real)
-  : option (float prec emax) :=
+Definition BER_to_IEEE (prec emax: Z) (r : BER_float)
+  : option (binary_float prec emax) :=
   match meaningful_float_sumbool prec emax with
   | left R =>
     match r with
-    | ASN_zero s => Some (B754_zero prec emax s)
-    | ASN_infinity s => Some (B754_infinity prec emax s)
-    | ASN_nan => Some (B754_nan prec emax true 1 (def_NAN prec (meaningful_prec_gt_1 R)))
-    | ASN_finite s b m e x =>
+    | BER_zero s => Some (B754_zero prec emax s)
+    | BER_infinity s => Some (B754_infinity prec emax s)
+    | BER_nan => Some (B754_nan prec emax true 1 (def_NAN prec (meaningful_prec_gt_1 R)))
+    | BER_finite s b m e x =>
       if Z.eqb (radix_val b) 2
       then match binary_bounded_sumbool prec emax m e with
            | left B => Some (B754_finite prec emax s m e B)
@@ -123,7 +121,7 @@ Definition ASN_to_IEEE (prec emax: Z) (r : ASN_real)
   for normal equality
   or for any two NaN values (NaN payloads not taken into account)
 *)
-Definition float_eqb_nan_t {prec emax : Z} (x y : float prec emax) : bool :=
+Definition float_eqb_nan_t {prec emax : Z} (x y : binary_float prec emax) : bool :=
   match Bcompare prec emax x y with
   | Some Eq => true
   | None => true
@@ -143,11 +141,11 @@ Proof.
   - exact false.
 Defined.
 *)
-Definition float_eqb_nan_t' {prec1 emax1 prec2 emax2 : Z} (x: float prec1 emax1) (y: float prec2 emax2): bool:=
+Definition float_eqb_nan_t' {prec1 emax1 prec2 emax2 : Z} (x: binary_float prec1 emax1) (y: binary_float prec2 emax2): bool:=
   match Z.eq_dec prec1 prec2, Z.eq_dec emax1 emax2 with
   | left Ep, left Ee =>
-    eq_rec_r (fun prec' : Z => float prec' emax1 -> bool)
-             (eq_rec_r (fun emax' : Z => float prec2 emax' -> bool)
+    eq_rec_r (fun prec' : Z => binary_float prec' emax1 -> bool)
+             (eq_rec_r (fun emax' : Z => binary_float prec2 emax' -> bool)
                        (float_eqb_nan_t y) Ee)
              Ep x
   | _, _ => false
@@ -186,24 +184,24 @@ Definition roundtrip {A B: Type}
       yields en element, equivalent to
       the starting one
 *)
-Theorem IEEE_ASN_roundtrip {prec emax : Z} (f : float prec emax):
+Theorem IEEE_ASN_roundtrip {prec emax : Z} (f : binary_float prec emax):
   roundtrip
-    IEEE_to_ASN
-    (ASN_to_IEEE prec emax)
+    IEEE_to_BER
+    (BER_to_IEEE prec emax)
     (float_eqb_nan_t)
     f.
 Proof.
   intros FPT.
 
   unfold float_eqb_nan_t, option_liftM2, option_bind,
-  IEEE_to_ASN, ASN_to_IEEE, Bcompare in *.
+  IEEE_to_BER, BER_to_IEEE, Bcompare in *.
 
   repeat break_match; try some_eq_none_inv; (repeat try some_inv); subst;
     try reflexivity; try true_eq_false_inv;
     try compare_nrefl; try check_contradiction.
 
   (* if initial conversion returns radix != 2 *)
-  inversion Heqb0.
+  inversion Heqb1.
 
   (* if initial conversion does not work *)
   inversion FPT.
@@ -211,21 +209,21 @@ Proof.
 Qed.
 
 (* Indicator function on the subset of the supported float subset *)
-Definition is_convertible_IEEE {prec emax : Z} (f : float prec emax) : bool :=
+Definition is_convertible_IEEE {prec emax : Z} (f : binary_float prec emax) : bool :=
   if (meaningful_float prec emax)
   then match f with
-       | B754_finite _ _ _ m e _ => good_real m e radix2
+       | B754_finite _ _ _ m e _ => valid_BER m e radix2
        | _ => true
        end
   else false.
 
 (* Guarantees that for all supported float value forward pass does not generate an error *)
 Theorem IEEE_ASN_pass_guarantee (prec emax : Z) :
-  forall (a : float prec emax), (is_convertible_IEEE a = true -> is_Some_b (IEEE_to_ASN a) = true).
+  forall (a : binary_float prec emax), (is_convertible_IEEE a = true -> is_Some_b (IEEE_to_BER a) = true).
 Proof.
   intros a.
   unfold is_convertible_IEEE.
-  unfold IEEE_to_ASN.
+  unfold IEEE_to_BER.
   destruct (meaningful_float prec emax) eqn:MF.
   - (* meaningful_float = true *)
     case a.
@@ -237,8 +235,8 @@ Proof.
         reflexivity.
       (* B754_finite *)
         intros s m e B.
-        unfold IEEE_to_ASN.
-        case good_real_sumbool.
+        unfold IEEE_to_BER.
+        case valid_BER_sumbool.
           (* good_real = true *)
             intros GR1 GR2.
             reflexivity.
