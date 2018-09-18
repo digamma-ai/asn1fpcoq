@@ -51,7 +51,3 @@ Proof.
   apply gt_bitstooctets_O.
   apply gt_twosbits_O.
 Qed.
-
-Lemma bits_to_octets_correct (b : nat) :
-  b <= 8 * bits_to_octets b < b + 8.
-Admitted.
