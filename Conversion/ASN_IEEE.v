@@ -178,10 +178,10 @@ Proof.
     try reflexivity; try true_eq_false_inv;
     try compare_nrefl; try check_contradiction.
 
-  (* if initial conversion returns radix /= 2 *)
+  (* if IEEE -> BER returns radix /= 2 *)
   inversion Heqb1.
 
-  (* if initial conversion returns None *)
+  (* if IEEE -> BER returns None *)
   inversion FPT.
 Qed.
 
@@ -280,7 +280,18 @@ Theorem IEEE_BER_roundtrip_rounded (rounding : mode) (f : float) :
     (BER_to_IEEE_round rounding)
     (correctly_rounded_nan_t rounding)
     f.
-Admitted.
+Proof.
+  unfold roundtrip.
+  intros I2BS.
+  unfold float_eqb_nan_t, option_liftM2, option_bind,
+  IEEE_to_BER_exact, BER_to_IEEE_round, correctly_rounded_nan_t, float_eqb_nan_t, IEEE_to_IEEE_round_reset_nan in *.
+  repeat break_match; try some_eq_none_inv; (repeat try some_inv); subst; try reflexivity;
+    try compare_nrefl; try bcompare_nrefl.
 
+  (* if IEEE -> BER returns radix /= 2 *)
+    inversion Heqb1.
+  (* if IEEE -> BER returns None *)
+    inversion I2BS.
+Qed.
 
 End Conversions_rounded.
