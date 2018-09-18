@@ -16,7 +16,8 @@ Definition Prec_gt_1 (prec : Z) := Z.gt prec 1.
       backward pass returns an element,
       equivalent to the starting one
 *)
-Definition roundtrip {A1 A2 B: Type}
+Definition roundtrip
+           (A1 B A2 : Type)
            (f: A1 -> option B) (* forward pass *)
            (b: B -> option A2) (* backward pass *)
            (e: A1 -> A2 -> bool) (* equivalence on A *)
@@ -127,6 +128,7 @@ Section Conversions.
     *)
     Theorem IEEE_BER_roundtrip_exact (f : float):
       roundtrip
+        float BER_float float
         IEEE_to_BER_exact
         (BER_to_IEEE_exact)
         (float_eqb_nan_t)
@@ -292,6 +294,7 @@ Section Conversions.
     *)
     Theorem IEEE_BER_roundtrip_rounded (rounding : mode) (f : float) :
       roundtrip
+        float BER_float target_float
         (IEEE_to_BER_exact)
         (BER_to_IEEE_rounded rounding)
         (correctly_rounded_nan_t rounding)
