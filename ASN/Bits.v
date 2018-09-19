@@ -13,7 +13,7 @@ Section Basic_structure.
   Admitted.
 
   (* the meaningless function *)
-  Let Some_ize {A B : Type} : (A -> B) -> (A -> option B)
+  Definition Some_ize {A B : Type} : (A -> B) -> (A -> option B)
     := compose Some.
 
   (* equality on BER_float *)
@@ -49,6 +49,9 @@ Section Aux.
   Theorem Some_ize_always_some :
     forall (A B : Type) (f : A -> B) (a : A),
       is_Some_b ((Some_ize f) a) = true.
-  Admitted.
+  Proof.
+    intros A B f a.
+    reflexivity.
+  Qed.
 
 End Aux.
