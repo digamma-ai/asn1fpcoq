@@ -1,5 +1,6 @@
 Require Import ZArith.
 Require Import ASN.ASNDef Aux.Option Conversion.ASN_IEEE.
+Require Import Program.Basics.
 
 Section Basic_structure.
 
@@ -12,8 +13,8 @@ Section Basic_structure.
   Admitted.
 
   (* the meaningless function *)
-  Let Some_ize {A B : Type} : (A -> B) -> (A -> option B).
-  Admitted.
+  Let Some_ize {A B : Type} : (A -> B) -> (A -> option B)
+    := compose Some.
 
   (* equality on BER_float *)
   Definition BER_eq_b : BER_float -> BER_float -> bool.
