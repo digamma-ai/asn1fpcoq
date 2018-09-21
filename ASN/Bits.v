@@ -6,18 +6,7 @@ Require Import Flocq.Core.Digits Flocq.Core.Zaux.
 
 Section Basic_structure.
 
-  (* real special values *)
-  (* 00001001 *)
   Let BER_REAL_IDENTIFIER := 9%Z.
-  (* 01000000 *)
-  Let BER_PLUS_INFINITY := 128%Z.
-  (* 01000001 *)
-  Let BER_MINUS_INFINITY := 129%Z.
-  (* 01000010 *)
-  Let BER_NOT_A_NUMBER := 130%Z.
-  (* 01000011 *)
-  Let BER_MINUS_ZERO := 131%Z.
-
 
   (*
     same as Zdigits2,
@@ -31,6 +20,9 @@ Section Basic_structure.
     | Zneg p => Zdigits2 (Zpos p)
     end.
 
+  Definition Zoctets (n : Z) : Z :=
+    (Zbits n + 7) / 8.
+
   (*
     given two numbers [fst] and [snd] representing two bit strings,
     concatentate them, placing [snd] in a string of [bits_snd] bits
@@ -41,32 +33,102 @@ Section Basic_structure.
   Definition join_bits (fst snd : Z) (bits_snd : Z) : Z :=
     (Z.shiftl fst bits_snd + snd)%Z.
 
-  Definition join_bits_safe (fst snd : Z) (bits_snd : Z) : option Z :=
-    if Z.gtb (Zbits snd) bits_snd
-    then None
-    else Some (Z.shiftl fst bits_snd + snd)%Z.
+  Example jb_2_3_5_67 : join_bits 2 3 5 = 67%Z.
+  Proof. reflexivity. Qed.
 
-  Definition Zsign (s : bool) : Z :=
-    match s with
-    | true => 0%Z
-    | false => 1%Z
+  (*
+    concatenate two numbers,
+    encoding the second one in exactly
+    the smallest number of octets
+    that is enough to represent it
+  *)
+  Definition join_octets (fst snd : Z) :Z :=
+    join_bits fst snd (8 * (Zoctets snd)).
+
+  Infix "+o+" := join_octets (at level 100, right associativity).
+
+  (*
+    given the three main blocks of any BER encoding,
+    create the BER bit string
+  *)
+  Definition make_BER_bits (id len content : Z) : Z :=
+    id +o+ len +o+ content.
+
+  (*
+    given the content block of a BER real encoding,
+    create the full bit string
+    (add indentifier and inferred content length)
+  *)
+  Definition make_BER_real_bits (content : Z) : Z :=
+    make_BER_bits BER_REAL_IDENTIFIER (Zoctets content) content.
+
+  Definition BER_sign2Z (s : bool) : Z :=
+    if s then 1 else 0.
+
+  (* TODO: maybe generalize *)
+  Definition BER_radix2Z (b : radix) : Z :=
+    match radix_val b with
+    | 2%Z => 0
+    | 4%Z => 1
+    | 8%Z => 2
+    | 16%Z => 3
+    | _ => 0
     end.
 
-  Definition BER_binary_real_descriptor (s : bool) (r : radix) (scl : Z) (el : Z) : Z :=
+  (* TODO: make all inputs the same level *)
+  Definition BER_binary_real_descriptor (s : bool) (b : radix) (scl : Z) (el : Z) : Z :=
     join_bits
       (join_bits
         (join_bits
-          (Zsign s)
-          (radix_val r)
+           (join_bits
+              1
+              (BER_sign2Z s)
+              1)
+          (BER_radix2Z b)
           2)
       scl
       2)
     el
     2.
-  
-  (* encoding a BER float in a bit-string *)
-  Definition bits_of_BER : BER_float -> Z.
-  Admitted.
+
+  (* TODO: two's complement fix *)
+  (*
+    given the sign, radix, mantissa and exponent of a BER float
+    generate the content block of that float
+  *)
+  Definition make_BER_finite_real_content_no_scl (s : bool) (b : radix) (m : positive) (e : Z) :=
+    let Zm := Zpos m in
+    let e_octets := Zoctets e in
+    let twos_e := Z.of_nat (octet_twos_complement e) in
+    let long_exp := (Z.gtb e_octets 3) in
+    let descriptor := if long_exp
+                      then BER_binary_real_descriptor s b 0 3
+                      else BER_binary_real_descriptor s b 0 (e_octets-1)
+    in
+    if long_exp
+    then descriptor +o+ e_octets +o+ twos_e +o+ Zm
+    else descriptor +o+ twos_e +o+ Zm.
+
+  (* REAL SPECIAL VALUES *)
+  Let BER_PLUS_ZERO_BITS := (* 8.1.3.4 : length octet; 8.5.2 : content octet*)
+    join_octets BER_REAL_IDENTIFIER 0.
+  Let BER_MINUS_ZERO_BITS :=
+    make_BER_real_bits 131.
+  Let BER_PLUS_INFINITY_BITS :=
+    make_BER_real_bits 128.
+  Let BER_MINUS_INFINITY_BITS :=
+    make_BER_real_bits 129.
+  Let BER_NOT_A_NUMBER_BITS :=
+    make_BER_real_bits 130.
+
+  (* encoding a BER float as a bit-string *)
+  Definition bits_of_BER (f : BER_float) : Z :=
+    match f with
+    | BER_zero s => if s then BER_MINUS_ZERO_BITS else BER_PLUS_ZERO_BITS
+    | BER_infinity s => if s then BER_MINUS_INFINITY_BITS else BER_PLUS_INFINITY_BITS
+    | BER_nan => BER_NOT_A_NUMBER_BITS
+    | BER_finite s b m e _ => make_BER_real_bits (make_BER_finite_real_content_no_scl s b m e)
+    end.
 
   (* decoding a bit string to a BER float *)
   Definition BER_of_bits : Z -> option BER_float.
