@@ -1,4 +1,4 @@
-Require Import ZArith.
+Require Import ZArith Zdigits.
 Require Import ASN.ASNDef ASN.ASNCalc Aux.Option Conversion.ASN_IEEE.
 Require Import Program.Basics.
 
@@ -30,7 +30,7 @@ Section Basic_structure.
     e.g.
       join_bits 2 3 5 = 67 ( = 10 00011)
    *)
-  Definition join_bits (fst snd : Z) (bits_snd : Z) : Z :=
+  Let join_bits (fst snd : Z) (bits_snd : Z) : Z :=
     (Z.shiftl fst bits_snd + snd)%Z.
 
   Example jb_2_3_5_67 : join_bits 2 3 5 = 67%Z.
@@ -41,9 +41,15 @@ Section Basic_structure.
     encoding the second one in exactly
     the smallest number of octets
     that is enough to represent it
+
+    e.g.
+      join_octets 2 257 = 131329 (= 10 00000001 00000001)
   *)
   Definition join_octets (fst snd : Z) :Z :=
     join_bits fst snd (8 * (Zoctets snd)).
+
+  Example jo_2_257_131329 : join_octets 2 257 = 131329%Z.
+  Proof. reflexivity. Qed.
 
   Infix "+o+" := join_octets (at level 100, right associativity).
 
@@ -51,7 +57,7 @@ Section Basic_structure.
     given the three main blocks of any BER encoding,
     create the BER bit string
   *)
-  Definition make_BER_bits (id len content : Z) : Z :=
+  Let join_BER_bits (id len content : Z) : Z :=
     id +o+ len +o+ content.
 
   (*
@@ -59,39 +65,18 @@ Section Basic_structure.
     create the full bit string
     (add indentifier and inferred content length)
   *)
-  Definition make_BER_real_bits (content : Z) : Z :=
-    make_BER_bits BER_REAL_IDENTIFIER (Zoctets content) content.
+  Let make_BER_real_bits (content : Z) : Z :=
+    join_BER_bits BER_REAL_IDENTIFIER (Zoctets content) content.
 
-  Definition BER_sign2Z (s : bool) : Z :=
-    if s then 1 else 0.
+  Let BER_radix2Z (b : radix) : Z := Z.log2 b - 1.
 
-  (* TODO: maybe generalize *)
-  Definition BER_radix2Z (b : radix) : Z :=
-    match radix_val b with
-    | 2%Z => 0
-    | 4%Z => 1
-    | 8%Z => 2
-    | 16%Z => 3
-    | _ => 0
-    end.
+  Definition BER_binary_real_descriptor
+             (sign radix scaling_factor exp_octets : Z) : Z :=
+    let bin_sign               := join_bits 1 sign 1 in
+    let bin_sign_radix         := join_bits bin_sign radix 2 in
+    let bin_sign_radix_scaling := join_bits bin_sign_radix scaling_factor 2 in
+    join_bits bin_sign_radix_scaling exp_octets 2.
 
-  (* TODO: make all inputs the same level *)
-  Definition BER_binary_real_descriptor (s : bool) (b : radix) (scl : Z) (el : Z) : Z :=
-    join_bits
-      (join_bits
-        (join_bits
-           (join_bits
-              1
-              (BER_sign2Z s)
-              1)
-          (BER_radix2Z b)
-          2)
-      scl
-      2)
-    el
-    2.
-
-  (* TODO: two's complement fix *)
   (*
     given the sign, radix, mantissa and exponent of a BER float
     generate the content block of that float
@@ -102,8 +87,8 @@ Section Basic_structure.
     let twos_e := Z.of_nat (octet_twos_complement e) in
     let long_exp := (Z.gtb e_octets 3) in
     let descriptor := if long_exp
-                      then BER_binary_real_descriptor s b 0 3
-                      else BER_binary_real_descriptor s b 0 (e_octets-1)
+                      then BER_binary_real_descriptor (bit_value s) (BER_radix2Z b) 0 3
+                      else BER_binary_real_descriptor (bit_value s) (BER_radix2Z b) 0 (e_octets-1)
     in
     if long_exp
     then descriptor +o+ e_octets +o+ twos_e +o+ Zm

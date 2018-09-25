@@ -17,4 +17,4 @@ Let twos_complement (b : nat) (z : Z) : nat :=
   on the smallest number of octets possible
 *)
 Definition octet_twos_complement (z : Z) : nat :=
-  twos_complement (twos_octets z) z.
+  twos_complement (8 * (twos_octets z)) z.
