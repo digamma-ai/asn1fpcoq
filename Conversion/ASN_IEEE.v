@@ -33,10 +33,10 @@ Section Conversions.
   Hypothesis Hmax : (prec < emax)%Z.
   Let float := binary_float prec emax.
 
-  Let valid_BER_sumbool (m : positive) (e : Z) (b : radix) :=
+  Definition valid_BER_sumbool (m : positive) (e : Z) (b : radix) :=
     sumbool_of_bool (valid_BER m e b).
 
-  Let binary_bounded_sumbool (m: positive) (e:Z) :=
+  Definition binary_bounded_sumbool (m: positive) (e:Z) :=
     sumbool_of_bool (Binary.bounded prec emax m e).
 
   Section Exact.
