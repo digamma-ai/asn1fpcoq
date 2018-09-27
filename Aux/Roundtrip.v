@@ -1,4 +1,38 @@
+Require Import Coq.Program.Basics.
+
+Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Data.Monads.OptionMonad.
+
 Require Import Aux.Option.
+
+Import MonadNotation.
+Local Open Scope monad_scope.
+
+(*
+  `b` is invers of `f` wrt. heterogenous equality `e`
+ *)
+Definition bool_het_inverse
+           (A1 B A2 : Type)
+           (f: A1 -> B)
+           (b: B -> A2)
+           (e: A1 -> A2 -> bool)
+           (x: A1)
+: Prop :=
+  e x (compose b f x) = true.
+
+(* monadic version of `bool_het_inverse` *)
+Definition bool_het_inverse'
+           (m: Type -> Type)
+           `{Monad m}
+           (A1 B A2 : Type)
+           (f: A1 -> m B)
+           (b: B -> m A2)
+           (e: A1 -> A2 -> bool)
+           (x: A1)
+  : m bool:=
+  y <- f x ;;
+    x' <- b y ;;
+    ret (e x x').
 
 (*
   "Round-trip" converting between types A1, B, A2:
@@ -19,32 +53,5 @@ Definition roundtrip_option
            (e: A1 -> A2 -> bool) (* equivalence on A *)
            (x: A1) (* value *)
   : Prop :=
-    is_Some_b (f x) = true ->
-    option_liftM2 e (Some x) (option_bind b (f x)) = Some true.
-
-Definition roundtrip
-           (A1 B A2 : Type)
-           (f: A1 -> B)
-           (b: B -> A2)
-           (e: A1 -> A2 -> bool)
-           (x: A1)
-: Prop :=
-  e x (b (f x)) = true.
-
-Definition roundtrip_option'
-           (A1 B A2 : Type)
-           (f: A1 -> option B) (* forward pass *)
-           (b: B -> option A2) (* backward pass *)
-           (e: A1 -> A2 -> bool) (* equivalence on A *)
-           (x: A1) (* value *)
-  : Prop :=
-  let oe := fun a1 oa2 => match oa2 with
-                          | Some a2 => e a1 a2
-                          | None => false end in
-    is_Some_b (f x) = true ->
-    roundtrip
-      A1 (option B) (option A2)
-      f
-      (option_bind b)
-      oe
-      x.
+   is_Some_b (f x) = true ->
+   bool_het_inverse' option A1 B A2 f b e x = Some true.

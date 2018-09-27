@@ -11,7 +11,7 @@ See [assumptions.md](https://github.com/digamma-ai/asn1fpcoq/blob/master/assumpt
 ## Prerequisites
 * [Coq](https://coq.inria.fr/)  
 `opam repo add coq-released http://coq.inria.fr/opam/released`  
-`opam install coq`  
+`opam install coq coq-ext-lib`  
 * [Flocq](http://flocq.gforge.inria.fr/)  
 `opam install coq-flocq`
 

@@ -1,18 +1,4 @@
-(* Monadic `bind` operation for `option` Monad *)
-Definition option_bind
-           {A B : Type} (f : A -> option B) : (option A -> option B) :=
-  fun oa => match oa with
-         | Some a => f a
-         | None => None
-         end.
-
-(* Monadic `liftM2` operation for `option` Monad *)
-Definition option_liftM2
-           {A B C : Type} (f : A -> B -> C) : (option A -> option B -> option C) :=
-  fun oa ob => match oa, ob with
-         | Some a, Some b => Some (f a b)
-         | _, _ => None
-         end.
+Require Import ExtLib.Data.Option.
 
 Definition is_None_b {A : Type} (x : option A) : bool :=
   match x with

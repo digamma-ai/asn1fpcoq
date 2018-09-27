@@ -110,8 +110,8 @@ Section Conversions.
     Proof.
       intros FPT.
 
-      unfold float_eqb_nan_t, option_liftM2, option_bind,
-      IEEE_to_BER_exact, BER_to_IEEE_exact, Bcompare in *.
+      unfold bool_het_inverse', float_eqb_nan_t. simpl.
+      unfold IEEE_to_BER_exact, BER_to_IEEE_exact, Bcompare in *.
 
       repeat break_match; try some_eq_none_inv; (repeat try some_inv); subst;
         try reflexivity; try true_eq_false_inv;
@@ -276,8 +276,8 @@ Section Conversions.
     Proof.
       unfold roundtrip_option.
       intros I2BS.
-      unfold float_eqb_nan_t, option_liftM2, option_bind,
-        IEEE_to_BER_exact, BER_to_IEEE_rounded, correctly_rounded_nan_t,
+      unfold bool_het_inverse', float_eqb_nan_t. simpl.
+      unfold IEEE_to_BER_exact, BER_to_IEEE_rounded, correctly_rounded_nan_t,
         float_eqb_nan_t, IEEE_to_IEEE_round_reset_nan in *.
       repeat break_match; try some_eq_none_inv; (repeat try some_inv); subst; try reflexivity;
         try compare_nrefl; try bcompare_nrefl.
