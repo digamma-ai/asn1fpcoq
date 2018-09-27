@@ -1,5 +1,5 @@
 Require Import ZArith Zdigits Datatypes.
-Require Import ASN.ASNDef ASN.Aux ASN.ASNCalc Aux.Option Aux.Bits Aux.Roundtrip.
+Require Import ASN.ASNDef ASN.Aux Aux.Option Aux.Bits Aux.Roundtrip.
 Require Import Program.Basics.
 Require Import Flocq.Core.Zaux.
 
@@ -54,7 +54,7 @@ Section BER_encoding.
     (add indentifier and inferred content length)
   *)
   Let make_BER_real_bits (content : Z) : Z :=
-    join_BER_bits BER_REAL_IDENTIFIER (Zoctets content) content.
+    join_BER_bits BER_REAL_IDENTIFIER (octets content) content.
 
 
   Let BER_PLUS_ZERO_BITS := (* 8.1.3.4 : length octet; 8.5.2 : content octet*)
@@ -104,8 +104,8 @@ Section BER_encoding.
   *)
   Definition make_BER_finite_real_content_no_scl (s : bool) (b : radix) (m : positive) (e : Z) :=
     let Zm := Zpos m in
-    let e_octets := Zoctets e in
-    let twos_e := Z.of_nat (octet_twos_complement e) in
+    let e_octets := octets e in
+    let twos_e := octet_twos_complement e in
     let long_exp := (Z.gtb e_octets 3) in
     let descriptor := if long_exp
                       then BER_binary_real_descriptor (bit_value s) (BER_radix2Z b) 0 3
@@ -182,7 +182,7 @@ Section BER_decoding.
           &&
           (Z.ltb len 128)
           &&
-          (Z.eqb (Zoctets content) len)
+          (Z.eqb (octets content) len)
           &&
           (Z.eqb t 1)
           &&
@@ -190,7 +190,7 @@ Section BER_decoding.
             ||
             ((Z.ltb ee 3) && (Z.eqb elength (ee+1))))
           &&
-          (Z.eqb (Zoctets exp) elength))%bool
+          (Z.eqb (octets exp) elength))%bool
       then match valid_BER_sumbool significand exp b with
            | left B => Some (BER_finite (BER_Z2sign s) b significand exp B)
            | right _ => None
