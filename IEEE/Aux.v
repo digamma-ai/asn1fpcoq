@@ -1,4 +1,4 @@
-Require Import ZArith.
+Require Import ZArith Sumbool.
 Require Import Flocq.IEEE754.Binary.
 
 (*
@@ -12,6 +12,10 @@ Definition float_eqb_nan_t {prec emax : Z} (x y : binary_float prec emax) : bool
   | None => true
   | _ => false
   end.
+
+Definition binary_bounded_sumbool (prec emax : Z) (m: positive) (e:Z) :=
+  sumbool_of_bool (Binary.bounded prec emax m e).
+
 
 (*
 Definition float_eqb_nan_t' {p e tp te : Z}

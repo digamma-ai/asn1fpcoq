@@ -1,30 +1,8 @@
 Require Import ZArith Datatypes Sumbool Bool.
 Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux Flocq.Core.FLX.
-Require Import ASN.ASNDef IEEE.Aux Aux.Option Aux.StructTactics Aux.Tactics.
+Require Import ASN.ASNDef ASN.Aux IEEE.Aux Aux.Roundtrip Aux.Option Aux.StructTactics Aux.Tactics.
 
 Definition Prec_gt_1 (prec : Z) := Z.gt prec 1.
-
-(*
-  "Round-trip" converting between types A1, B, A2:
-  A1 -> B -> A2
-
-  if
-    forward pass happens
-  then
-      backward pass happens
-    and
-      backward pass returns an element,
-      equivalent to the starting one
-*)
-Definition roundtrip
-           (A1 B A2 : Type)
-           (f: A1 -> option B) (* forward pass *)
-           (b: B -> option A2) (* backward pass *)
-           (e: A1 -> A2 -> bool) (* equivalence on A *)
-           (x: A1) (* value *)
-  : Prop :=
-    is_Some_b (f x) = true ->
-    option_liftM2 e (Some x) (option_bind b (f x)) = Some true.
 
 Section Conversions.
 
@@ -33,11 +11,7 @@ Section Conversions.
   Hypothesis Hmax : (prec < emax)%Z.
   Let float := binary_float prec emax.
 
-  Definition valid_BER_sumbool (m : positive) (e : Z) (b : radix) :=
-    sumbool_of_bool (valid_BER m e b).
-
-  Definition binary_bounded_sumbool (m: positive) (e:Z) :=
-    sumbool_of_bool (Binary.bounded prec emax m e).
+  Let binary_bounded_sumbool := binary_bounded_sumbool prec emax.
 
   Section Exact.
 
