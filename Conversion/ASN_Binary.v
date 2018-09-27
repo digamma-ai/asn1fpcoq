@@ -7,6 +7,12 @@ Definition BER_REAL_IDENTIFIER := 9%Z.
 
 Section BER_atomic.
 
+  (*
+    functions for converting between
+    binary strings of atomic parts of BER real encodings
+    and abstract representations of those parts
+  *)
+
   Definition BER_radix2bits (b : radix) : Z :=
     (Z.log2 b) - 1.
 
@@ -27,7 +33,7 @@ Section BER_atomic.
   Definition BER_bits2sign (s : Z) : bool :=
     if (s =? 1)%Z then true else false.
 
-  (* TODO: two's complement*)
+  (* TODO: perhaps unify? *)
   Definition BER_exp2bits (e : Z) : Z :=
     octet_twos_complement (twos_octets e) e.
 
@@ -39,6 +45,7 @@ End BER_atomic.
 
 Section BER_encoding.
 
+  (* see [join_octets] *)
   Infix "+o+" := join_octets (at level 100, right associativity).
 
   (*
@@ -56,8 +63,10 @@ Section BER_encoding.
   Let make_BER_real_bits (content : Z) : Z :=
     join_BER_bits BER_REAL_IDENTIFIER (octets content) content.
 
-  Let BER_PLUS_ZERO_BITS := (* 8.1.3.4 : length octet; 8.5.2 : content octet*)
+ (* [8.1.3.4] : length octet; [8.5.2] : content octet*)
+  Let BER_PLUS_ZERO_BITS :=
     join_octets BER_REAL_IDENTIFIER 0.
+  (* [8.5.9] : "RealSpecialValues" *)
   Let BER_MINUS_ZERO_BITS :=
     make_BER_real_bits 131.
   Let BER_PLUS_INFINITY_BITS :=
@@ -88,7 +97,10 @@ Section BER_encoding.
                               then BER_NOT_A_NUMBER
                               else BER_FINITE.
 
-  (* join together all parts of descriptor of a BER binary real encoding *)
+  (*
+    join together all parts of the descriptor of a BER binary real
+    NOTE: no atomic conversions are performed here
+  *)
   Definition make_BER_binary_real_descriptor
              (sign radix scaling_factor exp_octets : Z) : Z :=
     let bin_sign               := join_bits 1 sign 1 in
@@ -100,6 +112,7 @@ Section BER_encoding.
   (*
     given the sign, radix, mantissa and exponent of a BER float
     generate the content block of that float
+    NOTE: all atomic conversions are performed here
   *)
   Definition make_BER_finite_real_content_no_scl (s : bool) (b : radix) (m : positive) (e : Z) :=
     let m_bits := Zpos m in
@@ -114,7 +127,6 @@ Section BER_encoding.
     then descriptor +o+ e_olength +o+ e_bits +o+ m_bits
     else descriptor +o+ e_bits +o+ m_bits.
 
-  (* TODO: [8.5.7.4] *)
   (* encoding a BER float as a bit-string *)
   Definition bits_of_BER (f : BER_float) : Z :=
     match f with
@@ -139,7 +151,10 @@ End BER_encoding.
 
 Section BER_decoding.
 
-  (* given the bit string representing a BER, split it into the three main parts *)
+  (*
+    given the bit string representing a BER in short form,
+    split it into the three main parts
+  *)
   Definition split_short_BER (b : Z) : Z * Z * Z :=
     let '(id, len_content) := split_octets_by_fst b 1 in
     let '(len, content) := split_octets_by_fst len_content 1 in
@@ -179,12 +194,12 @@ Section BER_decoding.
     else let '(exp, significand) := split_octets_by_fst content (ee + 1) in
          (t, s, bb, ff, ee, (ee + 1)%Z, exp, significand).
 
-  (* TODO: [8.5.7.4] *)
+  (* TODO: [8.5.7.4] and triple-check the IF *)
   (* decoding a bit string to a BER float *)
   Definition BER_of_bits (b : Z) : option BER_float :=
     let '(id, len, content) := split_short_BER b in
     let '(t, s, bb, ff, ee, e_olength, exp, significand) := split_BER_finite_real_content content in
-    let significand := Z.to_pos significand in
+    let significand := Z.to_pos (significand * (2^ff)) in
     let b := BER_bits2radix bb in
     let exp := BER_bits2exp e_olength exp in
     match classify_BER_float_bits b with
