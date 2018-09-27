@@ -1,9 +1,9 @@
-Require Import ZArith Zdigits Datatypes.
+Require Import ZArith.
 Require Import ASN.ASNDef ASN.Aux Aux.Option Aux.Bits Aux.Roundtrip.
 Require Import Program.Basics.
 Require Import Flocq.Core.Zaux.
 
-Let BER_REAL_IDENTIFIER := 9%Z.
+Definition BER_REAL_IDENTIFIER := 9%Z.
 
 Section BER_atomic.
 
@@ -108,8 +108,8 @@ Section BER_encoding.
     let twos_e := octet_twos_complement e in
     let long_exp := (Z.gtb e_octets 3) in
     let descriptor := if long_exp
-                      then BER_binary_real_descriptor (bit_value s) (BER_radix2Z b) 0 3
-                      else BER_binary_real_descriptor (bit_value s) (BER_radix2Z b) 0 (e_octets-1)
+                      then BER_binary_real_descriptor (BER_sign2Z s) (BER_radix2Z b) 0 3
+                      else BER_binary_real_descriptor (BER_sign2Z s) (BER_radix2Z b) 0 (e_octets-1)
     in
     if long_exp
     then descriptor +o+ e_octets +o+ twos_e +o+ Zm

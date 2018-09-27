@@ -6,3 +6,4 @@
 .coqdeps.d
 Makefile.coq
 Makefile.coq.conf
+*.sh

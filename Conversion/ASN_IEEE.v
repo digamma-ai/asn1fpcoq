@@ -1,6 +1,6 @@
-Require Import ZArith Datatypes Sumbool Bool.
-Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux Flocq.Core.FLX.
+Require Import ZArith.
 Require Import ASN.ASNDef ASN.Aux IEEE.Aux Aux.Roundtrip Aux.Option Aux.StructTactics Aux.Tactics.
+Require Import Flocq.IEEE754.Binary Flocq.Core.Zaux Flocq.Core.FLX.
 
 Definition Prec_gt_1 (prec : Z) := Z.gt prec 1.
 
