@@ -101,7 +101,7 @@ Section Conversions.
           (in which case NaN payload is not taken into account)
     *)
     Theorem IEEE_BER_roundtrip_exact (f : float):
-      roundtrip
+      roundtrip_option
         float BER_float float
         IEEE_to_BER_exact
         (BER_to_IEEE_exact)
@@ -267,14 +267,14 @@ Section Conversions.
           (in which case payloads are not taken into accout)
     *)
     Theorem IEEE_BER_roundtrip_rounded (rounding : mode) (f : float) :
-      roundtrip
+      roundtrip_option
         float BER_float target_float
         (IEEE_to_BER_exact)
         (BER_to_IEEE_rounded rounding)
         (correctly_rounded_nan_t rounding)
         f.
     Proof.
-      unfold roundtrip.
+      unfold roundtrip_option.
       intros I2BS.
       unfold float_eqb_nan_t, option_liftM2, option_bind,
         IEEE_to_BER_exact, BER_to_IEEE_rounded, correctly_rounded_nan_t,

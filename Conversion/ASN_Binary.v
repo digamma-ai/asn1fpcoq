@@ -114,39 +114,37 @@ Section BER_encoding.
     generate the content block of that float
     NOTE: all atomic conversions are performed here
   *)
-  Definition make_BER_finite_real_content_no_scl (s : bool) (b : radix) (m : positive) (e : Z) :=
-    let m_bits := Zpos m in
+  Definition make_BER_finite_real_content (scaled : bool) (s : bool) (b : radix) (m : positive) (e : Z) :=
+    let m := Zpos m in
+    let scaling_factor := if scaled then Z.log2 (m mod b) else 0%Z in
+    let m_bits := (m * 2^scaling_factor)%Z in
     let e_olength := twos_octets e in
     let e_bits := BER_exp2bits e in
     let long_exp := (Z.gtb e_olength 3) in
     let descriptor := if long_exp
-                      then make_BER_binary_real_descriptor (BER_sign2bits s) (BER_radix2bits b) 0 3
-                      else make_BER_binary_real_descriptor (BER_sign2bits s) (BER_radix2bits b) 0 (e_olength-1)
+                      then make_BER_binary_real_descriptor (BER_sign2bits s) (BER_radix2bits b) scaling_factor 3
+                      else make_BER_binary_real_descriptor (BER_sign2bits s) (BER_radix2bits b) scaling_factor (e_olength-1)
     in
     if long_exp
     then descriptor +o+ e_olength +o+ e_bits +o+ m_bits
     else descriptor +o+ e_bits +o+ m_bits.
 
   (* encoding a BER float as a bit-string *)
-  Definition bits_of_BER (f : BER_float) : Z :=
+  Definition bits_of_BER (scaled : bool) (f : BER_float) : Z :=
     match f with
     | BER_zero s => if s then BER_MINUS_ZERO_BITS else BER_PLUS_ZERO_BITS
     | BER_infinity s => if s then BER_MINUS_INFINITY_BITS else BER_PLUS_INFINITY_BITS
     | BER_nan => BER_NOT_A_NUMBER_BITS
     | BER_finite s b m e _ => make_BER_real_bits
-                                (make_BER_finite_real_content_no_scl s b m e)
+                                (make_BER_finite_real_content scaled s b m e)
     end.
 
   Example short_BER_ex1 :
     make_BER_real_bits
-      (make_BER_finite_real_content_no_scl false radix2 532 (- 773)) = 2539330643624468%Z.
+      (make_BER_finite_real_content false false radix2 532 (- 773)) = 2539330643624468%Z.
   Proof. reflexivity. Qed.
 
 End BER_encoding.
-
-
-
-
 
 
 Section BER_decoding.
@@ -247,10 +245,10 @@ End BER_decoding.
       and
         the result is equal to the starting float
   *)
-  Theorem BER_bits_BER_roundtrip (f : BER_float) :
-    roundtrip
+  Theorem BER_bits_BER_roundtrip (scaling : bool) (f : BER_float) :
+    roundtrip_option
       BER_float Z BER_float
-      (Some_ize bits_of_BER)
+      (Some_ize (bits_of_BER scaling))
       (BER_of_bits)
       BER_eq_b
       f.
@@ -260,7 +258,7 @@ End BER_decoding.
 Section Aux.
 
   Theorem bits_of_BER_decodable :
-    forall f : BER_float, is_Some_b (BER_of_bits (bits_of_BER f)) = true.
+    forall (scaling : bool) (f : BER_float), is_Some_b (BER_of_bits (bits_of_BER scaling f)) = true.
   Admitted.
 
   Theorem Some_ize_always_some :
