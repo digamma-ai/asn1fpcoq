@@ -1,5 +1,6 @@
 Require Import PArith ZArith.
 Require Import Flocq.Core.Zaux Flocq.Core.Digits.
+Require Import Aux.Bits.
 (* ISO/IEC 8825-1:2015 *)
 
 (*
@@ -9,80 +10,6 @@ Require Import Flocq.Core.Zaux Flocq.Core.Digits.
 Definition radix4  := Build_radix  4 (refl_equal _).
 Definition radix8  := Build_radix  8 (refl_equal _).
 Definition radix16 := Build_radix 16 (refl_equal _).
-
-(*
-  number of base-2 digits of a positive number
-*)
-Definition bits (p : positive) : nat :=
-  S (digits2_Pnat p).
-
-Example bits_1 : bits 1 = 1.
-Proof. reflexivity. Qed.
-Example bits_8 : bits 8 = 4.
-Proof. reflexivity. Qed.
-
-(*
-  smallest number of bits enough to
-  encode an integers two's complement
-
-  when given N bits, two's complement representation
-  can encode integer values in the range
-  [-2^(N-1), 2^(N-1)-1].
-  _(twos_bits z)_ calculates the smallest N
-  such that _z_ is in that range.
-*)
-Definition twos_bits (z : Z) : nat :=
-  match z with
-    | Z0 => 1
-    | Zpos zp => (bits zp) + 1
-    | Zneg zp => 
-      let zz := Zpos zp in
-
-      if Zeq_bool zz (2 ^ (Z.log2 zz))
-      then (bits zp)
-      else (bits zp) + 1
-  end.
-                                
-Example twos_bits_7 : twos_bits 7 = 4.
-Proof. reflexivity. Qed.
-Example twos_bits_8 : twos_bits 8 = 5.
-Proof. reflexivity. Qed.
-Example twos_bits_n8 : twos_bits (- 8) = 4.
-Proof. reflexivity. Qed.
-
-(*
-  smallest number of octets,
-  which can fit a given number of bits:
-
-  number of bits divided by 8
-  rounded toward positive infinity
-*)
-Definition bits_to_octets (n : nat) : nat :=
-  (n + 7) / 8.
-
-(*
-  smallest number of octets
-  enough to encode a postive number
-*)
-Definition octets (p : positive) : nat :=
-  bits_to_octets (bits p).
-
-Example octets_255 : octets 255 = 1.
-Proof. reflexivity. Qed.
-Example octets_256 : octets 256 = 2.
-Proof. reflexivity. Qed.
-
-(*
-  smallest number of octets enough to
-  encode an integers two's complement.
-*)
-Definition twos_octets (z : Z) : nat :=
-  bits_to_octets (twos_bits z).
-
-Example twos_octets_128 : twos_octets 128 = 2.
-Proof. reflexivity. Qed.
-Example twos_octets_n128 : twos_octets (- 128) = 1.
-Proof. reflexivity. Qed.
 
 Section BER.
 
@@ -107,8 +34,8 @@ Section BER.
   taken up by significand and exponent, needs to be <= 125
 *)
 Definition bounded (m : positive) (e : Z) : bool :=
-  let mo := octets m in
-  let eo := twos_octets e in
+  let mo := octets_Pnat m in
+  let eo := twos_octets_nat e in
   if 3 <? eo
     then (mo + eo) <=? 125
     else (mo + eo) <=? 126.
