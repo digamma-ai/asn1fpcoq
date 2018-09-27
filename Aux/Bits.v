@@ -8,6 +8,7 @@ Section Length.
     match n with
     | Z0 => 1
     | Zpos p => Zdigits2 (Zpos p)
+
     | Zneg p => Zdigits2 (Zpos p)
     end.
 
@@ -88,10 +89,10 @@ Section Twos_complement.
 
   (*
     calculate two's complement of an integer [z]
-    on the smallest number of octets possible
+    on a given number of octets
   *)
-  Definition octet_twos_complement (z : Z) : Z :=
-    twos_complement (8 * (twos_octets z)) z.
+  Definition octet_twos_complement (olength : Z) (z : Z) : Z :=
+    twos_complement (8*olength) z.
 
   Lemma twos_complement_inv (b : Z) (n : Z) :
     Z.gtb n (- 2^(b-1)) = true ->
