@@ -1,5 +1,3 @@
-Require Import ExtLib.Data.Option.
-
 Definition is_None_b {A : Type} (x : option A) : bool :=
   match x with
   | None => true

@@ -1,6 +1,7 @@
 Require Import PArith ZArith.
 Require Import Flocq.Core.Zaux Flocq.Core.Digits.
 Require Import Aux.Bits.
+
 (* ISO/IEC 8825-1:2015 *)
 
 (*
@@ -34,8 +35,8 @@ Section BER.
   taken up by significand and exponent, needs to be <= 125
 *)
 Definition bounded (m : positive) (e : Z) : bool :=
-  let mo := octets_Pnat m in
-  let eo := twos_octets_nat e in
+  let mo := olen_Pnat m in
+  let eo := twos_olen_nat e in
   if 3 <? eo
     then (mo + eo) <=? 125
     else (mo + eo) <=? 126.

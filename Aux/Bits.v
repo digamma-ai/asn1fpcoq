@@ -1,14 +1,14 @@
 Require Import ZArith.
+Require Import Aux.Roundtrip.
 Require Import Flocq.Core.Digits.
 
 Section Length.
 
   (* number of base-2 digits of the absolute value of an integer *)
-  Definition bits (n : Z) : Z :=
+  Definition blen (n : Z) : Z :=
     match n with
     | Z0 => 1
     | Zpos p => Zdigits2 (Zpos p)
-
     | Zneg p => Zdigits2 (Zpos p)
     end.
 
@@ -19,7 +19,7 @@ Section Length.
     number of bits divided by 8
     rounded toward positive infinity
   *)
-  Definition bits_to_octets (n : Z) : Z :=
+  Definition blen_to_olen (n : Z) : Z :=
     (n + 7) / 8.
 
   (*
@@ -27,16 +27,16 @@ Section Length.
     to encode a given number in binary
     (workaround for division with rounding toward +inf)
   *)
-  Definition octets (n : Z) : Z :=
-    bits_to_octets (bits n).
+  Definition olen (n : Z) : Z :=
+    blen_to_olen (blen n).
 
   (* number of base-2 digits of a positive number *)
-  Definition bits_Pnat (p : positive) : nat :=
-    Z.to_nat (bits (Zpos p)).
+  Definition blen_Pnat (p : positive) : nat :=
+    Z.to_nat (blen (Zpos p)).
 
   (* smallest number of octets enough to encode a postive number *)
-  Definition octets_Pnat (p : positive) : nat :=
-    Z.to_nat (bits_to_octets (bits (Zpos p))).
+  Definition olen_Pnat (p : positive) : nat :=
+    Z.to_nat (blen_to_olen (blen (Zpos p))).
 
 End Length.
 
@@ -53,29 +53,29 @@ Section Twos_complement.
     [twos_bits z] calculates the smallest N
     such that [z] is in that range.
   *)
-  Definition twos_bits (z : Z) : Z :=
+  Definition twos_blen (z : Z) : Z :=
     match z with
       | Z0 => 1
-      | Zpos zp => (bits z) + 1
+      | Zpos zp => (blen z) + 1
       | Zneg zp => 
         let zz := Zpos zp in
         if Zeq_bool zz (2 ^ (Z.log2 zz))
-        then (bits zz)
-        else (bits zz) + 1
+        then (blen zz)
+        else (blen zz) + 1
     end.
 
-  Definition twos_bits_nat (z : Z) : nat :=
-    Z.to_nat (twos_bits z).
+  Definition twos_blen_nat (z : Z) : nat :=
+    Z.to_nat (twos_blen z).
 
   (*
     smallest number of octets enough to
     encode an integer's two's complement.
   *)
-  Definition twos_octets (z : Z) : Z :=
-    bits_to_octets (twos_bits z).
+  Definition twos_olen (z : Z) : Z :=
+    blen_to_olen (twos_blen z).
 
-  Definition twos_octets_nat (z : Z) : nat :=
-    Z.to_nat (twos_octets z).
+  Definition twos_olen_nat (z : Z) : nat :=
+    Z.to_nat (twos_olen z).
 
   (* TODO: good description *)
   Definition twos_complement (b : Z) (n : Z) : Z :=
@@ -91,14 +91,47 @@ Section Twos_complement.
     calculate two's complement of an integer [z]
     on a given number of octets
   *)
-  Definition octet_twos_complement (olength : Z) (z : Z) : Z :=
-    twos_complement (8*olength) z.
+  Definition octet_twos_complement (o : Z) (n : Z) : Z :=
+    twos_complement (8*o) n.
 
-  Lemma twos_complement_inv (b : Z) (n : Z) :
-    Z.gtb n (- 2^(b-1)) = true ->
-    Z.ltb n (2^b - 1) = true ->
-    Z.eqb (twos_complement b (twos_complement b n)) n = true.
+  Theorem twos_comp_inv (b n : Z) :
+    let r := (2^(b-1))%Z in
+    Z.gtb b 1 = true ->
+    Z.gtb n (- r) = true ->
+    Z.gtb (r - 1) n = true ->
+    bool_het_inverse
+      Z Z Z
+      (twos_complement b)
+      (twos_complement b)
+      Z.eqb
+      n.
+  Proof.
+    intros r Hb Hl Hh.
+    unfold bool_het_inverse, Basics.compose, twos_complement, twos_complement.
+    destruct (Z.gtb n 0) eqn:H0.
+    - (* >0 *)
+      destruct (Z.gtb n (2^b/2-1)) eqn:Hm.
+      admit. admit.
+    - (* <0 *)
+      destruct (Z.gtb (n + 2^b) 0) eqn:Hm.
+      + admit.
+      + exfalso.
+        try rewrite Z.gtb_lt in *.
+        try rewrite Z.gtb_ltb in *.
+        try rewrite Z.ltb_nlt in *.
+        clear H0 Hh.
+        destruct Hm.
+        apply Z.lt_sub_lt_add_r. simpl.
+        apply (Z.lt_trans (- 2^b) (- r) n).
+          subst r.
+          rewrite <- Z.opp_lt_mono.
+          apply (Z.log2_lt_pow2 (2^(b-1)) b).
+          admit.
+          rewrite Z.log2_pow2.
+          admit. admit. 
+          apply Hl.
   Admitted.
+
 
 End Twos_complement.
 
@@ -117,7 +150,7 @@ Section Operations.
     the smallest number of octets that is enough to represent it
   *)
   Definition join_octets (fst snd : Z) :Z :=
-    join_bits fst snd (8 * (octets snd)).
+    join_bits fst snd (8 * (olen snd)).
 
   (*
     split a string of bits [b] into two,
@@ -132,7 +165,7 @@ Section Operations.
     with the left part having length of [bits_fst] bits
   *)
   Definition split_bits_by_fst (b : Z) (bits_fst : Z) : Z * Z :=
-    split_bits_by_snd b ((bits b) - bits_fst).
+    split_bits_by_snd b ((blen b) - bits_fst).
 
   (*
     split a string of bits [b] into two,
@@ -153,6 +186,6 @@ Section Operations.
         NOT 110011001111 -> 11001100  1111
   *)
   Definition split_octets_by_fst (b : Z) (octets_fst : Z) : Z * Z :=
-    split_octets_by_snd b (octets b - octets_fst).
+    split_octets_by_snd b (olen b - octets_fst).
 
 End Operations.
