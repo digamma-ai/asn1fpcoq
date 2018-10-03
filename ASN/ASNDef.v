@@ -46,13 +46,7 @@ Definition bounded (m : positive) (e : Z) : bool :=
   [ 8.5.7.2 ]
 *)
 Definition valid_radix (b : radix) : bool :=
-  match (radix_val b) with
-  | 2%Z => true
-  | 4%Z => true
-  | 8%Z => true
-  | 16%Z => true
-  | _ => false
-  end.
+  (Z.eqb b 2) || (Z.eqb b 4) || (Z.eqb b 8) || (Z.eqb b 16).
 
 (*
   is a given triple (m,e,b)
