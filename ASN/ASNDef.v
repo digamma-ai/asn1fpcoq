@@ -35,11 +35,11 @@ Section BER.
   taken up by significand and exponent, needs to be <= 125
 *)
 Definition bounded (m : positive) (e : Z) : bool :=
-  let mo := olen_Pnat m in
-  let eo := twos_olen_nat e in
-  if 3 <? eo
-    then (mo + eo) <=? 125
-    else (mo + eo) <=? 126.
+  let mo := olen (Zpos m) in
+  let eo := twos_olen e in
+  if Z.ltb 3 eo
+    then Z.leb (mo + eo) 125
+    else Z.leb (mo + eo) 126.
 
 (*
   binary radices defined in ASN.1 BER: 2, 4, 8, 16

@@ -30,14 +30,6 @@ Section Length.
   Definition olen (n : Z) : Z :=
     blen_to_olen (blen n).
 
-  (* number of base-2 digits of a positive number *)
-  Definition blen_Pnat (p : positive) : nat :=
-    Z.to_nat (blen (Zpos p)).
-
-  (* smallest number of octets enough to encode a postive number *)
-  Definition olen_Pnat (p : positive) : nat :=
-    Z.to_nat (blen_to_olen (blen (Zpos p))).
-
 End Length.
 
 
@@ -64,18 +56,12 @@ Section Twos_complement.
         else (blen zz) + 1
     end.
 
-  Definition twos_blen_nat (z : Z) : nat :=
-    Z.to_nat (twos_blen z).
-
   (*
     smallest number of octets enough to
     encode an integer's two's complement.
   *)
   Definition twos_olen (z : Z) : Z :=
     blen_to_olen (twos_blen z).
-
-  Definition twos_olen_nat (z : Z) : nat :=
-    Z.to_nat (twos_olen z).
 
   (* TODO: good description *)
   Definition twos_complement (b : Z) (n : Z) : Z :=
