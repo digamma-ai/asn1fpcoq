@@ -1,5 +1,5 @@
-Require Import ZArith.
-Require Import Aux.Roundtrip.
+Require Import ZArith Bool.
+Require Import Aux.Roundtrip Aux.Tactics Aux.StructTactics.
 Require Import Flocq.Core.Digits.
 
 Section Length.
@@ -72,6 +72,37 @@ Section Twos_complement.
          then n - r
          else n
     else n + r.
+
+  Definition twos_comp (b : Z) (n : Z) : Z :=
+    n mod (2^b).
+
+  Definition untwos_comp (b : Z) (n : Z) : Z :=
+    let r := (2^b)%Z in
+    if Z.ltb n (r/2)
+    then n
+    else n - r.
+
+  Lemma twos_comp_inv (b : Z) (n : Z) :
+    let r:=(2^b)%Z in
+       Z.ltb 0 b
+    && Z.ltb (-r/2 - 1) n
+    && Z.ltb n (r/2) = true ->
+    bool_het_inverse
+      Z Z Z
+      (twos_comp b)
+      (untwos_comp b)
+      Z.eqb
+      n.
+  Proof.
+    intros r H. repeat split_andb. rewrite Z.ltb_lt in *.
+    unfold bool_het_inverse.
+    unfold untwos_comp, twos_comp.
+    break_match.
+
+
+
+
+
 
   (*
     calculate two's complement of an integer [z]

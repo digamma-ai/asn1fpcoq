@@ -1,5 +1,6 @@
 Require Import ZArith Sumbool Option.
 Require Import ASN.ASNDef Aux.Roundtrip Aux.Bits Aux.StructTactics Aux.Tactics.
+Require Import Lia.
 Require Import Flocq.Core.Zaux.
 
 Require Import Arith.EqNat Strings.String Lists.List.
@@ -35,8 +36,16 @@ Section Bitstring_def.
   | short (id content_olen type sign base scaling exp_olen_b            exponent significand : Z)
   | long  (id content_olen type sign base scaling       lexp exp_olen_o exponent significand : Z).
 
-  Definition BER_bitstring_eqb : BER_bitstring -> BER_bitstring -> bool.
+
+  Definition BER_bitstring_eqb (b1 b2 : BER_bitstring) : bool.
   Admitted.
+    (* match b1, b2 with *)
+    (* | special val1, special val2 => Z.eqb val1 val2 *)
+    (* | short id1 co1 t1 s1 bb1 ff1 ee1 e1 m1, short id2 co2 t2 s2 bb2 ff2 ee2 e2 m2 => *)
+    (* | long id1 co1 t1 s1 bb1 ff1 ee1 eo1 e1 m1, long id2 co2 t2 s2 bb2 ff2 ee2 eo2 e2 m => *)
+    (* | _, _ => false *)
+    (* end. *)
+
 
   Definition valid_special (val : Z) : bool :=
     match (classify_BER val) with
@@ -203,6 +212,32 @@ Section Bitstring_def.
   Lemma valid_short_valid_BER {id co t s bb ff ee e m : Z} :
     valid_short id co t s bb ff ee e m = true ->
     valid_BER (bits2signif m) (bits2exp (ee + 1) e) (bits2radix bb) = true.
+  Proof.
+    unfold valid_short. intros H.
+    repeat split_andb.
+     clear H0. clear H6. clear H7. clear H10. clear H11. clear H12. clear H13.
+     unfold valid_BER. apply andb_true_intro. split.
+    - (* bounded *)
+      clear H8. clear H9.
+      unfold bounded.
+      break_match.
+      + (* long exponent *)
+        exfalso.
+        rewrite Z.ltb_lt in *.
+        apply (Z.lt_trans (olen e) (ee + 2) 5) in H3.
+        (* *)
+
+        (* *)
+          apply (Zplus_lt_compat_r ee 3 2).
+          apply H4.
+
+
+
+
+
+
+    - (* valid_radix *)
+      admit.
   Admitted.
 
   Lemma valid_long_valid_BER {id co t s bb ff ee eo e m : Z} :
@@ -387,7 +422,7 @@ Theorem BER_bits_BER_roundtrip (scaled : bool) (f : BER_float) :
     BER_float Z BER_float
     (Some_ize (BER_to_bits scaled))
     bits_to_BER
-    BER_float_eqb
+    BER_float_strict_eqb
     f.
 Proof.
   unfold roundtrip_option. simpl. intros T. clear T.
