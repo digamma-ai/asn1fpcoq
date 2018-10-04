@@ -6,9 +6,9 @@ Require Import Arith.EqNat Strings.String Lists.List.
 Require Import Template.All Switch.Switch.
 
 Import ListNotations.
+  
 
-Definition BER_float_eqb : BER_float -> BER_float -> bool.
-Admitted.
+
 
 Section Bitstring_def.
 
@@ -139,7 +139,7 @@ Section Bitstring_def.
         Bool.eqb
         s.
     Proof.
-      unfold bool_het_inverse, Basics.compose, bits2sign, sign2bits.
+      unfold bool_het_inverse, bits2sign, sign2bits.
       destruct s.
       - reflexivity.
       - reflexivity.
@@ -159,7 +159,7 @@ Section Bitstring_def.
         Pos.eqb
         m.
     Proof.
-      unfold bool_het_inverse, Basics.compose, bits2signif, signif2bits.
+      unfold bool_het_inverse, bits2signif, signif2bits.
       simpl. apply Pos.eqb_refl.
     Qed.
 
@@ -268,16 +268,65 @@ Section Bitstring_def.
       BER_float BER_bitstring BER_float
       (Some_ize (BER_to_bitstring scaled))
       bitstring_to_BER
-      BER_float_eqb
+      BER_float_strict_eqb
       f.
   Proof.
     unfold roundtrip_option, Some_ize.
     simpl. intros H. clear H.
     unfold bool_het_inverse'. simpl.
     break_match.
-    - admit.
+    - (* pass *)
+      destruct f.
+      + (* zero *)
+        destruct s; simpl in *; inversion Heqo; reflexivity.
+      + (* infinity *)
+        destruct s; simpl in *; inversion Heqo; reflexivity.
+      + (* nan *)
+        inversion Heqo. reflexivity.
+      + (* finite *)
+        simpl in *.
+        unfold finite_BER_to_bitstring in Heqo.
+        destruct (twos_olen e <? 4)%Z.
+        * (* long exponent *)
+          simpl in *.
+          destruct valid_short_sumbool eqn:VS; try some_eq_none_inv.
+          inversion Heqo as [H]. clear Heqo.
+          rewrite sign2bits_inv.
 
-    - exfalso.
+          (* radix needs to be correct to be invertable *)
+          inversion e0 as [BV].
+          unfold valid_BER in BV.
+          apply andb_prop in BV. inversion BV as [B V]. clear B.
+          rewrite (radix2bits_inv b0 V).
+
+          rewrite signif2bits_inv.
+
+          assert (T : Z.eq (twos_olen e - 1 + 1) (twos_olen e)).
+          { admit. }
+          rewrite T.
+          rewrite exp2bits_inv.
+
+          rewrite e0.
+
+          reflexivity.
+        * (* short exponent *)
+          simpl in *.
+          destruct valid_long_sumbool eqn:VS; try some_eq_none_inv.
+          inversion Heqo as [H]. clear Heqo.
+          rewrite sign2bits_inv.
+
+          (* radix needs to be correct to be invertable *)
+          inversion e0 as [BV].
+          unfold valid_BER in BV.
+          apply andb_prop in BV. inversion BV as [B V]. clear B.
+          rewrite (radix2bits_inv b0 V).
+
+          rewrite signif2bits_inv.
+          rewrite exp2bits_inv.
+          rewrite e0.
+          reflexivity.
+    - (* no pass *)
+      exfalso.
       generalize dependent (BER_to_bitstring_correct scaled f). intros C.
       unfold bitstring_to_BER in Heqo.
 
@@ -345,7 +394,7 @@ Proof.
   unfold Some_ize, BER_to_bits, bits_to_BER, Basics.compose, bool_het_inverse'. simpl.
   set (bf := BER_to_bitstring scaled f).
 
-(* ... *)
+  (* ... *)
 
   assert (H : BER_bitstring_eqb bf (bits_to_bitstring (bitstring_to_bits bf)) = true).
   {

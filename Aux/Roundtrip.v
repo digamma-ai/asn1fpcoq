@@ -18,7 +18,7 @@ Definition bool_het_inverse
            (e: A1 -> A2 -> bool)
            (x: A1)
 : Prop :=
-  e x (compose b f x) = true.
+  e x (b (f x)) = true.
 
 (* monadic version of `bool_het_inverse` *)
 Definition bool_het_inverse'

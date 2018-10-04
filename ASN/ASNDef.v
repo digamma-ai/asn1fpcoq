@@ -83,4 +83,18 @@ Definition is_finite (r : BER_float) : bool :=
   | _ => false
   end.
 
+(*
+  strict equality:
+  check if all parts are exactly equal
+*)
+Definition BER_float_strict_eqb (f1 f2 : BER_float) : bool :=
+  match f1,f2 with
+  | BER_zero s1, BER_zero s2 => Bool.eqb s1 s2
+  | BER_infinity s1, BER_infinity s2 => Bool.eqb s1 s2
+  | BER_nan, BER_nan => true
+  | BER_finite s1 b1 m1 e1 _, BER_finite s2 b2 m2 e2 _ =>
+    (Bool.eqb s1 s2) && (Z.eqb b1 b2) && (Pos.eqb m1 m2) && (Z.eqb e1 e2)
+  | _ , _ => false
+  end.
+
 End BER.

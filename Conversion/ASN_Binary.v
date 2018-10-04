@@ -74,13 +74,18 @@ Section BER_encoding.
  (* [8.1.3.4] : length octet; [8.5.2] : content octet*)
   Definition BER_PLUS_ZERO_BITS :=
     join_octets BER_REAL_IDENTIFIER 0.
+    Compute join_octets BER_REAL_IDENTIFIER 0.
+  
   (* [8.5.9] : "RealSpecialValues" *)
   Definition BER_MINUS_ZERO_BITS :=
     make_BER_real_bits 131.
+  Compute make_BER_real_bits 131.
   Definition BER_PLUS_INFINITY_BITS :=
     make_BER_real_bits 128.
+  Compute make_BER_real_bits 128.
   Definition BER_MINUS_INFINITY_BITS :=
     make_BER_real_bits 129.
+  Compute make_BER_real_bits 129.
   Definition BER_NOT_A_NUMBER_BITS :=
     make_BER_real_bits 130.
 
@@ -192,12 +197,6 @@ Run TemplateProgram
   (* TODO: [8.5.7.4] and triple-check the IF *)
   (* decoding a bit string to a BER float *)
   Definition BER_of_bits (b : Z) : option BER_float :=
-    let '(id, len, content) := split_short_BER b in
-    let '(t, s, bb, ff, ee, e_olength, exp, significand) := split_BER_finite_real_content content in
-    let significand := Z.to_pos (significand * (2^ff)) in
-    let bb := BER_bits2radix bb in
-    let exp := BER_bits2exp e_olength exp in
-
     match (classify_BER_special b) with
     | Some pzero => Some (BER_zero false)
     | Some nzero => Some (BER_zero true)
@@ -205,6 +204,11 @@ Run TemplateProgram
     | Some ninf => Some (BER_infinity true)
     | Some nan => Some (BER_nan)
     | None =>
+    let '(id, len, content) := split_short_BER b in
+    let '(t, s, bb, ff, ee, e_olength, exp, significand) := split_BER_finite_real_content content in
+    let significand := Z.to_pos (significand * (2^ff)) in
+    let bb := BER_bits2radix bb in
+    let exp := BER_bits2exp e_olength exp in
       if ((Z.eqb id 9)
           &&
           (Z.ltb len 128)
@@ -296,7 +300,8 @@ End BER_decoding.
         exfalso.
         clear Heqo.
         unfold bits_of_BER in B1.
-        rewrite -> (split_join_BER BER_REAL_IDENTIFIER (olen (make_BER_finite_real_content scaling s b m e)) (make_BER_finite_real_content scaling s b m e)) in B1.
+        rewrite -> (split_join_BER BER_REAL_IDENTIFIER
+        (olen (make_BER_finite_real_content scaling s b m e)) (make_BER_finite_real_content scaling s b m e)) in B1.
         inversion B1. subst. clear B1.
         admit.
       + (* incorrect encoding  form *)
@@ -324,7 +329,7 @@ Admitted.
     simpl. intros H; clear H.
     break_match.
     - admit.
-    - admit.
+    - exfalso.
   Admitted.
 
 Section Aux.
