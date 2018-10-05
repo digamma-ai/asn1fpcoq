@@ -2,6 +2,10 @@ Require Import ZArith Bool.
 Require Import Aux.Roundtrip Aux.Tactics Aux.StructTactics.
 Require Import Flocq.Core.Digits.
 
+Require Import Lia.
+
+Open Scope Z_scope.
+
 Section Length.
 
   (* number of base-2 digits of the absolute value of an integer *)
@@ -65,25 +69,63 @@ Section Twos_complement.
 
   (* TODO: good description *)
   Definition twos_complement (b : Z) (n : Z) : Z :=
-    let r := (2^b)%Z in
+    let r := 2^(b-1) in
     if (Z.gtb n 0)
     then
-      if (Z.gtb n (r/2 - 1))
-         then n - r
+      if (Z.gtb n (r - 1))
+         then n - 2*r
          else n
-    else n + r.
+    else n + 2*r.
+
+    Definition twos_comp_extended (b : Z) (n : Z) : Z :=
+    let r := 2^(b-1) in
+    let dr := 2*r in
+    if (b <? 0)
+    then n
+    else if (n <? -r)
+         then n
+         else if n <? 0
+              then n + dr
+              else if n <? r
+                   then n
+                   else if n <? dr
+                        then n - dr
+                        else n.
+
+    Lemma twos_comp_extended_roundtrip (b : Z) (n : Z) :
+      bool_het_inverse
+        Z Z Z
+        (twos_comp_extended b)
+        (twos_comp_extended b)
+        Z.eqb
+        n.
+    Proof.
+      unfold bool_het_inverse, twos_comp_extended.
+      remember (2^(b-1)) as r.
+      repeat break_match;
+        try rewrite Z.ltb_lt in *;
+        try rewrite Z.ltb_nlt in *;
+        rewrite Z.eqb_eq in *;
+        lia.
+    Qed.
+
+
+
+
 
   Definition twos_comp (b : Z) (n : Z) : Z :=
-    n mod (2^b).
+    if (Z.geb n 0)
+    then n
+    else n + 2^b.
 
   Definition untwos_comp (b : Z) (n : Z) : Z :=
-    let r := (2^b)%Z in
+    let r := 2^b in
     if Z.ltb n (r/2)
     then n
     else n - r.
 
   Lemma twos_comp_inv (b : Z) (n : Z) :
-    let r:=(2^b)%Z in
+    let r := 2^b in
        Z.ltb 0 b
     && Z.ltb (-r/2 - 1) n
     && Z.ltb n (r/2) = true ->
@@ -94,10 +136,27 @@ Section Twos_complement.
       Z.eqb
       n.
   Proof.
-    intros r H. repeat split_andb. rewrite Z.ltb_lt in *.
+    (*
+    intros r H. subst r. repeat split_andb. rewrite Z.ltb_lt in *.
     unfold bool_het_inverse.
-    unfold untwos_comp, twos_comp.
-    break_match.
+    unfold twos_comp, untwos_comp.
+    break_match. remember (2^b) as r.
+    rewrite Z.ltb_lt in Heqb0.
+    rewrite Z.eqb_eq.
+    - break_match.
+      + reflexivity.
+      + 
+    *)
+  Admitted.
+
+       
+
+
+
+
+
+
+
 
 
 
@@ -111,7 +170,7 @@ Section Twos_complement.
   Definition octet_twos_complement (o : Z) (n : Z) : Z :=
     twos_complement (8*o) n.
 
-  Theorem twos_comp_inv (b n : Z) :
+  Theorem twos_comp_inv' (b n : Z) :
     let r := (2^(b-1))%Z in
     Z.gtb b 1 = true ->
     Z.gtb n (- r) = true ->
@@ -123,34 +182,10 @@ Section Twos_complement.
       Z.eqb
       n.
   Proof.
-    intros r Hb Hl Hh.
-    unfold bool_het_inverse, Basics.compose, twos_complement, twos_complement.
-    destruct (Z.gtb n 0) eqn:H0.
-    - (* >0 *)
-      destruct (Z.gtb n (2^b/2-1)) eqn:Hm.
-      admit. admit.
-    - (* <0 *)
-      destruct (Z.gtb (n + 2^b) 0) eqn:Hm.
-      + admit.
-      + exfalso.
-        try rewrite Z.gtb_lt in *.
-        try rewrite Z.gtb_ltb in *.
-        try rewrite Z.ltb_nlt in *.
-        clear H0 Hh.
-        destruct Hm.
-        apply Z.lt_sub_lt_add_r. simpl.
-        apply (Z.lt_trans (- 2^b) (- r) n).
-          subst r.
-          rewrite <- Z.opp_lt_mono.
-          apply (Z.log2_lt_pow2 (2^(b-1)) b).
-          admit.
-          rewrite Z.log2_pow2.
-          admit. admit. 
-          apply Hl.
   Admitted.
 
-
 End Twos_complement.
+
 
 
 Section Operations.
