@@ -22,24 +22,24 @@ Section BER.
   1 of these is used by a standard information octet
   [ 8.5.6 - 8.5.7.4 ]
 
-  126 is left.
+  126 are left.
 
   the total number of octets,
-  taken up by significand and exponent, needs to be <= 126
+  taken up by significand and exponent, needs to be < 127
 
 
   if exponent takes up more than 3 octets,
   an additional octet is required to encode exponent's lenth,
   [ 8.5.7.4 d) ]
   thus the total number of octets,
-  taken up by significand and exponent, needs to be <= 125
+  taken up by significand and exponent, needs to be < 126
 *)
 Definition bounded (m : positive) (e : Z) : bool :=
   let mo := olen (Zpos m) in
   let eo := twos_olen e in
   if Z.ltb 3 eo
-    then Z.leb (mo + eo) 125
-    else Z.leb (mo + eo) 126.
+    then Z.ltb (mo + eo) 126
+    else Z.ltb (mo + eo) 127.
 
 (*
   binary radices defined in ASN.1 BER: 2, 4, 8, 16
