@@ -1,5 +1,5 @@
 Require Import ZArith Sumbool Option.
-Require Import ASN.ASNDef Aux.Roundtrip Aux.Bits Aux.StructTactics Aux.Tactics.
+Require Import ASN.ASNDef Aux.Roundtrip Aux.Bits Aux.StructTactics Aux.Tactics ASN.Aux.
 Require Import Lia.
 Require Import Flocq.Core.Zaux.
 
@@ -227,11 +227,8 @@ Section Bitstring_def.
         unfold correct_short_co in H13.
         unfold bits2signif.
         rewrite Z2Pos.id.
-        
-      + (* short *)
+        admit.
 
-
-    - (* valid_radix *)
   Admitted.
 
   Lemma valid_long_valid_BER {id co t s bb ff ee eo e m : Z} :
@@ -259,18 +256,16 @@ Section Bitstring_def.
       end
 
     | short id co t s bb ff ee    e m =>
-      match valid_short_sumbool id co t s bb ff ee e m with
-      | right _ => None
-      | left V =>
-        Some (BER_finite
-                (bits2sign s)
-                (bits2radix bb)
-                (bits2signif m)
-                (bits2exp (ee + 1) e)
-                (valid_short_valid_BER V)
-             )
-      end
-
+      let m' := bits2signif m in
+      let e' := bits2exp (ee + 1) e in
+      let b' := bits2radix bb in
+      if valid_short id co t s bb ff ee e m then
+        match valid_BER_sumbool m' e' b' with
+        | left V => Some (BER_finite (bits2sign s) b' m' e' V)
+        | right _ => None
+        end
+      else
+        None
     | long  id co t s bb ff ee eo e m =>
       match valid_long_sumbool id co t s bb ff ee eo e m with
       | right _ => None
