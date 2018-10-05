@@ -5,6 +5,7 @@ Require Import Flocq.Core.Zaux.
 
 Require Import Arith.EqNat Strings.String Lists.List.
 Require Import Template.All Switch.Switch.
+Require Import Basics.
 
 Import ListNotations.
   
@@ -54,7 +55,7 @@ Section Bitstring_def.
     end.
 
   Definition correct_short_co (co e m : Z) : bool :=
-    Z.eqb co (olen e + olen m + 1).
+    Z.eqb co (olen e + olen m + 1) && Z.ltb co 128.
 
   Definition valid_short (id co t s bb ff ee e m : Z) : bool :=
        (Z.eqb id 9)                      (* identifier is "REAL" *)
@@ -172,11 +173,12 @@ Section Bitstring_def.
       simpl. apply Pos.eqb_refl.
     Qed.
 
-    Definition exp2bits (e_olen e : Z) : Z.
-    Admitted.
+    Definition exp2bits (e_olen e : Z) : Z :=
+      twos_comp_extended (8 * e_olen) e.
 
-    Definition bits2exp (e_olen e : Z) : Z.
-    Admitted.
+
+    Definition bits2exp (e_olen e : Z) : Z :=
+      twos_comp_extended (8 * e_olen) e.
 
     Lemma exp2bits_inv (e_olen e  : Z) :
       bool_het_inverse
@@ -185,7 +187,9 @@ Section Bitstring_def.
         (bits2exp e_olen)
         Z.eqb
         e.
-    Admitted.
+    Proof.
+      apply twos_comp_extended_roundtrip.
+    Qed.
 
   End Atomic.
 
@@ -214,30 +218,20 @@ Section Bitstring_def.
     valid_BER (bits2signif m) (bits2exp (ee + 1) e) (bits2radix bb) = true.
   Proof.
     unfold valid_short. intros H.
-    repeat split_andb.
-     clear H0. clear H6. clear H7. clear H10. clear H11. clear H12. clear H13.
+    repeat split_andb; rewrite Z.ltb_lt in *; rewrite Z.eqb_eq in *.
      unfold valid_BER. apply andb_true_intro. split.
     - (* bounded *)
-      clear H8. clear H9.
       unfold bounded.
       break_match.
-      + (* long exponent *)
-        exfalso.
-        rewrite Z.ltb_lt in *.
-        apply (Z.lt_trans (olen e) (ee + 2) 5) in H3.
-        (* *)
-
-        (* *)
-          apply (Zplus_lt_compat_r ee 3 2).
-          apply H4.
-
-
-
-
+      + (* long *)
+        unfold correct_short_co in H13.
+        unfold bits2signif.
+        rewrite Z2Pos.id.
+        
+      + (* short *)
 
 
     - (* valid_radix *)
-      admit.
   Admitted.
 
   Lemma valid_long_valid_BER {id co t s bb ff ee eo e m : Z} :
@@ -293,7 +287,16 @@ Section Bitstring_def.
 
   Lemma BER_to_bitstring_correct (scaled : bool) (f : BER_float) :
     correct_bitstring (BER_to_bitstring scaled f) = true.
-  Admitted.
+  Proof.
+    unfold BER_to_bitstring.
+    repeat break_match; try reflexivity.
+    unfold finite_BER_to_bitstring.
+    break_match.
+    - (* short *)
+      unfold correct_bitstring.
+    - (* long *)
+  Qed.
+
 
   Definition Some_ize {A B : Type} : (A -> B) -> (A -> option B)
     := Basics.compose Some.
@@ -336,8 +339,8 @@ Section Bitstring_def.
 
           rewrite signif2bits_inv.
 
-          assert (T : Z.eq (twos_olen e - 1 + 1) (twos_olen e)).
-          { admit. }
+          remember (twos_olen e) as toe.
+          assert (T : (toe - 1 + 1 = toe)%Z) by ring.
           rewrite T.
           rewrite exp2bits_inv.
 
@@ -388,7 +391,8 @@ Section Bitstring_def.
         * clear Heqo.
           unfold correct_bitstring in C.
           rewrite e in C. inversion C.
-  Admitted.
+  Qed.
+
 
 End Bitstring_def.
 
