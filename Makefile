@@ -2,16 +2,36 @@ LIBNAME := asn1fpcoq
 
 .SUFFIXES:
 
-.PHONY: default config clean clean-dep distclean clean-doc tags doc install-doc install-dist targz wc
+.PHONY: default config clean clean-dep distclean clean-doc tags doc install-doc install-dist targz wc extracted
 
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
+COQPKGFLAGS := -R ASN ASN -R Aux Aux -R Conversion Conversion -R IEEE IEEE
+
+COQEXEC="$(COQBIN)coqtop" -q -w none $(COQINCLUDES) $(COQPKGFLAGS) -batch -load-vernac-source
 
 LIBVFILES := Aux/StructTactics.v
-VFILES := $(shell find . -name \*.v | grep -v .\# | cut -c 3- )
+
+VFILES := $(shell find . -name \*.v | grep -v .\#  | grep -v ml/ | cut -c 3- )
+#VFILES := $(COQFILES:%=coq/%.v)
+VOFILES := $(COQFILES:%=coq/%.vo)
+
 MYVFILES := $(filter-out $(LIBVFILES), $(VFILES))
+
+# OCaml sources
+MLDIR = ml
+EXTRACTDIR = ml/extracted
+TSTAMP = $(EXTRACTDIR)/.timestamp
 
 default: Makefile.coq 
 	$(MAKECOQ)
+
+extracted: $(TSTAMP)
+
+$(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
+	@echo "Extracting"
+	rm -f $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli
+	$(COQEXEC) $(EXTRACTDIR)/Extract.v
+	touch $(TSTAMP)
 
 install-dep:
 	opam instal coq coq-flocq
