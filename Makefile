@@ -27,8 +27,7 @@ MLDIR = ml
 EXTRACTDIR = ml/extracted
 TSTAMP = $(EXTRACTDIR)/.timestamp
 
-all:
-	@test -f .depend || $(MAKE) depend
+all: .depend
 	$(MAKE) coq
 	$(MAKE) extracted
 	$(MAKE) $(EXE)
@@ -39,7 +38,7 @@ default: all
 
 extracted: $(TSTAMP)
 
-depend: $(VFILES) 
+.depend: $(VFILES) 
 	@echo "Analyzing Coq dependencies in" $(VFILES)
 	@$(COQDEP) $^ > .depend
 

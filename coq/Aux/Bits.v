@@ -1,5 +1,5 @@
 Require Import ZArith Bool.
-Require Import Aux.Roundtrip Aux.Tactics Aux.StructTactics.
+Require Import ASN1FP.Aux.Roundtrip ASN1FP.Aux.Tactics ASN1FP.Aux.StructTactics.
 Require Import Flocq.Core.Digits.
 
 Require Import Lia.

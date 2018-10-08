@@ -1,6 +1,6 @@
 Require Import PArith ZArith.
 Require Import Flocq.Core.Zaux Flocq.Core.Digits.
-Require Import Aux.Bits.
+Require Import ASN1FP.Aux.Bits.
 
 (* ISO/IEC 8825-1:2015 *)
 

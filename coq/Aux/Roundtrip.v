@@ -3,7 +3,7 @@ Require Import Coq.Program.Basics.
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
 
-Require Import Aux.Option.
+Require Import ASN1FP.Aux.Option.
 
 Import MonadNotation.
 Local Open Scope monad_scope.

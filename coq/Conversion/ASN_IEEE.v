@@ -1,5 +1,5 @@
 Require Import ZArith.
-Require Import ASN.ASNDef ASN.Aux IEEE.Aux Aux.Roundtrip Aux.Option Aux.StructTactics Aux.Tactics.
+Require Import ASN1FP.ASN.ASNDef ASN1FP.ASN.Aux ASN1FP.IEEE.Aux ASN1FP.Aux.Roundtrip ASN1FP.Aux.Option ASN1FP.Aux.StructTactics ASN1FP.Aux.Tactics.
 Require Import Flocq.IEEE754.Binary Flocq.Core.Zaux Flocq.Core.FLX.
 
 Definition Prec_gt_1 (prec : Z) := Z.gt prec 1.
