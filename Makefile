@@ -2,30 +2,46 @@ LIBNAME := asn1fpcoq
 
 .SUFFIXES:
 
-.PHONY: default config clean clean-dep distclean clean-doc tags doc install-doc install-dist targz wc extracted
+.PHONY: default config clean clean-dep distclean clean-doc tags doc install-doc install-dist targz wc extracted coq depend print-includes coq
 
-MAKECOQ := +$(MAKE) -r -f Makefile.coq
-COQPKGFLAGS := -R ASN ASN -R Aux Aux -R Conversion Conversion -R IEEE IEEE
-
-COQEXEC="$(COQBIN)coqtop" -q -w none $(COQINCLUDES) $(COQPKGFLAGS) -batch -load-vernac-source
-
-LIBVFILES := Aux/StructTactics.v
-
-VFILES := $(shell find . -name \*.v | grep -v .\#  | grep -v ml/ | cut -c 3- )
-#VFILES := $(COQFILES:%=coq/%.v)
-VOFILES := $(COQFILES:%=coq/%.vo)
-
-MYVFILES := $(filter-out $(LIBVFILES), $(VFILES))
+# Coq sources
+COQDIR = coq
+COQLIBDIR = ../lib
 
 # OCaml sources
 MLDIR = ml
 EXTRACTDIR = ml/extracted
 TSTAMP = $(EXTRACTDIR)/.timestamp
 
-default: Makefile.coq 
-	$(MAKECOQ)
+COQINCLUDES=$(foreach d, $(COQDIR), -R $(d) ASN1FP) -R $(EXTRACTDIR) Extract
+
+COQC="$(COQBIN)coqc" -q $(COQINCLUDES) $(COQCOPTS)
+COQDEP="$(COQBIN)coqdep" $(COQINCLUDES)
+COQEXEC="$(COQBIN)coqtop" -q -w none $(COQINCLUDES) -batch -load-vernac-source
+
+VFILES := $(shell find . -name \*.v | grep -v .\#  | grep -v ml/ | cut -c 3- )
+VOFILES = $(VFILES:.v=.vo)
+
+# OCaml sources
+MLDIR = ml
+EXTRACTDIR = ml/extracted
+TSTAMP = $(EXTRACTDIR)/.timestamp
+
+all:
+	@test -f .depend || $(MAKE) depend
+	$(MAKE) coq
+	$(MAKE) extracted
+	$(MAKE) $(EXE)
+
+coq: $(VOFILES)
+
+default: all
 
 extracted: $(TSTAMP)
+
+depend: $(VFILES) 
+	@echo "Analyzing Coq dependencies in" $(VFILES)
+	@$(COQDEP) $^ > .depend
 
 $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 	@echo "Extracting"
@@ -41,11 +57,18 @@ config Makefile.coq: _CoqProject Makefile
 
 clean:
 	rm -f `find . -name \*~`
-	-$(MAKECOQ) clean
 	rm -rf `find . -name .coq-native -o -name .\*.aux -o -name \*.time -o -name \*.cache`
+	rm -f .depend
+	rm -f $(VOFILES)
+	rm -rf doc/*.glob
+	rm -f $(TSTAMP) $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli
+	(cd ml; jbuilder clean)
 
 clean-dep:
 	rm -f `find . -name \*.v.d`
+
+print-includes:
+	@echo $(COQINCLUDES)
 
 distclean: clean clean-dep clean-doc
 	rm -f Makefile.coq Makefile.coq.conf
@@ -53,16 +76,12 @@ distclean: clean clean-dep clean-doc
 clean-doc:
 	rm -f doc/$(LIBNAME).* doc/index.html doc/main.html coqdoc.sty coqdoc.css
 
-doc: $(MYVFILES)
-	coqdoc --html  --utf8 -d doc -R . $(LIBNAME) $(MYVFILES)
-	coqdoc --latex --utf8 -d doc -R . $(LIBNAME) $(MYVFILES)
-
 wc:
-	coqwc $(MYVFILES)
+	coqwc $(VFILES)
 
 %.vo: %.v
-	$(MAKECOQ) $@
+	@rm -f doc/$(*F).glob
+	@echo "COQC $*.v"
+	@$(COQC) -dump-glob doc/$(*F).glob $*.v
 
-%:
-	$(MAKECOQ) $@
-
+-include .depend

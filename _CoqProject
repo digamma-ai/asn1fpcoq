@@ -1,4 +1,3 @@
--R ASN ASN
--R Aux Aux
--R Conversion Conversion
--R IEEE IEEE
+-Q coq ASN1FP
+-R coq ASN1FP
+

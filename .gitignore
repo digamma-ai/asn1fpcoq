@@ -7,3 +7,9 @@
 Makefile.coq
 Makefile.coq.conf
 *.sh
+ml/.merlin
+ml/extracted/.merlin
+ml/extracted/*.ml
+ml/extracted/*.mli
+ml/extracted/.timestamp
+.depend
