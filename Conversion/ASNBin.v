@@ -176,7 +176,6 @@ Section Bitstring_def.
     Definition exp2bits (e_olen e : Z) : Z :=
       twos_comp_extended (8 * e_olen) e.
 
-
     Definition bits2exp (e_olen e : Z) : Z :=
       twos_comp_extended (8 * e_olen) e.
 
@@ -213,25 +212,35 @@ Section Bitstring_def.
     | BER_finite s b m e _ => finite_BER_to_bitstring scaled s b m e
     end.
 
+
   Lemma valid_short_valid_BER {id co t s bb ff ee e m : Z} :
     valid_short id co t s bb ff ee e m = true ->
     valid_BER (bits2signif m) (bits2exp (ee + 1) e) (bits2radix bb) = true.
   Proof.
     unfold valid_short. intros H.
+    unfold valid_BER. apply andb_true_intro. split.
+    unfold correct_short_co in H.
     repeat split_andb; rewrite Z.ltb_lt in *; rewrite Z.eqb_eq in *.
-     unfold valid_BER. apply andb_true_intro. split.
+    remember (ee+1) as eeo eqn:EEO.
     - (* bounded *)
       unfold bounded.
       break_match.
       + (* long *)
-        unfold correct_short_co in H13.
-        unfold bits2signif.
-        rewrite Z2Pos.id.
-        admit.
+        rewrite Z.ltb_lt in Heqb.
+        contradict Heqb.
+        unfold bits2exp, twos_olen; rewrite twos_blen_untwos.
+        admit. admit.
 
+      + (* short *)
+        unfold bits2signif; rewrite Z2Pos.id.
+        unfold bits2exp, twos_olen; rewrite twos_blen_untwos.
+        assert (T : blen_to_olen (blen e + 1) <= olen e + 1).
+        unfold olen.
+        admit.
+        rewrite Z.ltb_lt.
   Admitted.
 
-  Lemma valid_long_valid_BER {id co t s bb ff ee eo e m : Z} :
+Lemma valid_long_valid_BER {id co t s bb ff ee eo e m : Z} :
     valid_long id co t s bb ff ee eo e m = true ->
     valid_BER (bits2signif m) (bits2exp (eo) e) (bits2radix bb) = true.
   Admitted.
@@ -255,17 +264,19 @@ Section Bitstring_def.
       | None => None
       end
 
-    | short id co t s bb ff ee    e m =>
-      let m' := bits2signif m in
-      let e' := bits2exp (ee + 1) e in
-      let b' := bits2radix bb in
-      if valid_short id co t s bb ff ee e m then
-        match valid_BER_sumbool m' e' b' with
-        | left V => Some (BER_finite (bits2sign s) b' m' e' V)
-        | right _ => None
-        end
-      else
-        None
+    | short id co t s bb ff ee e m =>
+      match valid_short_sumbool id co t s bb ff ee e m with
+      | right _ => None
+      | left V =>
+        Some (BER_finite
+                (bits2sign s)
+                (bits2radix bb)
+                (bits2signif m)
+                (bits2exp (ee + 1) e)
+                (valid_short_valid_BER V)
+             )
+      end
+
     | long  id co t s bb ff ee eo e m =>
       match valid_long_sumbool id co t s bb ff ee eo e m with
       | right _ => None
@@ -289,8 +300,9 @@ Section Bitstring_def.
     break_match.
     - (* short *)
       unfold correct_bitstring.
+      admit.
     - (* long *)
-  Qed.
+  Admitted.
 
 
   Definition Some_ize {A B : Type} : (A -> B) -> (A -> option B)
