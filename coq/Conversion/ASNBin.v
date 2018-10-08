@@ -9,18 +9,15 @@ Require Import Basics.
 
 Import ListNotations.
   
-
-
-
 Section Bitstring_def.
 
-  Let real_id_b := 9%Z.
+  Definition real_id_b := 9%Z.
 
-  Let pzero_b   := 2304%Z.
-  Let nzero_b   := 590211%Z.
-  Let pinf_b    := 590208%Z.
-  Let ninf_b    := 590209%Z.
-  Let nan_b     := 590210%Z.
+  Definition pzero_b   := 2304%Z.
+  Definition nzero_b   := 590211%Z.
+  Definition pinf_b    := 590208%Z.
+  Definition ninf_b    := 590209%Z.
+  Definition nan_b     := 590210%Z.
 
   Run TemplateProgram
       (mkSwitch Z Z.eqb
@@ -228,8 +225,11 @@ Section Bitstring_def.
       + (* long *)
         rewrite Z.ltb_lt in Heqb.
         contradict Heqb.
+        unfold bits2exp, twos_olen.
         unfold bits2exp, twos_olen; rewrite twos_blen_untwos.
-        admit. admit.
+          unfold blen_to_olen, blen.
+          admit. admit.
+
 
       + (* short *)
         unfold bits2signif; rewrite Z2Pos.id.
@@ -405,11 +405,65 @@ End Bitstring_def.
 
 Section Bitstring_bits.
 
-  Definition bitstring_to_bits : BER_bitstring -> Z.
-  Admitted.
+  Definition bitstring_to_bits (b : BER_bitstring) : Z :=
+    match b with
+    | special val =>
+      match classify_BER val with
+      | Some pzero => pzero_b
+      | Some nzero => nzero_b
+      | Some pinf => pinf_b
+      | Some ninf => ninf_b
+      | Some nan => nan_b
+      | None => -1
+      end
 
-  Definition bits_to_bitstring : Z -> BER_bitstring.
-  Admitted.
+    | short id content_olen type sign base scaling exp_olen_b exponent significand =>
+      join_octets id
+        (join_octets content_olen
+          (join_bits type
+            (join_bits sign
+              (join_bits base
+                (join_bits scaling
+                  (join_octets_ext (exp_olen_b + 1 + olen significand) exp_olen_b
+                    (join_octets exponent significand)))))))
+
+
+    | long id content_olen type sign base scaling lexp exp_olen_o exponent significand =>
+      join_octets id
+        (join_octets content_olen
+          (join_bits type
+            (join_bits sign
+              (join_bits base
+                (join_bits scaling
+                  (join_octets lexp
+                    (join_octets_ext (exp_olen_o + olen significand) exp_olen_o
+                      (join_octets exponent significand))))))))
+    end.
+      
+  Definition bits_to_bitstring (b : Z) : BER_bitstring :=
+    match classify_BER b with
+      | Some pzero => special pzero_b
+      | Some nzero => special nzero_b
+      | Some pinf => special pinf_b
+      | Some ninf => special ninf_b
+      | Some nan => special nan_b
+      | None =>
+        let '(id, co_content) := split_octets_by_fst 1 b in
+        let '(co, content) := split_octets_by_fst 1 co_content in
+        let '(tsbbffee, l_exp_signif) := split_octets_by_fst 1 content in
+        let '(t, sbbffee) := split_bits_by_snd 7 tsbbffee in
+        let '(s, bbffee) := split_bits_by_snd 6 sbbffee in
+        let '(bb, ffee) := split_bits_by_snd 4 bbffee in
+        let '(ff, ee) := split_bits_by_snd 2 ffee in
+        if 3 <? ee
+        then
+          let '(e_olen, exp_signif) := split_octets_by_fst 1 l_exp_signif in
+          let '(exp, signif) := split_octets_by_fst e_olen exp_signif in
+          long id co t s bb ff ee e_olen exp signif
+        else
+          let '(exp, signif) := split_octets_by_fst (ee+1) l_exp_signif in
+          short id co t s bb ff ee exp signif
+      end.
 
   Theorem bitsrting_bits_bitstring_roundtrip (b : BER_bitstring) :
     bool_het_inverse

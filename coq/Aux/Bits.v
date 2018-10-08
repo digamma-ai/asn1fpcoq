@@ -230,21 +230,27 @@ Section Operations.
     given two numbers [fst] and [snd] representing two bit strings,
     concatentate them, using [bits_snd] bits to represent [snd] 
    *)
-  Definition join_bits (fst snd : Z) (bits_snd : Z) : Z :=
+  Definition join_bits_ext (bits_snd : Z) (fst snd : Z) : Z :=
     (Z.shiftl fst bits_snd + snd)%Z.
+
+  Definition join_bits (fst snd : Z) : Z :=
+    join_bits_ext (blen snd) fst snd.
+
+  Definition join_octets_ext (snd_olen : Z) (fst snd : Z) : Z :=
+    join_bits_ext (8 * snd_olen) fst snd.
 
   (*
     concatenate two numbers, encoding the [snd] in exactly
     the smallest number of octets that is enough to represent it
   *)
-  Definition join_octets (fst snd : Z) :Z :=
-    join_bits fst snd (8 * (olen snd)).
+  Definition join_octets (fst snd : Z) : Z :=
+    join_octets_ext (olen snd) fst snd.
 
   (*
     split a string of bits [b] into two,
     with the right part having length of [bits_snd] bits
   *)
-  Definition split_bits_by_snd (b : Z) (bits_snd : Z) : Z * Z :=
+  Definition split_bits_by_snd (bits_snd : Z) (b : Z) : Z * Z :=
     let d := (2^bits_snd)%Z in
     (Z.div b d, Zmod b d).
 
@@ -252,15 +258,15 @@ Section Operations.
     split a string of bits [b] into two,
     with the left part having length of [bits_fst] bits
   *)
-  Definition split_bits_by_fst (b : Z) (bits_fst : Z) : Z * Z :=
-    split_bits_by_snd b ((blen b) - bits_fst).
+  Definition split_bits_by_fst (bits_fst : Z) (b : Z) : Z * Z :=
+    split_bits_by_snd ((blen b) - bits_fst) b.
 
   (*
     split a string of bits [b] into two,
     with the right part having length of [octets_snd] octets
   *)
-  Definition split_octets_by_snd (b : Z) (octets_snd : Z) : Z * Z :=
-    split_bits_by_snd b (8 * octets_snd).
+  Definition split_octets_by_snd (octets_snd : Z) (b : Z) : Z * Z :=
+    split_bits_by_snd (8 * octets_snd) b.
 
   (*
     split a string of bits [b] into two,
@@ -273,7 +279,7 @@ Section Operations.
             110011001111 -> 00001100  11001111,
         NOT 110011001111 -> 11001100  1111
   *)
-  Definition split_octets_by_fst (b : Z) (octets_fst : Z) : Z * Z :=
-    split_octets_by_snd b (olen b - octets_fst).
+  Definition split_octets_by_fst (octets_fst : Z) (b : Z) : Z * Z :=
+    split_octets_by_snd (olen b - octets_fst) b.
 
 End Operations.
