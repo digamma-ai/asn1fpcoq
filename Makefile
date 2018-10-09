@@ -46,6 +46,7 @@ $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 	@echo "Extracting"
 	rm -f $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli
 	$(COQEXEC) $(EXTRACTDIR)/Extract.v
+	cp lib/big.ml $(EXTRACTDIR)/
 	patch -p0 < ml/extracted/CRelationClasses.mli.patch
 	touch $(TSTAMP)
 
