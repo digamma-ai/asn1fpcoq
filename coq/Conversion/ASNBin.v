@@ -4,7 +4,6 @@ Require Import Lia.
 Require Import Flocq.Core.Zaux.
 
 Require Import Arith.EqNat Strings.String Lists.List.
-Require Import Template.All Switch.Switch.
 Require Import Basics.
 
 Import ListNotations.
