@@ -18,7 +18,6 @@ Section Bitstring_def.
   Definition ninf_b    := 590209%Z.
   Definition nan_b     := 590210%Z.
 
-
   Inductive BER_specials : Set :=
   | pzero : BER_specials
   | nzero : BER_specials
@@ -467,7 +466,7 @@ Section Bitstring_bits.
         let '(s, bbffee) := split_bits_by_snd 6 sbbffee in
         let '(bb, ffee) := split_bits_by_snd 4 bbffee in
         let '(ff, ee) := split_bits_by_snd 2 ffee in
-        if 3 <? ee
+        if (3 <? ee)
         then
           let '(e_olen, exp_signif) := split_octets_by_fst 1 l_exp_signif in
           let '(exp, signif) := split_octets_by_fst e_olen exp_signif in
