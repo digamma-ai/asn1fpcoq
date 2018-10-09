@@ -19,15 +19,27 @@ Section Bitstring_def.
   Definition ninf_b    := 590209%Z.
   Definition nan_b     := 590210%Z.
 
-  Run TemplateProgram
-      (mkSwitch Z Z.eqb
-                [(pzero_b,    "pzero") ;
-                (nzero_b,     "nzero") ;
-                (pinf_b,       "pinf") ;
-                (ninf_b,       "ninf") ;
-                (nan_b,         "nan")]
-                "BER_specials" "classify_BER"
-      ).
+
+  Inductive BER_specials : Set :=
+  | pzero : BER_specials
+  | nzero : BER_specials
+  | pinf : BER_specials
+  | ninf : BER_specials
+  | nan : BER_specials.
+
+  Definition classify_BER (x: Z): option BER_specials :=
+    if x =? fst (pzero_b, "pzero")
+    then Some pzero
+    else
+      if x =? fst (nzero_b, "nzero")
+      then Some nzero
+      else
+        if x =? fst (pinf_b, "pinf")
+        then Some pinf
+        else
+          if x =? fst (ninf_b, "ninf")
+          then Some ninf
+          else if x =? fst (nan_b, "nan") then Some nan else None.
 
   Inductive BER_bitstring :=
   | special   (val : Z)
