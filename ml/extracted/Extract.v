@@ -14,7 +14,7 @@ Set Extraction AccessOpaque.
 Cd "ml/extracted".
 
 Extraction Library ExtrOcamlIntConv.
-Extraction Library ExtrOcamlNatInt.
+(* Extraction Library ExtrOcamlNatInt. *)
 Extraction Library BinInt.
 
 Recursive Extraction Library ASN_IEEE.
