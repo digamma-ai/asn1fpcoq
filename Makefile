@@ -30,6 +30,7 @@ TSTAMP = $(EXTRACTDIR)/.timestamp
 all: .depend
 	$(MAKE) coq
 	$(MAKE) extracted
+	$(MAKE) compile-ml
 
 coq: $(VOFILES)
 
@@ -45,6 +46,7 @@ $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 	@echo "Extracting"
 	rm -f $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli
 	$(COQEXEC) $(EXTRACTDIR)/Extract.v
+	patch -p0 < ml/extracted/CRelationClasses.mli.patch
 	touch $(TSTAMP)
 
 install-dep:
@@ -61,6 +63,10 @@ clean:
 	rm -rf doc/*.glob
 	rm -f $(TSTAMP) $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli dune-project
 	rm -rf $(EXTRACTDIR)/_build
+
+
+compile-ml:	extracted
+	cd $(EXTRACTDIR) ; dune build asn1fp.a
 
 clean-dep:
 	rm -f `find . -name \*.v.d`
