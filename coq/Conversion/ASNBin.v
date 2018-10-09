@@ -27,18 +27,19 @@ Section Bitstring_def.
   | nan : BER_specials.
 
   Definition classify_BER (x: Z): option BER_specials :=
-    if x =? fst (pzero_b, "pzero")
+    if x =? pzero_b
     then Some pzero
     else
-      if x =? fst (nzero_b, "nzero")
+      if x =? nzero_b
       then Some nzero
       else
-        if x =? fst (pinf_b, "pinf")
+        if x =? pinf_b
         then Some pinf
         else
-          if x =? fst (ninf_b, "ninf")
+          if x =? ninf_b
           then Some ninf
-          else if x =? fst (nan_b, "nan") then Some nan else None.
+          else if x =? nan_b then Some nan
+               else None.
 
   Inductive BER_bitstring :=
   | special   (val : Z)
