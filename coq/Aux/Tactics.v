@@ -23,6 +23,17 @@ Ltac check_contradiction :=
   | [ H1: ?P = true, H2 : ?P = false |- _ ] => rewrite -> H1 in H2; inversion H2
   end.
 
+Ltac split_andb :=
+  match goal with
+    | [H : andb ?P1 ?P2 = true |- _ ] => apply andb_prop in H; inversion H; clear H
+  end.
+
+Ltac split_andb_goal :=
+  match goal with
+  | [ H : _ |- andb ?P ?Q = true] => repeat rewrite Bool.andb_true_iff; repeat split
+  end.
+
+
 (*
   different cases for
   (a ?= a) != Eq
