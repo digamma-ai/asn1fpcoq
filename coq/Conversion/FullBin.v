@@ -1,11 +1,10 @@
 Require Import ZArith Basics.
-Require Import ASN.ASNDef ASN.Aux Conversion.ASN_Bin Conversion.ASN_IEEE Aux.Option Aux.StructTactics.
+Require Import ASN.ASNDef  Conversion.ASN_Bin Conversion.ASN_IEEE Aux.Option Aux.StructTactics Aux.binK.
 Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux.
 
 Open Scope Z.
 
 Section B32.
-
 
   Definition b32_to_BER_binary : Z -> option Z :=
     compose (l2 (BER_to_bits false)) (compose b32_to_BER_abstract b32_of_bits).
