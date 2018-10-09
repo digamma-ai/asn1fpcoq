@@ -1,4 +1,4 @@
-Require ASN1FP.Conversion.ASN_IEEE.
+Require ASN1FP.Conversion.ASNBin.
 
 Require ExtrOcamlBasic.
 Require ExtrOcamlString.
@@ -14,4 +14,4 @@ Cd "ml/extracted".
 
 Extraction Library ExtrOcamlZInt.
 
-Recursive Extraction Library ASN_IEEE.
+Recursive Extraction Library ASNBin.

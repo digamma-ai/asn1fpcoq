@@ -46,7 +46,6 @@ $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 	@echo "Extracting"
 	rm -f $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli
 	$(COQEXEC) $(EXTRACTDIR)/Extract.v
-	patch -p0 < ml/extracted/CRelationClasses.mli.patch
 	touch $(TSTAMP)
 
 install-dep:
