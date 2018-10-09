@@ -59,8 +59,8 @@ clean:
 	rm -f .depend
 	rm -f $(VOFILES)
 	rm -rf doc/*.glob
-	rm -f $(TSTAMP) $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli
-	(cd ml; jbuilder clean)
+	rm -f $(TSTAMP) $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli dune-project
+	rm -rf $(EXTRACTDIR)/_build
 
 clean-dep:
 	rm -f `find . -name \*.v.d`
