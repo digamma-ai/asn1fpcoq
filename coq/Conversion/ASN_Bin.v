@@ -429,26 +429,34 @@ Section Bitstring_bits.
       end
 
     | short id content_olen type sign base scaling exp_olen_b exponent significand =>
-      join_octets id
-        (join_octets content_olen
-          (join_bits type
-            (join_bits sign
-              (join_bits base
-                (join_bits scaling
-                  (join_octets_ext (exp_olen_b + 1 + olen significand) exp_olen_b
-                    (join_octets exponent significand)))))))
+      let em_olen := content_olen - 1 in
+      let em_blen := 8*em_olen in
+      join_octets_ext (content_olen + 1) id
+        (join_octets_ext content_olen content_olen
+          (join_bits_ext (em_blen + 7) type
+            (join_bits_ext (em_blen + 6) sign
+              (join_bits_ext (em_blen + 4) base
+                (join_bits_ext (em_blen + 2) scaling
+                  (join_octets_ext em_olen exp_olen_b
+                    (join_octets_ext (em_olen - exp_olen_b - 1) exponent
+                      significand)))))))
 
 
     | long id content_olen type sign base scaling lexp exp_olen_o exponent significand =>
-      join_octets id
-        (join_octets content_olen
-          (join_bits type
-            (join_bits sign
-              (join_bits base
-                (join_bits scaling
-                  (join_octets lexp
-                    (join_octets_ext (exp_olen_o + olen significand) exp_olen_o
-                      (join_octets exponent significand))))))))
+      let em_olen := content_olen - 2 in
+      let lem_blen := 8*(em_olen+1) in
+      join_octets_ext (content_olen + 1) id
+        (join_octets_ext content_olen content_olen
+
+          (join_bits_ext (lem_blen + 7) type
+            (join_bits_ext (lem_blen + 6) sign
+              (join_bits_ext (lem_blen + 4) base
+                (join_bits_ext (lem_blen + 2) scaling
+                  (join_octets_ext (em_olen + 1) lexp
+
+                    (join_octets_ext em_olen exp_olen_o
+                      (join_octets_ext (em_olen - exp_olen_o) exponent
+                        significand))))))))
     end.
       
   Definition bits_to_bitstring (b : Z) : BER_bitstring :=
@@ -466,13 +474,13 @@ Section Bitstring_bits.
         let '(s, bbffee) := split_bits_by_snd 6 sbbffee in
         let '(bb, ffee) := split_bits_by_snd 4 bbffee in
         let '(ff, ee) := split_bits_by_snd 2 ffee in
-        if (3 <? ee)
+        if (2 <? ee)
         then
           let '(e_olen, exp_signif) := split_octets_by_fst 1 l_exp_signif in
-          let '(exp, signif) := split_octets_by_fst e_olen exp_signif in
+          let '(exp, signif) := split_octets_by_snd (co - e_olen - 2) exp_signif in
           long id co t s bb ff ee e_olen exp signif
         else
-          let '(exp, signif) := split_octets_by_fst (ee+1) l_exp_signif in
+          let '(exp, signif) := split_octets_by_snd (co - ee - 2) l_exp_signif in
           short id co t s bb ff ee exp signif
       end.
 

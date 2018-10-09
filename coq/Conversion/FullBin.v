@@ -34,7 +34,7 @@ Section B32.
 
   Definition BER_to_b32_abstract := BER_to_IEEE_exact prec emax prec_gt_1.
 
-  Definition BER_to_b32 : Z -> option Z :=
+  Definition BER_to_b32_binary : Z -> option Z :=
     compose (l2 bits_of_b32) (compose (l1 BER_to_b32_abstract) bits_to_BER).
 
 End B32.
