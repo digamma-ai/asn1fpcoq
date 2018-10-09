@@ -55,3 +55,19 @@ Definition roundtrip_option
   : Prop :=
    is_Some_b (f x) = true ->
    bool_het_inverse' option A1 B A2 f b e x = Some true.
+
+Lemma inv_trans {A1 A2 B C : Type}
+      {f1 : A1 -> B} {b1 : B -> A2} {ea : A1 -> A2 -> bool}
+      {f2 : B -> C} {b2 : C -> B} {eb : B -> B -> bool}
+      {x : A1} :
+      (forall (y z : B), eb y z = true -> b1 y = b1 z) ->
+      bool_het_inverse A1 B A2 f1 b1 ea x ->
+      bool_het_inverse B C B f2 b2 eb (f1 x) ->
+      bool_het_inverse A1 C A2 (compose f2 f1) (compose b1 b2) ea x.
+Proof.
+  unfold bool_het_inverse, compose.
+  intros H H1 H2.
+  apply H in H2.
+  rewrite <- H2.
+  apply H1.
+Qed.
