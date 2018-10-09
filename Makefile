@@ -30,7 +30,6 @@ TSTAMP = $(EXTRACTDIR)/.timestamp
 all: .depend
 	$(MAKE) coq
 	$(MAKE) extracted
-	$(MAKE) $(EXE)
 
 coq: $(VOFILES)
 
