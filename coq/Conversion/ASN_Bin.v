@@ -62,31 +62,31 @@ Section Bitstring_def.
     | None   => false
     end.
 
-  Definition correct_short_co (co e m : Z) : bool :=
-    Z.eqb co (olen e + olen m + 1) && Z.ltb co 128.
+  Definition correct_short_co (co e_olen m_olen : Z) : bool :=
+    ((e_olen + m_olen) <? co) && (co <? 128).
 
   Definition valid_short (id co t s bb ff ee e m : Z) : bool :=
-       (Z.eqb id 9)                      (* identifier is "REAL" *)
-    && (correct_short_co co e m)         (**encoding length is correct *)
-    && (Z.eqb t 1)                       (* encoding is binary *)
-    && (Z.ltb (-1)  s) && (Z.ltb  s 2)   (* sign bit is well-formed *)
-    && (Z.ltb (-1) bb) && (Z.ltb bb 4)   (* radix bit is well-formed *)
-    && (Z.ltb (-1) ff) && (Z.ltb ff 4)     (* scaling factor is well-formed *)
-    && (Z.ltb (-1) ee) && (Z.ltb ee 3)   (**exponent length is well-formed *)
-    && (Z.ltb (olen e) (ee + 2))         (**exponent length is correct *)
-    && (Z.ltb (-1) e)                    (* exponent is non-negative (it is two's complement) *)
-    && (Z.ltb 0 m).                      (* mantissa is positive *)
+       (Z.eqb id 9)                          (* identifier is "REAL" *)
+    && (correct_short_co co (ee+1) (olen m)) (**encoding length is correct *)
+    && (Z.eqb t 1)                           (* encoding is binary *)
+    && (Z.ltb (-1)  s) && (Z.ltb  s 2)       (* sign bit is well-formed *)
+    && (Z.ltb (-1) bb) && (Z.ltb bb 4)       (* radix bit is well-formed *)
+    && (Z.ltb (-1) ff) && (Z.ltb ff 4)       (* scaling factor is well-formed *)
+    && (Z.ltb (-1) ee) && (Z.ltb ee 3)       (**exponent length is well-formed *)
+    && (Z.ltb (olen e) (ee + 2))             (**exponent length is correct *)
+    && (Z.ltb (-1) e)                        (* exponent is non-negative (it is two's complement) *)
+    && (Z.ltb 0 m).                          (* mantissa is positive *)
 
-  Definition correct_long_co (co e m : Z) : bool :=
-    Z.eqb co (olen e + olen m + 2).
+  Definition correct_long_co (co e_olen m_olen : Z) : bool :=
+    ((e_olen + m_olen + 1) <? co) && (co <? 128).
 
     Definition valid_long (id co t s bb ff ee eo e m : Z) : bool :=
        (Z.eqb id real_id_b)              (* identifier is "REAL" *)
-    && (correct_long_co co e m)          (**encoding length is correct *)
+    && (correct_long_co co eo (olen m))  (**encoding length is correct *)
     && (Z.eqb t 1)                       (* encoding is binary *)
     && (Z.ltb (-1)  s) && (Z.ltb  s 2)   (* sign bit is well-formed *)
     && (Z.ltb (-1) bb) && (Z.ltb bb 4)   (* radix bit is well-formed *)
-    && (Z.ltb (-1) ff) && (Z.ltb ff 4)     (* scaling factor is well-formed *)
+    && (Z.ltb (-1) ff) && (Z.ltb ff 4)   (* scaling factor is well-formed *)
     && (Z.eqb ee 3)                      (**exponent is in long form *)
     && (Z.ltb (-1) eo) && (Z.ltb eo 256) (**exponent length is well-formed *)
     && (Z.ltb (olen e) (eo + 1))         (**exponent length is correct *)
