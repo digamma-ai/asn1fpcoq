@@ -6,7 +6,7 @@ ASN.1 Floating Point encoding formalized in Coq
 * Conversion between ASN.1 and Flocq IEEE-754
 * TODO: Bit-string encoding of ASN.1 real numbers
 ## Assumptions
-See [doc/assumptions.md](https://github.com/digamma-ai/asn1fpcoq/blob/master/assumptions.md)
+See [doc/assumptions.md](https://github.com/digamma-ai/asn1fpcoq/blob/master/doc/assumptions.md)
 
 ## Prerequisites
 * [Coq 8.7.2](https://coq.inria.fr/)  
