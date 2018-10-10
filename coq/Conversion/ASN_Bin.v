@@ -252,20 +252,20 @@ Section Bitstring_def.
     try rewrite Zlt_Zle in *.
     apply (Z.le_trans (eeo + olen m) (co - 1) 126) in H; try lia.
     apply (Z.le_trans (olen e) (ee+2-1) 3) in H3; try lia.
-    - (* bounded *)
-      unfold bounded.
-      break_match; rewrite Z.ltb_lt in *.
-      + (* long *)
-        contradict Heqb.
-        rewrite not_Zlt_Zle.
-        unfold bits2exp.
+    (* - (* bounded *) *)
+    (*   unfold bounded. *)
+    (*   break_match; rewrite Z.ltb_lt in *. *)
+    (*   + (* long *) *)
+    (*     contradict Heqb. *)
+    (*     rewrite not_Zlt_Zle. *)
+    (*     unfold bits2exp. *)
+    (*     admit. *)
         
 
 
-      + (* short *)
-        unfold bits2signif; rewrite Z2Pos.id.
-        rewrite Z.ltb_ge in Heqb.
-        
+    (*   + (* short *) *)
+    (*     unfold bits2signif; rewrite Z2Pos.id. *)
+    (*     rewrite Z.ltb_ge in Heqb. *)
   Admitted.
 
 Lemma valid_long_valid_BER {id co t s bb ff ee eo e m : Z} :
