@@ -60,7 +60,7 @@ EXE=ml/_build/default/test.exe
 
 $(EXE): ml/*.ml ml/extracted/*.ml
 	@echo "Compiling $(EXE)"
-	dune build ml/test.exe
+	(cd ml; dune build test.exe)
 
 run: $(EXE)
 	./$(EXE)
