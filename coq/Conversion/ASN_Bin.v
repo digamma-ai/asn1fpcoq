@@ -7,6 +7,8 @@ Require Import Arith.EqNat Strings.String Lists.List.
 Require Import Basics.
 
 Import ListNotations.
+
+Open Scope Z.
   
 Section Bitstring_def.
 
@@ -46,14 +48,17 @@ Section Bitstring_def.
   | long  (id content_olen type sign base scaling       lexp exp_olen_o exponent significand : Z).
 
 
-  Definition BER_bitstring_eqb (b1 b2 : BER_bitstring) : bool.
-  Admitted.
-    (* match b1, b2 with *)
-    (* | special val1, special val2 => Z.eqb val1 val2 *)
-    (* | short id1 co1 t1 s1 bb1 ff1 ee1 e1 m1, short id2 co2 t2 s2 bb2 ff2 ee2 e2 m2 => *)
-    (* | long id1 co1 t1 s1 bb1 ff1 ee1 eo1 e1 m1, long id2 co2 t2 s2 bb2 ff2 ee2 eo2 e2 m => *)
-    (* | _, _ => false *)
-    (* end. *)
+  Definition BER_bitstring_eqb (b1 b2 : BER_bitstring) : bool :=
+    match b1, b2 with
+    | special val1, special val2 => Z.eqb val1 val2
+    | short id1 co1 t1 s1 bb1 ff1 ee1 e1 m1, short id2 co2 t2 s2 bb2 ff2 ee2 e2 m2 =>
+           (id1 =? id2) && (co1 =? co2) && (t1 =? t2) && (s1 =? s2) && (bb1 =? bb2)
+        && (ff1 =? ff2) && (ee1 =? ee2) && (e1 =? e2) && (m1 =? m2)
+    | long id1 co1 t1 s1 bb1 ff1 ee1 eo1 e1 m1, long id2 co2 t2 s2 bb2 ff2 ee2 eo2 e2 m2 =>
+           (id1 =? id2) && (co1 =? co2) && (t1 =? t2) && (s1 =? s2) && (bb1 =? bb2)
+        && (ff1 =? ff2) && (ee1 =? ee2) && (eo1 =? eo2) && (e1 =? e2) && (m1 =? m2)
+    | _, _ => false
+    end.
 
 
   Definition valid_special (val : Z) : bool :=
