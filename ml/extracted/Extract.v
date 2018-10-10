@@ -7,7 +7,7 @@ Require ExtrOcamlZBigInt.
 Require ExtrOcamlBigIntConv.
 
 Extraction Language Ocaml.
-(* Extraction Blacklist String List Nat. *)
+Extraction Blacklist String List Nat.
 
 Set Extraction AccessOpaque.
 

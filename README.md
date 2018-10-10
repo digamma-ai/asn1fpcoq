@@ -12,13 +12,13 @@ See [doc/assumptions.md](https://github.com/digamma-ai/asn1fpcoq/blob/master/doc
 * [Coq 8.7.2](https://coq.inria.fr/)  
 * [Flocq](http://flocq.gforge.inria.fr/)  
 * [ExtLib](https://github.com/coq-ext-lib/coq-ext-lib)
-* [Dune](https://github.com/ocaml/dune)  
+* [jbuilder](https://github.com/ocaml/dune)  
 
 To install all pre-requisites:
 
     opam repo add coq-released http://coq.inria.fr/opam/released
     opam pin add coq 8.7.2
-    opam install coq coq-ext-lib coq-flocq dune
+    opam install coq coq-ext-lib coq-flocq jbuilder
 
 ## Acknowledgements
 * Thanks to [Sylvie Boldo](https://www.lri.fr/~sboldo/) and [Guillaume Melquiond](https://www.lri.fr/~melquion/) for their development of the [Floats for Coq](http://flocq.gforge.inria.fr/) library, on which this project heavily relies both abstractly and with code.

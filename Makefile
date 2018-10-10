@@ -47,7 +47,7 @@ $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 	rm -f $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli
 	$(COQEXEC) $(EXTRACTDIR)/Extract.v
 	cp lib/big.ml $(EXTRACTDIR)/
-	patch -p0 < ml/extracted/CRelationClasses.mli.patch
+	patch -p0 < lib/CRelationClasses.mli.patch
 	touch $(TSTAMP)
 
 install-dep:
@@ -60,7 +60,7 @@ EXE=ml/_build/default/test.exe
 
 $(EXE): ml/*.ml ml/extracted/*.ml
 	@echo "Compiling $(EXE)"
-	(cd ml; dune build test.exe)
+	(cd ml; jbuilder build test.exe)
 
 run: $(EXE)
 	./$(EXE)
