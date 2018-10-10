@@ -1,9 +1,0 @@
-(jbuild_version 1)
-
-(library
- ((name extracted)
-  (wrapped false)
-  (flags (:standard -w -20))
-  (synopsis "ML code extracted from Coq")
-  (libraries (num))
-  ))

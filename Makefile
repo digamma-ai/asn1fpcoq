@@ -60,7 +60,7 @@ EXE=ml/_build/default/test.exe
 
 $(EXE): ml/*.ml ml/extracted/*.ml
 	@echo "Compiling $(EXE)"
-	(cd ml; jbuilder build test.exe)
+	dune build ml/test.exe
 
 run: $(EXE)
 	./$(EXE)

@@ -1,0 +1,7 @@
+(library
+  (name extracted)
+  (wrapped false)
+  (flags (:standard -w -39-33-20-50))
+  (synopsis "ML code extracted from Coq")
+  (libraries num)
+  )
