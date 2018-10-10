@@ -195,12 +195,13 @@ Section Twos_comp_prop.
       - subst n. remember (Z.pos p) as n. lia.
       - admit.
       - admit.
-    Admitted.
+    Abort.
+
 
     Lemma twos_olen_untwos (o : Z) (n : Z) :
       let b := 8*o in
       twos_ran b n = true ->
-      twos_olen (twos_comp_extended b n) = olen n.
+      twos_olen (twos_comp_extended b n) <= olen n.
     Proof.
     Admitted.
 
@@ -260,7 +261,6 @@ Section Operations.
   *)
   Definition split_bits_by_fst (bits_fst : Z) (b : Z) : Z * Z :=
     split_bits_by_snd ((blen b) - bits_fst) b.
-
   (*
     split a string of bits [b] into two,
     with the right part having length of [octets_snd] octets

@@ -201,7 +201,8 @@ Section Bitstring_def.
   End Atomic.
 
   (* TODO: scaling *)
-  Definition finite_BER_to_bitstring (scaled : bool) (s : bool) (b : radix) (m : positive) (e : Z) : BER_bitstring :=
+  Definition finite_BER_to_bitstring
+             (scaled : bool) (s : bool) (b : radix) (m : positive) (e : Z) : BER_bitstring :=
     let m := signif2bits m in
     let s := sign2bits s in
     let bb := radix2bits b in
@@ -221,6 +222,18 @@ Section Bitstring_def.
     end.
 
 
+  Lemma Zlt_Zle (a b : Z) :
+    a < b <-> a <= b - 1.
+  Proof. lia. Qed.
+
+  Lemma not_Zlt_Zle (a b : Z) :
+    ~ a < b <-> b <= a.
+  Proof. lia. Qed.
+   
+    
+
+
+
   Lemma valid_short_valid_BER {id co t s bb ff ee e m : Z} :
     valid_short id co t s bb ff ee e m = true ->
     valid_BER (bits2signif m) (bits2exp (ee + 1) e) (bits2radix bb) = true.
@@ -230,25 +243,24 @@ Section Bitstring_def.
     unfold correct_short_co in H.
     repeat split_andb; rewrite Z.ltb_lt in *; rewrite Z.eqb_eq in *.
     remember (ee+1) as eeo eqn:EEO.
+    clear H0 H6 H7 H8 H9 H10 H11 H12.
+    try rewrite Zlt_Zle in *.
+    apply (Z.le_trans (eeo + olen m) (co - 1) 126) in H; try lia.
+    apply (Z.le_trans (olen e) (ee+2-1) 3) in H3; try lia.
     - (* bounded *)
       unfold bounded.
-      break_match.
+      break_match; rewrite Z.ltb_lt in *.
       + (* long *)
-        rewrite Z.ltb_lt in Heqb.
         contradict Heqb.
-        unfold bits2exp, twos_olen.
-        unfold bits2exp, twos_olen; rewrite twos_blen_untwos.
-          unfold blen_to_olen, blen.
-          admit. admit.
+        rewrite not_Zlt_Zle.
+        unfold bits2exp.
+        
 
 
       + (* short *)
         unfold bits2signif; rewrite Z2Pos.id.
-        unfold bits2exp, twos_olen; rewrite twos_blen_untwos.
-        assert (T : blen_to_olen (blen e + 1) <= olen e + 1).
-        unfold olen.
-        admit.
-        rewrite Z.ltb_lt.
+        rewrite Z.ltb_ge in Heqb.
+        
   Admitted.
 
 Lemma valid_long_valid_BER {id co t s bb ff ee eo e m : Z} :
