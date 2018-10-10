@@ -19,7 +19,7 @@ To install all pre-requisites:
 
     opam repo add coq-released http://coq.inria.fr/opam/released
     opam pin add coq 8.7.2
-    opam install coq coq-ext-lib coq-flocq jbuilder num
+    opam install coq coq-ext-lib coq-flocq jbuilder num core
 
 ## Acknowledgements
 * Thanks to [Sylvie Boldo](https://www.lri.fr/~sboldo/) and [Guillaume Melquiond](https://www.lri.fr/~melquion/) for their development of the [Floats for Coq](http://flocq.gforge.inria.fr/) library, on which this project heavily relies both abstractly and with code.
