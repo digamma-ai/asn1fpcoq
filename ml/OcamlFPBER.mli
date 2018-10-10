@@ -1,4 +1,3 @@
-open FullBin
 open Binary
 
 val ocaml_float64_to_BER_exact: float -> string option
