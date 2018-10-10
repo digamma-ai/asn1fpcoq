@@ -2,5 +2,5 @@
 
 (executables
  ((names (test))
-  (libraries (extracted))
+  (libraries (extracted core num))
 ))
