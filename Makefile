@@ -30,7 +30,7 @@ TSTAMP = $(EXTRACTDIR)/.timestamp
 all: .depend
 	$(MAKE) coq
 	$(MAKE) extracted
-	$(MAKE) compile-ml
+	$(MAKE) $(EXE)
 
 coq: $(VOFILES)
 
@@ -56,6 +56,15 @@ install-dep:
 config Makefile.coq: _CoqProject Makefile
 	coq_makefile -f _CoqProject $(VFILES) -o Makefile.coq
 
+EXE=ml/_build/default/test.exe
+
+$(EXE): ml/*.ml ml/extracted/*.ml
+	@echo "Compiling $(EXE)"
+	(cd ml; dune build test.exe)
+
+run: $(EXE)
+	./$(EXE)
+
 clean:
 	rm -f `find . -name \*~`
 	rm -rf `find . -name .coq-native -o -name .\*.aux -o -name \*.time -o -name \*.cache`
@@ -63,11 +72,8 @@ clean:
 	rm -f $(VOFILES)
 	rm -rf doc/*.glob
 	rm -f $(TSTAMP) $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli dune-project
-	rm -rf $(EXTRACTDIR)/_build
-
-
-compile-ml:	extracted
-	cd $(EXTRACTDIR) ; dune build asn1fp.a
+	rm -f ml/*.mli dune-project
+	rm -rf _build ml/_build $(EXTRACTDIR)/_build
 
 clean-dep:
 	rm -f `find . -name \*.v.d`
