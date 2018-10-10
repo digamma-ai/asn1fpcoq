@@ -11,6 +11,8 @@ Extraction Blacklist String List Nat.
 
 Set Extraction AccessOpaque.
 
+Extract Inductive Decimal.int => unit [ "(fun _ -> ())" "(fun _ -> ())" ] "(fun _ _ _ -> assert false)".
+
 (* NOTE: assumes that this file is compiled from /src *)
 Cd "ml/extracted".
 
