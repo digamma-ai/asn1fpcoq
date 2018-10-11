@@ -14,4 +14,3 @@ ml/extracted/*.mli
 ml/extracted/.timestamp
 .depend
 _build/
-dune-project
