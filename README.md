@@ -9,7 +9,7 @@ ASN.1 Floating Point encoding formalized in Coq
 See [doc/assumptions.md](https://github.com/digamma-ai/asn1fpcoq/blob/master/doc/assumptions.md)
 
 ## Prerequisites
-* [Coq 8.7.2](https://coq.inria.fr/)
+* [Coq 8.8.2](https://coq.inria.fr/)
 * [Flocq](http://flocq.gforge.inria.fr/)
 * [ExtLib](https://github.com/coq-ext-lib/coq-ext-lib)
 * [dune](https://github.com/ocaml/dune)
@@ -18,7 +18,6 @@ See [doc/assumptions.md](https://github.com/digamma-ai/asn1fpcoq/blob/master/doc
 To install all pre-requisites:
 
     opam repo add coq-released http://coq.inria.fr/opam/released
-    opam pin add coq 8.7.2
     opam install coq coq-ext-lib coq-flocq dune num core
 
 ## Acknowledgements
