@@ -11,10 +11,7 @@ Local Open Scope monad_scope.
 Open Scope Z.
 
 (* Left-to-right composition of Kleisli arrows. *)
-Definition mcompose {a b c:Type} {m:Type->Type} `{Monad m}
-           (f: a -> m b) (g: b -> m c): (a -> m c)
-  := fun x => f x >>= g.
-Notation "f >=> g" := (mcompose f g) (at level 50, left associativity) : monad_scope.
+Notation "f >=> g" := (fun x => pbind (f x) g) (at level 50, left associativity) : monad_scope.
 
 Section B32.
 
