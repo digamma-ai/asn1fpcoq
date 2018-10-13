@@ -10,39 +10,36 @@ Local Open Scope monad_scope.
 
 Open Scope Z.
 
+(* Left-to-right composition of Kleisli arrows. *)
+Definition mcompose {a b c:Type} {m:Type->Type} `{Monad m}
+           (f: a -> m b) (g: b -> m c): (a -> m c)
+  := fun x => f x >>= g.
+Notation "f >=> g" := (mcompose f g) (at level 50, left associativity) : monad_scope.
+
 Section B32.
 
-  Definition float32_to_BER_exact (f:Z): option Z :=
-    ab <- b32_to_BER_abstract (b32_of_bits f) ;;
-       ret (BER_to_bits false ab).
+  Definition float32_to_BER_exact: Z -> option Z :=
+    compose b32_to_BER_abstract b32_of_bits >=> compose ret (BER_to_bits false).
 
-  Definition BER_to_float32_exact (asn:Z): option Z :=
-    bf <- bits_to_BER asn ;;
-       af <- BER_to_b32_abstract_exact bf ;;
-       ret (bits_of_b32 af).
+  Definition BER_to_float32_exact: Z -> option Z :=
+    bits_to_BER >=> BER_to_b32_abstract_exact >=> compose ret bits_of_b32.
 
-  Definition BER_to_float32_rounded (rounding: mode) (asn:Z): option Z :=
-    bf <- bits_to_BER asn ;;
-       af <- BER_to_b32_abstract_rounded rounding bf ;;
-       ret (bits_of_b32 af).
-
+  Definition BER_to_float32_rounded (rounding: mode): Z -> option Z :=
+    bits_to_BER >=> BER_to_b32_abstract_rounded rounding >=>
+                compose ret bits_of_b32.
 End B32.
 
 
 Section B64.
 
-    Definition float64_to_BER_exact (f: Z): option Z :=
-    ab <- b64_to_BER_abstract (b64_of_bits f) ;;
-       ret (BER_to_bits false ab).
+  Definition float64_to_BER_exact: Z -> option Z :=
+    compose b64_to_BER_abstract b64_of_bits >=> compose ret (BER_to_bits false).
 
-    Definition BER_to_float64_exact (asn: Z): option Z :=
-    bf <- bits_to_BER asn ;;
-       af <- BER_to_b64_abstract_exact bf ;;
-       ret (bits_of_b64 af).
+  Definition BER_to_float64_exact: Z -> option Z :=
+    bits_to_BER >=> BER_to_b64_abstract_exact >=> compose ret bits_of_b64.
 
-    Definition BER_to_float64rounded (rounding : mode ) (asn:Z): option Z :=
-    bf <- bits_to_BER asn ;;
-       af <- BER_to_b64_abstract_rounded rounding bf ;;
-       ret (bits_of_b64 af).
+  Definition BER_to_float64_rounded (rounding: mode): Z -> option Z :=
+    bits_to_BER >=> BER_to_b64_abstract_rounded rounding >=>
+                compose ret bits_of_b64.
 
 End B64.
