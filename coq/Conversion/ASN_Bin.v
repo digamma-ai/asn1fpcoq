@@ -2,6 +2,7 @@ Require Import ZArith Sumbool Option.
 Require Import ASN1FP.ASN.ASNDef ASN1FP.Aux.Roundtrip ASN1FP.Aux.Bits ASN1FP.Aux.StructTactics ASN1FP.Aux.Tactics ASN1FP.ASN.Aux.
 Require Import Lia.
 Require Import Flocq.Core.Zaux.
+Require Import Template.All Switch.Switch.
 
 Require Import Arith.EqNat Strings.String Lists.List.
 Require Import Basics.
@@ -20,27 +21,15 @@ Section Bitstring_def.
   Definition ninf_b    := 590209%Z.
   Definition nan_b     := 590210%Z.
 
-  Inductive BER_specials : Set :=
-  | pzero : BER_specials
-  | nzero : BER_specials
-  | pinf : BER_specials
-  | ninf : BER_specials
-  | nan : BER_specials.
-
-  Definition classify_BER (x: Z): option BER_specials :=
-    if x =? pzero_b
-    then Some pzero
-    else
-      if x =? nzero_b
-      then Some nzero
-      else
-        if x =? pinf_b
-        then Some pinf
-        else
-          if x =? ninf_b
-          then Some ninf
-          else if x =? nan_b then Some nan
-               else None.
+  Run TemplateProgram
+      (mkSwitch Z Z.eqb
+                [(pzero_b,    "pzero") ;
+                   (nzero_b,     "nzero") ;
+                   (pinf_b,       "pinf") ;
+                   (ninf_b,       "ninf") ;
+                   (nan_b,         "nan")]
+                "BER_specials" "classify_BER"
+      ).
 
   Inductive BER_bitstring :=
   | special   (val : Z)
