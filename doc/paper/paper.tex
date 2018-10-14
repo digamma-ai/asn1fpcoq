@@ -51,7 +51,7 @@
 \begin{document}
 
 %% Title information
-\title{Formal verification of floating-point numbers conversion between ASN.1 BER and IEEE 754 binary encodings}
+\title{Formal verification of floating-point number conversion between ASN.1 BER and IEEE 754 binary encodings}
 %\subtitle{Subtitle}
 
 \author{Ilia Zaichuk}
@@ -69,63 +69,69 @@
 \begin{abstract}
 
 ASN.1 encoding is widely used for data transfer between various computing systems.
-Such data may contain floating-point numbers. The most common representation of floating-point
-numbers is IEEE 754 standard. ASN.1, however, does not rely
-on IEEE for that task. Conversion between IEEE and ASN.1 floating-point
+Such data may contain floating-point numbers. The most common representation of
+floating-point numbers is the IEEE 754 standard. ASN.1, however, does not rely
+on IEEE for that task. Conversion between the two floating-point
 representations is error-prone in most ASN.1 protocol implementations. In this
-project, we set to formalize such conversion and prove it's correctness using the Coq proof assistant.
-Such formalization could be used as ``executable specification'' which could be
-extracted as an OCaml or Haskell program. The secondary goal of this project is
-to asses the amount of work required for formalizing the full ASN.1 stack, which
+project, we formalize such conversion and prove it's correctness using the Coq
+proof assistant. Such formalization could be used as an ``executable specification'' which
+could be extracted as an OCaml or Haskell program. The secondary goal of this project is
+to assess the amount of work required for formalizing the full ASN.1 stack, which
 we are considering as the next step.
 
 \end{abstract}
 
 
-%% \maketitle
 \maketitle
 
 
 
 \section{Introduction}
 
-At the fundamental level, any floating-point number is a pair of integers: a \textit{mantissa} (sometimes also called \textit{significand}) and an \textit{exponent}. The main difference between the various standards for floating-point representations is how this pair is encoded. Different binary lengths might be used, different representations for special values might be chosen. These variations in encoding are adapted for various use-cases but create complications when conversion from one format to another is required.
+At the fundamental level, any floating-point number is a pair of integers: a \textit{mantissa}
+(sometimes also called \textit{significand}) and an \textit{exponent}. The main difference between
+standards for floating-point representation is how this pair is encoded. Different binary lengths
+might be used, or different representations for special values might be chosen among other variances. These variations in encoding
+are adapted for assorted use-cases but create complications when conversion from one format to another
+is required.
 
-An instance of this, which is handled in our project, is the conversion between floating-point numbers, encoded in IEEE 754 and ASN.1 formats. It is a common task, but that does not make it a simple one. Mere numbers: while any IEEE encoding consists of 3 different parts. An ASN.1 float has at least 9.
+An instance of this, which is handled in our project, is the conversion between floating-point numbers,
+encoded in IEEE 754, and ASN.1 formats. It is a common task but not a simple one.
+Mere numbers: while any IEEE encoding consists of three different parts, an ASN.1 float has at least nine.
 
 To give you an example, in the \emph{asn1c} \cite{walkinopen} project, the function
-converting between the two formats takes up around 200 lines of C code.
-It is quite hard
-for a human to verify, making a formalization of the topic a much-needed endeavor.
+converting between the two formats takes around 200 lines of C code.
+It is quite hard for a human to verify, making a formalization of the topic a much-needed endeavor.
 
 \section{Brief format comparison}
 
 In the scope of this project, two formats are considered: the IEEE 754 binary
 interchange floating-point encoding \cite{5976968} and the ASN.1 BER real value encoding \cite{ISO8825}.
 IEEE 754 defines formats of varying lengths, \emph{binary32} and \emph{binary64}
-being the most commonly used. Any IEEE 754 floating-point
-number can be thought of as a triplet:
+being the most commonly used. Any IEEE 754 floating-point number can be thought of as a triplet:
 $(\mathrm{sign}, \mathrm{exp}, \mathrm{mantissa}) \in \bool \times \Z \times \N$,
-which is serialized as concatenation of bit sequences representing each of the components.
+which is serialized as a concatenation of bit sequences representing each of the components.
 
 The core part of any ASN.1 real encoding has the following form:
 $ (\mathrm{sign},\mathrm{radix},\mathrm{scaling},\mathrm{exp},\mathrm{mantissa})
 \in \bool \times \N \times \N \times \Z \times \N$.
-The serialization scheme is more complicated, using additional
+The serialization scheme for this is more complicated, using additional
 information about the encoding variants.
 
 Both standards define more than one encoding scheme, but for the purposes of
-this project, only binary formats are considered: those, in which the exponent using a base which is power of two. In addition to real values, the standards support the same set(s)
-of special values, however, an
-IEEE \emph{NaN} value must lose its debugging payload when conversion to
+this project, only binary formats are considered: those, in which the exponent uses a base
+which is a power of two. In addition to real values, the standards support the same set
+of special values. However, an IEEE \emph{NaN} value loses its debugging payload when conversion to
 ASN.1 is performed.
 
-While consisting of blocks of similar meaning, ASN.1 and IEEE 754 represent same numbers in different ways. For example, the number $0.46875 = 15*2^{-5}$ corresponds to the $(0, 125, 7340032)$ tuple in IEEE binary32, and $(0, 16, 2, 254, 29)$ ASN.1 real  encoding.
+While consisting of blocks of similar meaning, ASN.1 and IEEE 754 represent the same numbers in different
+ways. For example, the number $0.46875 = 15*2^{-5}$ corresponds to the $(0, 125, 7340032)$ tuple
+in IEEE binary32 and $(0, 16, 2, 254, 29)$ ASN.1 real encoding.
 
-It is important to note that any number in binary128, 64 or 32 IEEE format can
+It is important to note that any number in \emph{binary64} or \emph{binary32} IEEE format can
 be converted to ASN.1 without loss of precision. Conversely, an ASN.1-encoded
-number is not necessarily representable in any common IEEE format. For such cases
-rounding is implemented, discussed in Section~\ref{sec:imp}.
+number is not necessarily representable in any common IEEE format. For such cases,
+rounding is implemented, as discussed in Section~\ref{sec:imp}.
 
 \section{Implementation}
 \label{sec:imp}
@@ -135,25 +141,25 @@ rounding is implemented, discussed in Section~\ref{sec:imp}.
   \label{fig:figure1}
 \end{figure}
 
-The conversion path is shown on Figure~\ref{fig:figure1}. We use $\Z$ to
-represent bit strings or arbitrary length. Both BER and IEEE floating-point
+The conversion path is shown in Figure~\ref{fig:figure1}. We use $\Z$ to
+represent bit strings of arbitrary length. Both BER and IEEE floating-point
 numbers are ultimately encoded as such strings. The conversion is split into
-several steps with intermediate representations. On IEEE side there is
-binary\_float, defined in the Flocq \cite{boldo2011flocq} library which provides
+several steps with intermediate representations. On the IEEE side, there is
+\emph{binary\_float}, defined in the Flocq \cite{boldo2011flocq} library, which provides
 an abstract representation of floats as an inductive type with constructors for
 special values as well as ``regular'' numbers expressed as a mantissa-exponent
-pair. On ASN.1 side, there is the BER\_float inductive type, which is similar
-to binary\_float, with some additional parameters unique to BER added, and the BER\_bitstring type, which is used as an intermediate type for generating sequence of bits.
+pair. On ASN.1 side, there is the \emph{BER\_float} inductive type, which is similar
+to \emph{binary\_float}, with some additional parameters unique to BER added, and the
+\emph{BER\_bitstring} type, which is used as an intermediate type for generating sequences of bits.
 
-For each adjacent pair of formats we need to define two conversion functions
-(for both directions), a heterogeneous equality, and lemmas ensuring equivalence
-of conversion results in both directions.
+For each adjacent pair of formats, we need to define two conversion functions
+for both directions, a heterogeneous equality and lemmas ensuring equivalence
+of conversion results.
 
 In general, our conversion function from type $T$ to $U$ is not total.
 The converter may fail for some values of $T$ which could not be
-represented in $U$. To express this, our
-convertors have the type $T \rightarrow \mathrm{option}\, U$, using the
-\emph{Option Monad}. In case of error \emph{None} is returned.
+represented in $U$. To express this, our converters have the type $T \rightarrow \mathrm{option}\, U$,
+using the \emph{Option Monad}. In case of error, \emph{None} is returned.
 This allows us to define a generic ``round-trip'' conversion correctness property as follows:
 
 \begin{lstlisting}[language=Coq, mathescape=true,
@@ -170,9 +176,11 @@ Definition roundtrip
 \end{lstlisting}
 
 The original expression of type $A1$ is converted using ``forward'' conversion
-pass to type $B$, and then back using ``backward'' pass to type $A1$. For example, a practical scenario for this could be encoding ($f$) a \emph{binary32} ($A1$) float in BER ($B$), transmitting it over a network, and decoding ($b$) into \emph{binary64} ($A2$). The results
+pass to type $B$ and then back using ``backward'' pass to type $A1$. For example, a practical scenario
+for this could be encoding ($f$) a \emph{binary32} ($A1$) float in BER ($B$), transmitting it over a
+network, and decoding ($b$) into \emph{binary64} ($A2$). The results
 of successful forward conversion must satisfy a heterogeneous equality
-predicate \emph{e}, which is applied using  \emph{bool\_het\_inverse} wrapper:
+predicate \emph{e}, which is applied using the \emph{bool\_het\_inverse} wrapper:
 
 \begin{lstlisting}[language=Coq, mathescape=true,
   basicstyle=\footnotesize]
@@ -186,17 +194,17 @@ Definition bo$$ol_het_inverse
       ret (e x x').
 \end{lstlisting}
 
-It should be noted that, while we call it a ``roundtrip'', the result
+It should be noted that, while we call it a ``round-trip,'' the result
 of the backwards pass ($A2$) does not have the same type as the original value ($A1$).
-The reason for this is the need to convert between different formats of IEEE 754: for
-example, a \emph{binary64} floating-point number might be transmitted, using BER format,
-to a different machine, where it needs to be represented in \emph{binary32}.
-In such cases rounding might need to be performed during conversion from BER to IEEE.
-This is supported in our implementation, with the the roundtrip conversion behaving exactly as if the
-original number was converted to a different format according to the rules set out in
-IEEE 754.
+The reason for this is the need to convert between different formats of IEEE 754. For
+example, a \emph{binary64} floating-point number might be transmitted using BER format
+to a different machine where it needs to be represented in \emph{binary32}.
+In such cases, rounding might need to be performed during conversion from BER to IEEE.
+This is supported in our implementation, with the roundtrip conversion behaving exactly as if the
+original number was converted to a different format according to the rules set out in IEEE 754.
 
-For the common IEEE 754 binary formats, high-level encoding end decoding functions were defined. For example for \emph{binary64}:
+For the common IEEE 754 binary formats, high-level encoding and decoding functions are defined.
+For example for \emph{binary64}:
 
 \begin{lstlisting}[language=Coq, mathescape=true,
   basicstyle=\footnotesize]
@@ -216,27 +224,30 @@ For the common IEEE 754 binary formats, high-level encoding end decoding functio
             ret (bits_of_b64 af).
 \end{lstlisting}
 
-The implementation is straightforward. It proceeds by converting a bit string in
-source format into the target one through intermediate steps corresponding to
-intermediate formats that we introduced. If an error occurs at any step
-(\emph{None} returned) it is propagated to the final result through
-monadic composition of the steps.
+The implementation is straightforward. It proceeds by converting a bit string in the
+source format into the target through intermediate steps corresponding to
+intermediate formats previously introduced in this paper. If an error occurs at any step
+(\emph{None} returned), it is propagated to the final result through monadic composition of the steps.
 
 \section{Results and Future work}
 
-To demonstrate how our verified implementation could be used in practical ASN.1 encoding/decoding pipeline, we exported our encoder and decoder implementation in Gallina as OCaml program using Coq \textit{extraction}\cite{letouzey2008extraction} facility. 
+To demonstrate how our verified implementation could be used in a practical ASN.1 encoding/decoding
+pipeline, we exported our encoder and decoder implementation in Gallina as an OCaml program using
+Coq \textit{extraction} \cite{letouzey2008extraction} facility. 
 
-The resulting implementation was then linked to asn1c library, replacing native implementation of floating point encoding module. It was then tested to pass all unit tests. The performance of the extracted code is, as expected, is slower compared to original C implementation.
+The resulting implementation was then linked to the asn1c library, replacing native implementation of the
+floating point encoding module. It then passed all unit tests. The performance of
+the extracted code is, as expected, slower compared to the original C implementation.
 
 To combine benefits of formal verification with high performance of native
-implementation we plan as the next step to try to verify existing C implementation
+implementation, we plan  to try to verify existing C implementation as the next step
 using our formalization as the specification. We are considering using
-VST\cite{appel2011verified} and the CompCert compiler\cite{leroy2012compcert}. 
+VST \cite{appel2011verified} and the CompCert compiler \cite {leroy2012compcert}. 
 
-The ultimate goal is to verify the full ASN.1 stack. This is a formidable task as
+The ultimate goal is to verify the full ASN.1 stack. This is a formidable task, as
 ASN.1 specification is very rich and includes multiple encoding formats
-(binary, XML, etc.) and even it's own embedded constraints language. We are
-seeking industrial and academic partners to work with us on this project.
+(binary, XML, etc.) and even it's own embedded constraint language. We are
+seeking industrial and academic partners to collaborate on this project.
 
 \nocite{*}
 \bibliography{paper}
