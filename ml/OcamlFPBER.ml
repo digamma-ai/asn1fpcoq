@@ -36,6 +36,6 @@ let ocaml_BER_to_float64_exact (ab:string): float option =
 
 let ocaml_BER_to_float64_rounded (m:Binary.mode) (ab:string): float option =
   let ai = big_int_of_bytes ab in
-  match coq_BER_to_float64rounded m ai with
+  match coq_BER_to_float64_rounded m ai with
   | None -> None
   | Some fbi -> Some (float_of_big_int fbi)
