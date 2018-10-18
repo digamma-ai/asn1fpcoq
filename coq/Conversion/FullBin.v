@@ -3,7 +3,7 @@ Require Import Types.ASNDef
                Conversion.IEEE_ASN.Def
                Conversion.ASN_Bitstring.Def
                Conversion.Bitstring_Bits.Def
-               Conversion.Full.BinK.
+               Conversion.BinK.
 Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux.
 
 Require Import ExtLib.Structures.Monads.
