@@ -14,7 +14,7 @@ Definition bitstring_to_bits (b : BER_bitstring) : Z :=
     | None => -1
     end
 
-  | short id content_olen type sign base scaling exp_olen_b exponent significand =>
+  | short id content_olen type sign base scaling exp_olen_b exponent significand _ =>
     let em_olen := content_olen - 1 in
     let em_blen := 8*em_olen in
     join_octets_ext (content_olen + 1) id
@@ -30,7 +30,7 @@ Definition bitstring_to_bits (b : BER_bitstring) : Z :=
                     significand)))))))
 
 
-  | long id content_olen type sign base scaling lexp exp_olen_o exponent significand =>
+  | long id content_olen type sign base scaling lexp exp_olen_o exponent significand _ =>
     let em_olen := content_olen - 2 in
     let lem_blen := 8*(em_olen+1) in
     join_octets_ext (content_olen + 1) id
@@ -47,13 +47,13 @@ Definition bitstring_to_bits (b : BER_bitstring) : Z :=
                       significand))))))))
   end.
 
-Definition bits_to_bitstring (b : Z) : BER_bitstring :=
+Definition bits_to_bitstring (b : Z) : option BER_bitstring :=
   match classify_BER b with
-    | Some pzero => special pzero_b
-    | Some nzero => special nzero_b
-    | Some pinf => special pinf_b
-    | Some ninf => special ninf_b
-    | Some nan => special nan_b
+    | Some pzero => Some (special pzero_b)
+    | Some nzero => Some (special nzero_b)
+    | Some pinf => Some (special pinf_b)
+    | Some ninf => Some (special ninf_b)
+    | Some nan => Some (special nan_b)
     | None =>
       let '(id, co_content) := split_octets_by_fst 1 b in
       let '(co, content) := split_octets_by_fst 1 co_content in
@@ -66,8 +66,14 @@ Definition bits_to_bitstring (b : Z) : BER_bitstring :=
       then
         let '(e_olen, exp_signif) := split_octets_by_fst 1 l_exp_signif in
         let '(exp, signif) := split_octets_by_snd (co - e_olen - 2) exp_signif in
-        long id co t s bb ff ee e_olen exp signif
+        match valid_long_sumbool id co t s bb ff ee e_olen exp signif with
+          | right _ => None
+          | left V => Some (long id co t s bb ff ee e_olen exp signif V)
+        end
       else
         let '(exp, signif) := split_octets_by_snd (co - ee - 2) l_exp_signif in
-        short id co t s bb ff ee exp signif
+        match valid_short_sumbool id co t s bb ff ee exp signif with
+          | right _ => None
+          | left V => Some (short id co t s bb ff ee exp signif V)
+        end
     end.

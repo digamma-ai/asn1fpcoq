@@ -1,5 +1,5 @@
 Require Import ZArith.
-Require Import ASN1FP.Types.ASNDef ASN1FP.Types.ASNAux ASN1FP.Types.IEEEAux
+Require Import ASN1FP.Types.ASNDef ASN1FP.Types.IEEEAux
                ASN1FP.Aux.Roundtrip ASN1FP.Aux.Option ASN1FP.Aux.StructTactics ASN1FP.Aux.Tactics.
 Require Import Flocq.IEEE754.Binary Flocq.Core.Zaux Flocq.Core.FLX.
 

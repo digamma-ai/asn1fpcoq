@@ -97,4 +97,7 @@ Definition BER_float_strict_eqb (f1 f2 : BER_float) : bool :=
   | _ , _ => false
   end.
 
+Definition valid_BER_sumbool (m : positive) (e : Z) (b : radix) :=
+  Sumbool.sumbool_of_bool (valid_BER m e b).
+
 End BER.

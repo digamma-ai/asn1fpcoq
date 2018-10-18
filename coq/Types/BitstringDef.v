@@ -1,5 +1,5 @@
 Require Import ZArith.
-Require Import ASN1FP.Types.ASNDef ASN1FP.Types.ASNAux
+Require Import ASN1FP.Types.ASNDef
                ASN1FP.Aux.Roundtrip ASN1FP.Aux.Bits ASN1FP.Aux.StructTactics ASN1FP.Aux.Tactics.
 Require Import Template.All Switch.Switch Strings.String Lists.List.
 Import ListNotations.
@@ -23,23 +23,6 @@ Run TemplateProgram
                   (nan_b,         "nan")]
               "BER_specials" "classify_BER"
     ).
-
-Inductive BER_bitstring :=
-  | special   (val : Z)
-  | short (id content_olen type sign base scaling exp_olen_b            exponent significand : Z)
-  | long  (id content_olen type sign base scaling       lexp exp_olen_o exponent significand : Z).
-
-Definition BER_bitstring_eqb (b1 b2 : BER_bitstring) : bool :=
-  match b1, b2 with
-  | special val1, special val2 => Z.eqb val1 val2
-  | short id1 co1 t1 s1 bb1 ff1 ee1 e1 m1, short id2 co2 t2 s2 bb2 ff2 ee2 e2 m2 =>
-         (id1 =? id2) && (co1 =? co2) && (t1 =? t2) && (s1 =? s2) && (bb1 =? bb2)
-      && (ff1 =? ff2) && (ee1 =? ee2) && (e1 =? e2) && (m1 =? m2)
-  | long id1 co1 t1 s1 bb1 ff1 ee1 eo1 e1 m1, long id2 co2 t2 s2 bb2 ff2 ee2 eo2 e2 m2 =>
-         (id1 =? id2) && (co1 =? co2) && (t1  =?  t2) && (s1 =? s2) && (bb1 =? bb2)
-      && (ff1 =? ff2) && (ee1 =? ee2) && (eo1 =? eo2) && (e1 =? e2) && (m1  =?  m2)
-  | _, _ => false
-  end.
 
 Definition valid_special (val : Z) : bool :=
   match (classify_BER val) with
@@ -78,9 +61,34 @@ Definition valid_long (id co t s bb ff ee eo e m : Z) : bool :=
   && (Z.ltb (-1) e)                    (* exponent is non-negative (it is two's complement) *)
   && (Z.ltb 0 m).                      (* mantissa is positive *)
 
-Definition correct_bitstring (b : BER_bitstring) : bool :=
-  match b with
-  | special val => (valid_special val)
-  | short id co t s bb ff ee    e m => (valid_short id co t s bb ff ee    e m)
-  | long  id co t s bb ff ee eo e m => (valid_long  id co t s bb ff ee eo e m)
+Inductive BER_bitstring :=
+  | special   (val : Z)
+  | short (id co t s bb ff ee e m : Z) :
+      (valid_short id co t s bb ff ee e m) = true -> BER_bitstring
+  | long  (id co t s bb ff ee eo e m : Z) :
+      (valid_long id co t s bb ff ee eo e m) = true -> BER_bitstring.
+
+Definition BER_bitstring_eqb (b1 b2 : BER_bitstring) : bool :=
+  match b1, b2 with
+  | special val1, special val2 => Z.eqb val1 val2
+  | short id1 co1 t1 s1 bb1 ff1 ee1 e1 m1 _, short id2 co2 t2 s2 bb2 ff2 ee2 e2 m2 _ =>
+         (id1 =? id2) && (co1 =? co2) && (t1 =? t2) && (s1 =? s2) && (bb1 =? bb2)
+      && (ff1 =? ff2) && (ee1 =? ee2) && (e1 =? e2) && (m1 =? m2)
+  | long id1 co1 t1 s1 bb1 ff1 ee1 eo1 e1 m1 _, long id2 co2 t2 s2 bb2 ff2 ee2 eo2 e2 m2 _ =>
+         (id1 =? id2) && (co1 =? co2) && (t1  =?  t2) && (s1 =? s2) && (bb1 =? bb2)
+      && (ff1 =? ff2) && (ee1 =? ee2) && (eo1 =? eo2) && (e1 =? e2) && (m1  =?  m2)
+  | _, _ => false
   end.
+
+  Definition valid_short_sumbool (id co t s bb ff ee e m : Z) :=
+    Sumbool.sumbool_of_bool (valid_short id co t s bb ff ee e m).
+
+  Definition valid_long_sumbool (id co t s bb ff ee eo e m : Z) :=
+    Sumbool.sumbool_of_bool (valid_long id co t s bb ff ee eo e m).
+
+(* Definition correct_bitstring (b : BER_bitstring) : bool := *)
+(*   match b with *)
+(*   | special val => (valid_special val) *)
+(*   | short id co t s bb ff ee    e m => (valid_short id co t s bb ff ee    e m) *)
+(*   | long  id co t s bb ff ee eo e m => (valid_long  id co t s bb ff ee eo e m) *)
+(*   end. *)
