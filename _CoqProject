@@ -1,4 +1,4 @@
--R coq/ASN ASN1FP.ASN
+-R coq/Types ASN1FP.Types
 -R coq/Aux ASN1FP.Aux
 -R coq/Conversion ASN1FP.Conversion
 -R coq/IEEE ASN1FP.IEEE

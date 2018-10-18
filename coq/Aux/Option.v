@@ -9,4 +9,3 @@ Definition is_Some_b {A : Type} (x : option A) : bool :=
   | Some _ => true
   | _ => false
   end.
-

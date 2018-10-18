@@ -1,5 +1,5 @@
 Require Import ZArith.
-Require Import Conversion.ASN_IEEE.
+Require Import ASN1FP.Conversion.IEEE_ASN.Def.
 
 Open Scope Z.
 
@@ -19,7 +19,6 @@ Section B32.
   Definition BER_to_b32_abstract_rounded := BER_to_IEEE_rounded prec emax prec_gt_1 prec_lt_emax.
 
 End B32.
-
 
 Section B64.
 

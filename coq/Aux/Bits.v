@@ -1,11 +1,11 @@
 Require Import ZArith Bool.
 Require Import ASN1FP.Aux.Roundtrip ASN1FP.Aux.Tactics ASN1FP.Aux.StructTactics.
-Require Import Flocq.Core.Digits.
 
 Require Import Lia.
 
 Open Scope Z_scope.
 
+(* base-2 logarithm rounded toward positive infinity *)
 Definition log2_pinf (n : Z) : Z :=
   let ln := Z.log2 n in
   if (n =? 2^ln)
@@ -15,40 +15,39 @@ Definition log2_pinf (n : Z) : Z :=
 Section Length.
 
   (*
-    number of base-2 digits of an integer :
-    n is b bits
-    <->
-    2^(b-1) <= n < 2^b
-    <->
-    b-1 <= log2 n < b
-    <->
-    floor (log2 n) = b - 1
-    <->
-    b = floor (log2 n) + 1
-  *)
+   *  number of base-2 digits of an integer :
+   *  n is b bits
+   *  <->
+   *  2^(b-1) <= n < 2^b
+   *  <->
+   *  b-1 <= log2 n < b
+   *  <->
+   *  floor (log2 n) = b - 1
+   *  <->
+   *  b = floor (log2 n) + 1
+   *)
   Definition blen (n : Z) : Z :=
     Z.log2 n + 1.
 
   (*
-    smallest number of octets,
-    which can fit a given number of bits:
-
-    number of bits divided by 8
-    rounded toward positive infinity
-  *)
+   *  smallest number of octets,
+   *  which can fit a given number of bits:
+   *  
+   *  number of bits divided by 8
+   *  rounded toward positive infinity
+   *)
   Definition blen_to_olen (n : Z) : Z :=
     (n + 7) / 8.
 
   (*
-    smallest number of octets enough
-    to encode a given number in binary
-    (workaround for division with rounding toward +inf)
-  *)
+   *  smallest number of octets enough
+   *  to encode a given number in binary
+   *  (workaround for division with rounding toward +inf)
+   *)
   Definition olen (n : Z) : Z :=
     blen_to_olen (blen n).
 
 End Length.
-           
 
 Section Twos_comp_def.
 
@@ -57,34 +56,34 @@ Section Twos_comp_def.
   Let dr := 2*r.
 
   (*
-    smallest number of bits enough to
-    encode an integer's two's complement
-
-    when given b bits, two's complement representation
-    can encode integer values in the range
-    [-2^(b-1), 2^(b-1)-1].
-
-    - - -
-    cosider 3 cases:
-
-    1) n = 0 :
-       twos_blen 0 = 1
-
-    2) n > 0 :
-       n <= 2^(b-1)-1 <-> n < 2^(b-1)
-
-           twos_blen n = b
-       <-> 2^(b-2) <= n < 2^(b-1)
-       <-> floor (log2 n) = b - 2
-       <-> b = floor (log2 n) + 2
-
-    3) n < 0 :
-           twos_blen n = b
-       <-> -2^(b-1) <= n < -2^(b-2)
-       <-> 2^(b-2) < n <= 2^(b-1)
-       <-> ceil (log2 (-n)) = b - 1
-       <-> b = ceil (log2 (-n)) + 1
-  *)
+   *  smallest number of bits enough to
+   *  encode an integer's two's complement
+   * 
+   *  when given b bits, two's complement representation
+   *  can encode integer values in the range
+   *  [-2^(b-1), 2^(b-1)-1].
+   *
+   *
+   *  cosider 3 cases:
+   *
+   *  1) n = 0 :
+   *     twos_blen 0 = 1
+   *
+   *  2) n > 0 :
+   *     n <= 2^(b-1)-1 <-> n < 2^(b-1)
+   *
+   *         twos_blen n = b
+   *     <-> 2^(b-2) <= n < 2^(b-1)
+   *     <-> floor (log2 n) = b - 2
+   *     <-> b = floor (log2 n) + 2
+   *
+   *  3) n < 0 :
+   *         twos_blen n = b
+   *     <-> -2^(b-1) <= n < -2^(b-2)
+   *     <-> 2^(b-2) < n <= 2^(b-1)
+   *     <-> ceil (log2 (-n)) = b - 1
+   *     <-> b = ceil (log2 (-n)) + 1
+   *)
   Definition twos_blen : Z :=
     match n with
       | Z0 => 1
@@ -93,9 +92,9 @@ Section Twos_comp_def.
     end.
 
   (*
-    smallest number of octets enough to
-    encode an integer's two's complement.
-  *)
+   *  smallest number of octets enough to
+   *  encode an integer's two's complement.
+   *)
   Definition twos_olen : Z :=
     blen_to_olen (twos_blen).
 
@@ -228,8 +227,8 @@ End Twos_comp_prop.
 Section Operations.
 
   (*
-    given two numbers [fst] and [snd] representing two bit strings,
-    concatentate them, using [bits_snd] bits to represent [snd] 
+   *  given two numbers [fst] and [snd] representing two bit strings,
+   *  concatentate them, using [bits_snd] bits to represent [snd] 
    *)
   Definition join_bits_ext (bits_snd : Z) (fst snd : Z) : Z :=
     (Z.shiftl fst bits_snd + snd)%Z.
@@ -241,44 +240,44 @@ Section Operations.
     join_bits_ext (8 * snd_olen) fst snd.
 
   (*
-    concatenate two numbers, encoding the [snd] in exactly
-    the smallest number of octets that is enough to represent it
-  *)
+   *  concatenate two numbers, encoding the [snd] in exactly
+   *  the smallest number of octets that is enough to represent it
+   *)
   Definition join_octets (fst snd : Z) : Z :=
     join_octets_ext (olen snd) fst snd.
 
   (*
-    split a string of bits [b] into two,
-    with the right part having length of [bits_snd] bits
-  *)
+   *  split a string of bits [b] into two,
+   *  with the right part having length of [bits_snd] bits
+   *)
   Definition split_bits_by_snd (bits_snd : Z) (b : Z) : Z * Z :=
     let d := (2^bits_snd)%Z in
     (Z.div b d, Zmod b d).
 
   (*
-    split a string of bits [b] into two,
-    with the left part having length of [bits_fst] bits
-  *)
+   *  split a string of bits [b] into two,
+   *  with the left part having length of [bits_fst] bits
+   *)
   Definition split_bits_by_fst (bits_fst : Z) (b : Z) : Z * Z :=
     split_bits_by_snd ((blen b) - bits_fst) b.
   (*
-    split a string of bits [b] into two,
-    with the right part having length of [octets_snd] octets
-  *)
+   *  split a string of bits [b] into two,
+   *  with the right part having length of [octets_snd] octets
+   *)
   Definition split_octets_by_snd (octets_snd : Z) (b : Z) : Z * Z :=
     split_bits_by_snd (8 * octets_snd) b.
 
   (*
-    split a string of bits [b] into two,
-    with the left part having length of [octets_snd] octets
-
-    NOTE: 
-      if overall number of bits is not divisible by 8, leading zeros are assumed:
-      the right part of the split always has a number of bits divisible by 8
-      For example:
-            110011001111 -> 00001100  11001111,
-        NOT 110011001111 -> 11001100  1111
-  *)
+   *  split a string of bits [b] into two,
+   *  with the left part having length of [octets_snd] octets
+   *
+   *  NOTE: 
+   *    if overall number of bits is not divisible by 8, leading zeros are assumed:
+   *    the right part of the split always has a number of bits divisible by 8
+   *    For example:
+   *          110011001111 -> 00001100  11001111,
+   *      NOT 110011001111 -> 11001100  1111
+   *)
   Definition split_octets_by_fst (octets_fst : Z) (b : Z) : Z * Z :=
     split_octets_by_snd (olen b - octets_fst) b.
 

@@ -1,6 +1,8 @@
 Require Import ZArith.
-Require Import ASN1FP.ASN.ASNDef ASN1FP.ASN.Aux ASN1FP.IEEE.Aux ASN1FP.Aux.Roundtrip ASN1FP.Aux.Option ASN1FP.Aux.StructTactics ASN1FP.Aux.Tactics ASN1FP.Conversion.ASN_IEEE.
-Require Import Flocq.IEEE754.Binary Flocq.Core.Zaux Flocq.Core.FLX.
+Require Import ASN1FP.Types.ASNDef ASN1FP.Types.ASNAux ASN1FP.Types.IEEEAux
+        ASN1FP.Aux.Roundtrip ASN1FP.Aux.Option ASN1FP.Aux.StructTactics ASN1FP.Aux.Tactics
+        ASN1FP.Conversion.IEEE_ASN.Def.
+Require Import Flocq.IEEE754.Binary Flocq.Core.Zaux.
 
 Section Conversions.
 
@@ -8,21 +10,20 @@ Section Conversions.
   Variable prec_gt_1: Prec_gt_1 prec.
 
   Let float := binary_float prec emax.
-
   Let binary_bounded_sumbool := binary_bounded_sumbool prec emax.
 
   Section Exact.
 
     (*
-      roundtrip statement for IEEE->BER->IEEE conversion with no rounding
-      (see `roundtrip`)
-
-      Two IEEE floats are equivalent here
-      if and only if
-          they are strictly equal
-        or
-          they both encode a NaN
-          (in which case NaN payload is not taken into account)
+     *  roundtrip statement for IEEE->BER->IEEE conversion with no rounding
+     *  (see `roundtrip`)
+     *  
+     *  Two IEEE floats are equivalent here
+     *  if and only if
+     *      they are strictly equal
+     *    or
+     *      they both encode a NaN
+     *      (in which case NaN payload is not taken into account)
      *)
     Theorem IEEE_BER_roundtrip_exact (f : float):
       roundtrip_option
@@ -56,9 +57,9 @@ Section Conversions.
       end.
 
     (*
-      Guarantees that for all supported float values
-      (those given by `is_exact_convertible_IEEE`)
-      forward pass does not generate an error
+     *  Guarantees that for all supported float values
+     *  (those given by `is_exact_convertible_IEEE`)
+     *  forward pass does not generate an error
      *)
     Theorem IEEE_BER_pass_guarantee :
       forall (f : float),
@@ -107,9 +108,9 @@ Section Conversions.
     Qed.
 
     (*
-      given a triple (s,m,e) standing for s*m*2^e,
-      return a corresponding binary_float object in target form,
-      correctly rounded in accordance with the specified rounding mode
+     *  given a triplet (s,m,e) standing for s*m*2^e,
+     *  return a corresponding binary_float object in target form,
+     *  correctly rounded in accordance with the specified rounding mode
      *)
     Definition round_finite (rounding : mode) (s : bool) (m : positive) (e : Z) : target_float :=
       binary_normalize
@@ -119,9 +120,9 @@ Section Conversions.
 
 
     (*
-      for two binary_float`s in starting and target formats,
-      check if the second is the result of
-      converting (rounded accordingly) the first to target format
+     *  for two binary_float`s in starting and target formats,
+     *  check if the second is the result of
+     *  converting (rounded accordingly) the first to target format
      *)
     Definition correctly_rounded_nan_t (rounding : mode) (f : float) (cf : target_float) :=
       float_eqb_nan_t
@@ -129,21 +130,21 @@ Section Conversions.
         cf.
 
     (*
-      roundtrip statement for IEEE->BER->IEEE conversion with rounding
-      (see `roundtrip`)
-
-      Rounding only happens during the backwards conversion (BER->IEEE)
-      Forward pass only attempts to represent the IEEE float in BER exactly
-
-      Resulting float is equivalent to the starting one
-      if and only if
-          it is encoding a  real number strictly equal to that of the starting one
-        or
-          it is a result of a correct rounding as specified in the IEEE-754 standard
-          (see IEEE Std 754-2008 clause 5.4.2)
-        or
-          both floats are NaN
-          (in which case payloads are not taken into accout)
+     *  roundtrip statement for IEEE->BER->IEEE conversion with rounding
+     *  (see `roundtrip`)
+     *  
+     *  Rounding only happens during the backwards conversion (BER->IEEE)
+     *  Forward pass only attempts to represent the IEEE float in BER exactly
+     *  
+     *  Resulting float is equivalent to the starting one
+     *  if and only if
+     *      it is encoding a  real number strictly equal to that of the starting one
+     *    or
+     *      it is a result of a correct rounding as specified in the IEEE-754 standard
+     *      (see IEEE Std 754-2008 clause 5.4.2)
+     *    or
+     *      both floats are NaN
+     *      (in which case payloads are not taken into accout)
      *)
     Theorem IEEE_BER_roundtrip_rounded (rounding : mode) (f : float) :
       roundtrip_option

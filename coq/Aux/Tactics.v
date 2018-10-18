@@ -33,10 +33,9 @@ Ltac split_andb_goal :=
   | [ H : _ |- andb ?P ?Q = true] => repeat rewrite Bool.andb_true_iff; repeat split
   end.
 
-
 (*
-  different cases for
-  (a ?= a) != Eq
+*  different cases for
+*  (a ?= a) != Eq
 *)
 Ltac compare_nrefl :=
   match goal with
@@ -52,5 +51,6 @@ Ltac compare_nrefl :=
 
 Ltac bcompare_nrefl :=
   match goal with
-  | [ H: Bcompare _ _ _ _ = _ |- _] => assert (H1 := H); rewrite -> Bcompare_swap in H1; rewrite -> H in H1; inversion H1
+  | [ H: Bcompare _ _ _ _ = _ |- _] =>
+    assert (H1 := H); rewrite -> Bcompare_swap in H1; rewrite -> H in H1; inversion H1
   end.

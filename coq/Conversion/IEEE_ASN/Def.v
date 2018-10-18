@@ -1,5 +1,6 @@
 Require Import ZArith.
-Require Import ASN1FP.ASN.ASNDef ASN1FP.ASN.Aux ASN1FP.IEEE.Aux ASN1FP.Aux.Roundtrip ASN1FP.Aux.Option ASN1FP.Aux.StructTactics ASN1FP.Aux.Tactics.
+Require Import ASN1FP.Types.ASNDef ASN1FP.Types.ASNAux ASN1FP.Types.IEEEAux
+               ASN1FP.Aux.Roundtrip ASN1FP.Aux.Option ASN1FP.Aux.StructTactics ASN1FP.Aux.Tactics.
 Require Import Flocq.IEEE754.Binary Flocq.Core.Zaux Flocq.Core.FLX.
 
 Definition Prec_gt_1 (prec : Z) := Z.gt prec 1.
@@ -10,7 +11,6 @@ Section Conversions.
   Variable prec_gt_1: Prec_gt_1 prec.
 
   Let float := binary_float prec emax.
-
   Let binary_bounded_sumbool := binary_bounded_sumbool prec emax.
 
   Section Exact.
@@ -35,19 +35,19 @@ Section Conversions.
     Qed.
 
     (*
-      for any float s*m*(2^e)
-      return its ASN.1 BER representation if possible
-
-      NOTE:
-      1) ASN.1 BER representation is set to have radix = 2
-         (directly resembling the IEEE-754 radix)
-      2) Only direct conversion is attempted
-         (i.e. (s,m,e) -> (s,m,e)
-         not (s,m,e) -> (s,m*2,e-1))
-      3) If direct conversion is impossible,
-         `None` is returned
-      4) After the conversion, IEEE-754 NaN payload is lost,
-         as it is not supported by the ASN.1 standard
+     *  for any float s*m*(2^e)
+     *  return its ASN.1 BER representation if possible
+     *  
+     *  NOTE:
+     *  1) ASN.1 BER representation is set to have radix = 2
+     *     (directly resembling the IEEE-754 radix)
+     *  2) Only direct conversion is attempted
+     *     (i.e. (s,m,e) -> (s,m,e)
+     *     not (s,m,e) -> (s,m*2,e-1))
+     *  3) If direct conversion is impossible,
+     *     `None` is returned
+     *  4) After the conversion, IEEE-754 NaN payload is lost,
+     *     as it is not supported by the ASN.1 standard
      *)
     Definition IEEE_to_BER_exact (f : float) : option BER_float :=
       match f with
@@ -62,18 +62,18 @@ Section Conversions.
       end.
 
     (*
-      for any ASN.1 BER-encoded real number s*m*(b^e)
-      return the number's representation in the target IEEE format if possible
-
-      NOTE:
-      1) Only direct conversion is attempted
-         (i.e. (s,m,e) -> (s,m,e)
-         not  (s,m,e) -> (s,m*2,e-1))
-      2) If direct conversion is impossible or
-         initial BER encoding has radix /= 2,
-         `None` is returned
-      3) If the BER encoding is a NaN,
-         float's NaN payload is set to 1
+     *  for any ASN.1 BER-encoded real number s*m*(b^e)
+     *  return the number's representation in the target IEEE format if possible
+     *  
+     *  NOTE:
+     *  1) Only direct conversion is attempted
+     *     (i.e. (s,m,e) -> (s,m,e)
+     *     not  (s,m,e) -> (s,m*2,e-1))
+     *  2) If direct conversion is impossible or
+     *     initial BER encoding has radix /= 2,
+     *     `None` is returned
+     *  3) If the BER encoding is a NaN,
+     *     float's NaN payload is set to 1
      *)
     Definition BER_to_IEEE_exact (r : BER_float) : option float :=
       match r with
@@ -119,9 +119,9 @@ Section Conversions.
     Qed.
 
     (*
-      given a triple (s,m,e) standing for s*m*2^e,
-      return a corresponding binary_float object in target form,
-      correctly rounded in accordance with the specified rounding mode
+     *  given a triple (s,m,e) standing for s*m*2^e,
+     *  return a corresponding binary_float object in target form,
+     *  correctly rounded in accordance with the specified rounding mode
      *)
     Definition round_finite (rounding : mode) (s : bool) (m : positive) (e : Z) : target_float :=
       binary_normalize
@@ -130,15 +130,15 @@ Section Conversions.
         (cond_Zopp s (Zpos m)) e s.
 
     (*
-      for any ASN.1 BER-encoded real number s*m*(b^e)
-      return the number's representation in the target IEEE format
-      rounded in accordnace with the provided rounding mode if necessary
-
-      NOTE:
-      2) If initial BER encoding has radix /= 2,
-         `None` is returned
-      3) If the ASN encoding is a NaN,
-         float's NaN payload is set to 1
+     *  for any ASN.1 BER-encoded real number s*m*(b^e)
+     *  return the number's representation in the target IEEE format
+     *  rounded in accordnace with the provided rounding mode if necessary
+     *  
+     *  NOTE:
+     *  2) If initial BER encoding has radix /= 2,
+     *     `None` is returned
+     *  3) If the ASN encoding is a NaN,
+     *     float's NaN payload is set to 1
      *)
     Definition BER_to_IEEE_rounded (rounding : mode) (r : BER_float) : option (target_float) :=
       match r with
@@ -152,10 +152,10 @@ Section Conversions.
       end.
 
     (*
-      given a binary_float and a rounding mode
-      convert it to target format, rounding if necessary
-
-      NaN payload is set to 1 uncoditionally
+     *  given a binary_float and a rounding mode
+     *  convert it to target format, rounding if necessary
+     *  
+     *  NaN payload is set to 1 uncoditionally
      *)
     Definition IEEE_to_IEEE_round_reset_nan (rounding : mode) (f : float) : target_float :=
       match f with

@@ -8,9 +8,7 @@ Require Import ASN1FP.Aux.Option.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-(*
-  `b` is invers of `f` wrt. heterogenous equality `e`
- *)
+(* `b` is inverse of `f` wrt. heterogenous equality `e` *)
 Definition bool_het_inverse
            (A1 B A2 : Type)
            (f: A1 -> B)
@@ -35,17 +33,17 @@ Definition bool_het_inverse'
     ret (e x x').
 
 (*
-  "Round-trip" converting between types A1, B, A2:
-  A1 -> B -> A2
-
-  if
-    forward pass happens
-  then
-      backward pass happens
-    and
-      backward pass returns an element,
-      equivalent to the starting one
-*)
+ *  "Round-trip" converting between types A1, B, A2:
+ *  A1 -> B -> A2
+ *
+ *  if
+ *    forward pass happens
+ *  then
+ *      backward pass happens
+ *    and
+ *      backward pass returns an element,
+ *      equivalent to the starting one
+ *)
 Definition roundtrip_option
            (A1 B A2 : Type)
            (f: A1 -> option B) (* forward pass *)
