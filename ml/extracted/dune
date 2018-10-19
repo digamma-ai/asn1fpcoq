@@ -1,8 +1,6 @@
 (library
   (name extracted)
   (wrapped false)
-  (flags (:standard -runtime-variant d -g -w -39-33-20-50))
   (synopsis "ML code extracted from Coq")
   (libraries num)
-  (modes byte)
   )
