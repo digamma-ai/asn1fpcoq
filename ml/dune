@@ -5,8 +5,8 @@
   (flags (:standard -O3 -w -39-33-20-50))))
 
 (executables
-  (names test)
+  (names convtest)
   (libraries extracted core num)
-  (modes byte native)
+  (modes byte)
   (link_flags (-linkall))
 )

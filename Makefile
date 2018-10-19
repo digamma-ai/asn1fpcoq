@@ -56,11 +56,11 @@ install-dep:
 config Makefile.coq: _CoqProject Makefile
 	coq_makefile -f _CoqProject $(VFILES) -o Makefile.coq
 
-EXE=ml/_build/default/test.exe
+EXE=ml/_build/default/convtest.exe
 
 $(EXE): ml/*.ml ml/extracted/*.ml
 	@echo "Compiling $(EXE)"
-	(cd ml; dune build --profile=dev test.exe test.bc)
+	(cd ml; dune build --profile=dev convtest.exe)
 
 run: $(EXE)
 	./$(EXE)
