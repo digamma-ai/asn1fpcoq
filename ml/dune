@@ -1,4 +1,7 @@
 (executables
   (names test)
+  (flags (:standard -runtime-variant d -g -w -39-33-20-50))
   (libraries extracted core num)
+  (link_flags (-linkall))
+  (modes byte)
 )
