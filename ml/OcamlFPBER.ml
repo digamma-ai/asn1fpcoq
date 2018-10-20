@@ -22,6 +22,9 @@ let rec big_int_of_bytes ?acc:(a=big_int_of_int 0) s =
 let big_int_of_float (f:float) =
   big_int_of_int64 (Int64.bits_of_float f)
 
+let float_of_big_int fbi =
+  Int64.float_of_bits (int64_of_big_int fbi)
+
 let ocaml_float64_to_BER_exact (f:float): String.t option =
   let fb = big_int_of_float f in
   match float64_to_BER_exact fb with
@@ -32,10 +35,10 @@ let ocaml_BER_to_float64_exact (ab:string): float option =
   let ai = big_int_of_bytes ab in
   match coq_BER_to_float64_exact ai with
   | None -> None
-  | Some fbi -> Some (Int64.float_of_bits (int64_of_big_int fbi))
+  | Some fbi -> Some (float_of_big_int fbi)
 
 let ocaml_BER_to_float64_rounded (m:Binary.mode) (ab:string): float option =
   let ai = big_int_of_bytes ab in
   match coq_BER_to_float64_rounded m ai with
   | None -> None
-  | Some fbi -> Some (Int64.float_of_bits (int64_of_big_int fbi))
+  | Some fbi -> Some (float_of_big_int fbi)
