@@ -7,7 +7,8 @@ let rec bytes_of_big_int bi =
   let base = big_int_of_int 256 in
   let (q,r) = quomod_big_int bi base in
   let t = char_of_int (int_of_big_int r) in
-  bytes_of_big_int q ^ of_char t
+  (if eq_big_int q zero_big_int then "" else bytes_of_big_int q)
+  ^ of_char t
 
 let rec big_int_of_bytes ?acc:(a=big_int_of_int 0) s =
   let base = big_int_of_int 256 in

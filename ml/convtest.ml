@@ -15,7 +15,7 @@ let test_roundtrip f =
 
 let () =
   Printf.eprintf "Testing...\n" ;
+  let _ = test_roundtrip 3.1415 in
   let _ = test_roundtrip Float.neg_infinity in
   let _ = test_roundtrip Float.nan in
-  let _ = test_roundtrip 3.1415 in
   exit 0
