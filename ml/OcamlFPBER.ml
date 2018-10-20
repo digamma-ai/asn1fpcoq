@@ -14,7 +14,7 @@ let rec big_int_of_bytes ?acc:(a=big_int_of_int 0) s =
   let base = big_int_of_int 256 in
   if is_empty s then a
   else
-    let x = get s 1 in
+    let x = get s 0 in
     let xs = drop_prefix s 1 in
     let v = big_int_of_int (int_of_char x) in
     big_int_of_bytes ~acc:((add_big_int (mult_big_int a base) v)) xs
