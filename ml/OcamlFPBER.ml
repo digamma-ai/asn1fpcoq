@@ -20,7 +20,7 @@ let rec big_int_of_bytes ?acc:(a=big_int_of_int 0) s =
     big_int_of_bytes ~acc:((add_big_int (mult_big_int a base) v)) xs
 
 let big_int_of_float (f:float) =
-  let fi = Int64.of_float f in
+  let fi = Int64.of_float_unchecked f in
   big_int_of_int64 fi
 
 let ocaml_float64_to_BER_exact (f:float): String.t option =
