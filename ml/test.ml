@@ -19,10 +19,9 @@ let rec big_int_of_bytes ?acc:(a=big_int_of_int 0) s =
     big_int_of_bytes ~acc:((add_big_int (mult_big_int a base) v)) xs
 
 let unsigned_big_int_of_int64 (i:int64) =
-  let open Core in
-  let open Int64 in
-  if i < Int64.zero
-  then add_big_int (succ_big_int (big_int_of_int64 Int64.max_int)) (big_int_of_int64 i)
+  let open Core.Int64 in
+  if i < zero
+  then add_big_int (succ_big_int (big_int_of_int64 Int64.max_value)) (big_int_of_int64 i)
   else big_int_of_int64 i
 
 let big_int_of_float (f:float) =
