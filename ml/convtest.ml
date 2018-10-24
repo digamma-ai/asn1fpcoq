@@ -15,7 +15,8 @@ let test_roundtrip radix scaled f =
        match mf with
        | None -> Printf.eprintf "    ERROR: FP->BER->FP Conversion back error for %f!\n" f
        | Some f' ->
-          if f' = f then
+          let is_nan x = compare x nan = 0 in
+          if (f' = f || (is_nan f && is_nan f')) then
             Printf.eprintf "    PASS: for value %f\n" f
           else
             Printf.eprintf "    FAIL: After converting %f got back: %f!\n" f f'
