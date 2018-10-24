@@ -21,15 +21,25 @@ let rec big_int_of_bytes ?acc:(a=big_int_of_int 0) s =
 
 let unsigned_big_int_of_int64 (i:int64) =
   let open Core.Int64 in
+  let r = big_int_of_int64 (Int64.max_value) in
+  let dr = (mult_big_int (big_int_of_int 2) (succ_big_int r)) in
   if i < Int64.zero
-  then sub_big_int (succ_big_int (big_int_of_int64 Int64.max_value)) (big_int_of_int64 i)
+  then add_big_int dr (big_int_of_int64 i)
   else big_int_of_int64 i
 
 let big_int_of_float (f:float) =
   unsigned_big_int_of_int64 (Int64.bits_of_float f)
 
+let int64_of_unsigned_big_int bi =
+  let r = big_int_of_int64 (Int64.max_value) in
+  let dr = (mult_big_int (big_int_of_int 2) (succ_big_int r)) in
+  let open Core in
+  if (compare_big_int bi r) > 0
+  then int64_of_big_int (sub_big_int bi dr)
+  else int64_of_big_int bi
+
 let float_of_big_int fbi =
-  Int64.float_of_bits (int64_of_big_int fbi)
+  Int64.float_of_bits (int64_of_unsigned_big_int fbi)
 
 let ocaml_float64_to_BER_exact (f:float): String.t option =
   let fb = big_int_of_float f in
