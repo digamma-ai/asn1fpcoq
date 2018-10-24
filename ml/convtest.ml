@@ -23,14 +23,17 @@ let test_roundtrip f =
      mf
 
 let () =
+  let _ = Printf.eprintf "\n\nTesting finite values\n\n" in
   let _ = test_roundtrip (3.1415) in
   let _ = test_roundtrip (-3.1415) in
   let _ = test_roundtrip (3.0) in
   let _ = test_roundtrip (-3.0) in
-  let _ = test_roundtrip (0.0) in
-  let _ = test_roundtrip (-0.0) in
   let _ = test_roundtrip (1E2) in
   let _ = test_roundtrip (-3E9) in
+  let _ = Printf.eprintf "\nTesting special values\n\n" in
+  let _ = test_roundtrip (0.0) in
+  let _ = test_roundtrip (-0.0) in
+  let _ = test_roundtrip Float.infinity in
   let _ = test_roundtrip Float.neg_infinity in
   let _ = test_roundtrip Float.nan in
   exit 0

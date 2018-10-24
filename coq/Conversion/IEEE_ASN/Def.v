@@ -79,7 +79,7 @@ Section Conversions.
       match r with
       | BER_zero s => Some (B754_zero _ _ s)
       | BER_infinity s => Some (B754_infinity _ _ s)
-      | BER_nan => Some (B754_nan _ _ true 1 def_NaN)
+      | BER_nan => Some (B754_nan _ _ false 1 def_NaN)
       | BER_finite s b m e x =>
         if Z.eqb (radix_val b) 2
         then match binary_bounded_sumbool m e with
@@ -144,7 +144,7 @@ Section Conversions.
       match r with
       | BER_zero s => Some (B754_zero _ _ s)
       | BER_infinity s => Some (B754_infinity _ _ s)
-      | BER_nan => Some (B754_nan _ _ true 1 def_target_NaN)
+      | BER_nan => Some (B754_nan _ _ false 1 def_target_NaN)
       | BER_finite s b m e x =>
         if Z.eqb (radix_val b) 2
         then Some (round_finite rounding s m e)
@@ -159,7 +159,7 @@ Section Conversions.
      *)
     Definition IEEE_to_IEEE_round_reset_nan (rounding : mode) (f : float) : target_float :=
       match f with
-      | B754_nan _ _ _ _ _ => B754_nan _ _ true 1 def_target_NaN
+      | B754_nan _ _ _ _ _ => B754_nan _ _ false 1 def_target_NaN
       | B754_infinity _ _ s => B754_infinity _ _ s
       | B754_zero _ _ s => B754_zero _ _ s
       | B754_finite _ _ s m e _ => round_finite rounding s m e

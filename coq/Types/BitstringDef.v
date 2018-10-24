@@ -9,10 +9,10 @@ Open Scope Z.
 Definition real_id_b := 9.
 
 Definition pzero_b   := 2304.
-Definition nzero_b   := 590211.
-Definition pinf_b    := 590208.
-Definition ninf_b    := 590209.
-Definition nan_b     := 590210.
+Definition nzero_b   := 590147.
+Definition pinf_b    := 590144.
+Definition ninf_b    := 590145.
+Definition nan_b     := 590146.
 
 Run TemplateProgram
     (mkSwitch Z Z.eqb
