@@ -58,7 +58,7 @@ config Makefile.coq: _CoqProject Makefile
 
 EXE=ml/_build/default/convtest.exe
 
-$(EXE): ml/*.ml ml/extracted/*.ml
+$(EXE): extracted
 	@echo "Compiling $(EXE)"
 	(cd ml; dune build --profile=dev convtest.exe)
 
