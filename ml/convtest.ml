@@ -30,10 +30,9 @@ let test_no_scl_radix2 f _ = assert_equal
   true
 
 let normal_numbers_suite =
-"Normal Numbers">:::
-  ["3.1415">::  test_no_scl_radix2 3.1415;
-   "-3.1415">:: test_no_scl_radix2 (-3.1415);
-   "3T">::      test_no_scl_radix2 3E12]
+  "Normal Numbers">:::
+    List.map (fun v -> string_of_float v >:: test_no_scl_radix2 v)
+      [3.1415; (-3.1415); 3E12]
 
 let special_values_suite =
 "Special Values">:::
