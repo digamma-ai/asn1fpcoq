@@ -2,12 +2,8 @@ open OcamlFPBER
 open OUnit2
 open Big_int
 
-let pr_hexstring = String.iter (fun c -> Printf.eprintf "%02X " (Char.code c))
-
 let float_eqb_nan_t f1 f2 =
   f1 = f2 || (Core.Float.is_nan f1 && Core.Float.is_nan f2)
-
-let r2 = big_int_of_int 2
 
 let roundtrip radix scaled f =
   match ocaml_float64_to_BER_exact radix scaled f with
@@ -17,6 +13,8 @@ let roundtrip radix scaled f =
        match mf with
        | None -> None
        | Some _ -> mf
+
+let r2 = big_int_of_int 2
 
 (*
 let test_no_scl_radix2 f = assert_equal
