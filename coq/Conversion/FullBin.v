@@ -20,6 +20,7 @@ Notation "f >=> g" := (fun x => pbind (f x) g) (at level 50, left associativity)
 
 Section B32.
   Definition float32_to_BER_exact (target_radix : radix) (scaled : bool) : Z -> option Z :=
+    option_filer (negb scaled) >=>
     option_filer (target_radix =? 2)%Z >=>
       compose b32_to_BER_abstract b32_of_bits >=> (BER_to_bitstring scaled) >=>
       compose ret bitstring_to_bits.
@@ -36,6 +37,7 @@ End B32.
 Section B64.
 
   Definition float64_to_BER_exact (target_radix : radix) (scaled : bool) : Z -> option Z :=
+    option_filer (negb scaled) >=>
     option_filer (target_radix =? 2)%Z >=>
     compose b64_to_BER_abstract b64_of_bits >=> (BER_to_bitstring scaled) >=>
     compose ret bitstring_to_bits.
