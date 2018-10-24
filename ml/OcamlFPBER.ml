@@ -41,9 +41,9 @@ let int64_of_unsigned_big_int bi =
 let float_of_big_int fbi =
   Int64.float_of_bits (int64_of_unsigned_big_int fbi)
 
-let ocaml_float64_to_BER_exact (f:float): String.t option =
+let ocaml_float64_to_BER_exact (radix:big_int) (scaled:bool) (f:float): String.t option =
   let fb = big_int_of_float f in
-  match float64_to_BER_exact fb with
+  match float64_to_BER_exact radix scaled fb with
   | None -> None
   | Some bbi -> Some (bytes_of_big_int bbi)
 
