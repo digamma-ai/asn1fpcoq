@@ -1,6 +1,7 @@
 open OcamlFPBER
 open OUnit2
 open Big_int
+open Core
 
 let float_eqb_nan_t f1 f2 =
   f1 = f2 || (Core.Float.is_nan f1 && Core.Float.is_nan f2)
@@ -29,8 +30,7 @@ let test_no_scl_radix2 f _ = assert_equal
 
 let normal_numbers_suite =
   "Normal Numbers">:::
-    List.map (fun v -> string_of_float v >:: test_no_scl_radix2 v)
-      [3.1415; (-3.1415); 3E12]
+    List.map [3.1415; (-3.1415); 3E12] ~f:(fun v -> string_of_float v >:: test_no_scl_radix2 v)
 
 let special_values_suite =
 "Special Values">:::
@@ -40,9 +40,29 @@ let special_values_suite =
   "-Inf">:: test_no_scl_radix2 Float.neg_infinity;
   "NaN">:: test_no_scl_radix2 Float.nan]
 
+let positive_numbers_suite n =
+  "Postivie Numbers">:::
+    List.map (List.range 0 n ) ~f:(fun _ ->
+        let v = Random.float Float.max_finite_value in
+        string_of_float v >:: test_no_scl_radix2 v)
+
+let negative_normal_numbers_suite n =
+  "Negative Numbers">:::
+    List.map (List.range 0 n) ~f:(fun _ ->
+        let v = Random.float Float.min_positive_normal_value in
+        string_of_float v >:: test_no_scl_radix2 v)
+
+let negative_subnormal_numbers_suite n =
+  "Negative Numbers">:::
+    List.map (List.range 0 n) ~f:(fun _ ->
+        let v = Random.float Float.min_positive_subnormal_value in
+        string_of_float v >:: test_no_scl_radix2 v)
 
 let _ =
   run_test_tt_main
     ("All tests" >:::[
-      normal_numbers_suite ;
-      special_values_suite])
+       normal_numbers_suite ;
+       negative_normal_numbers_suite 100 ;
+       negative_subnormal_numbers_suite 100 ;
+       positive_numbers_suite 100 ;
+       special_values_suite])
