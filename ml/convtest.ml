@@ -40,7 +40,9 @@ let special_values_suite =
   "-Inf">:: test_no_scl_radix2 Float.neg_infinity;
   "NaN">:: test_no_scl_radix2 Float.nan]
 
-let _ =
-  run_test_tt_main normal_numbers_suite ;
-  run_test_tt_main special_values_suite
 
+let _ =
+  run_test_tt_main
+    ("All tests" >:::[
+      normal_numbers_suite ;
+      special_values_suite])
