@@ -74,6 +74,7 @@ clean:
 	rm -f $(TSTAMP) $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli dune-project
 	rm -f dune-project
 	rm -rf _build ml/_build $(EXTRACTDIR)/_build
+	rm -f *.log *.cache
 
 clean-dep:
 	rm -f `find . -name \*.v.d`
