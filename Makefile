@@ -71,8 +71,7 @@ clean:
 	rm -f .depend
 	rm -f $(VOFILES)
 	rm -rf doc/*.glob
-	rm -f $(TSTAMP) $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli dune-project
-	rm -f dune-project
+	rm -f $(TSTAMP) $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli 
 	rm -rf _build ml/_build $(EXTRACTDIR)/_build
 	rm -f *.log *.cache
 
