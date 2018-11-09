@@ -2,6 +2,8 @@ Require Import PArith ZArith.
 Require Import Flocq.Core.Zaux Flocq.Core.Digits.
 Require Import ASN1FP.Aux.Bits.
 
+Open Scope Z.
+
 (* ISO/IEC 8825-1:2015 *)
 
 (*
@@ -46,15 +48,18 @@ Definition bounded (m : positive) (e : Z) : bool :=
   [ 8.5.7.2 ]
 *)
 Definition valid_radix (b : radix) : bool :=
-  (Z.eqb b 2) || (Z.eqb b 4) || (Z.eqb b 8) || (Z.eqb b 16).
+  (b =? 2) || (b =? 4) || (b =? 8) || (b =? 16).
+
+Definition valid_scaling (f : Z) : bool :=
+  (-1 <? f) && (f <? 4).
 
 (*
-  is a given triple (m,e,b)
-  (encoding the number m*(b^e))
+  is a given triple (b,f,m,e)
+  ( encoding the number m*(2^f)*(b^e) )
   in a format accepted by ASN.1 BER
 *)
-Definition valid_BER (m : positive) (e : Z) (b : radix) : bool :=
-  andb (bounded m e) (valid_radix b).
+Definition valid_BER (b : radix) (f : Z) (m : positive) (e : Z) : bool :=
+  (bounded m e) && (valid_radix b) && (valid_scaling f).
 (*
   ASN.1 BER "RealSpecialValues":
   +inf, -inf, NaN, -0
@@ -70,8 +75,8 @@ Inductive BER_float :=
   | BER_zero (s : bool)
   | BER_infinity (s : bool)
   | BER_nan
-  | BER_finite (s : bool) (b : radix) (m : positive) (e : Z) :
-    (valid_BER m e b = true) -> BER_float.
+  | BER_finite (s : bool) (b : radix) (f : Z) (m : positive) (e : Z) :
+    (valid_BER b f m e = true) -> BER_float.
 
 (*
   is the encoding a finite real number
@@ -79,7 +84,7 @@ Inductive BER_float :=
 Definition is_finite (r : BER_float) : bool :=
   match r with
   | BER_zero _ => true
-  | BER_finite _ _ _ _ _ => true
+  | BER_finite _ _ _ _ _ _ => true
   | _ => false
   end.
 
@@ -92,12 +97,23 @@ Definition BER_float_strict_eqb (f1 f2 : BER_float) : bool :=
   | BER_zero s1, BER_zero s2 => Bool.eqb s1 s2
   | BER_infinity s1, BER_infinity s2 => Bool.eqb s1 s2
   | BER_nan, BER_nan => true
-  | BER_finite s1 b1 m1 e1 _, BER_finite s2 b2 m2 e2 _ =>
-    (Bool.eqb s1 s2) && (Z.eqb b1 b2) && (Pos.eqb m1 m2) && (Z.eqb e1 e2)
+  | BER_finite s1 b1 f1 m1 e1 _, BER_finite s2 b2 f2 m2 e2 _ =>
+    (Bool.eqb s1 s2) && (Z.eqb b1 b2) && (Z.eqb f1 f2) && (Pos.eqb m1 m2) && (Z.eqb e1 e2)
   | _ , _ => false
   end.
 
-Definition valid_BER_sumbool (m : positive) (e : Z) (b : radix) :=
-  Sumbool.sumbool_of_bool (valid_BER m e b).
+Definition valid_BER_sumbool (b : radix) (f : Z) (m : positive) (e : Z) :=
+  Sumbool.sumbool_of_bool (valid_BER b f m e).
 
 End BER.
+
+Section DER.
+
+  (*
+  Fixpoint derize (m e : Z) {measure (abs_nat m)}: Z * Z :=
+    if orb (Z.odd m) (m =? 0)
+    then (m, e)
+    else derize (Z.div2 m) (e + 1).
+  *)
+
+End DER.

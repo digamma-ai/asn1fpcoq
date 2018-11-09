@@ -25,10 +25,10 @@ Section Conversions.
      *      they both encode a NaN
      *      (in which case NaN payload is not taken into account)
      *)
-    Theorem IEEE_BER_roundtrip_exact (f : float):
+    Theorem IEEE_BER_roundtrip_exact (scaled : bool) (f : float):
       roundtrip_option
         float BER_float float
-        (IEEE_to_BER_exact prec emax)
+        (IEEE_to_BER_exact prec emax scaled)
         (BER_to_IEEE_exact prec emax prec_gt_1)
         (float_eqb_nan_t)
         f.
@@ -50,9 +50,11 @@ Section Conversions.
     Qed.
 
     (* Indicator function on the supported subset of floats *)
+    (* TODO: scaling *)
+    (* TODO: radix *)
     Definition is_exact_convertible_IEEE (f : float) : bool :=
       match f with
-      | B754_finite _ _ _ m e _ => valid_BER m e radix2
+      | B754_finite _ _ _ m e _ => valid_BER radix2 0 m e
       | _ => true
       end.
 
@@ -64,7 +66,7 @@ Section Conversions.
     Theorem IEEE_BER_pass_guarantee :
       forall (f : float),
         is_exact_convertible_IEEE f = true ->
-        is_Some_b (IEEE_to_BER_exact prec emax f) = true.
+        is_Some_b (IEEE_to_BER_exact prec emax false f) = true.
     Proof.
       intros f.
       unfold is_exact_convertible_IEEE.
@@ -146,10 +148,10 @@ Section Conversions.
      *      both floats are NaN
      *      (in which case payloads are not taken into accout)
      *)
-    Theorem IEEE_BER_roundtrip_rounded (rounding : mode) (f : float) :
+    Theorem IEEE_BER_roundtrip_rounded (rounding : mode) (scaled : bool) (f : float) :
       roundtrip_option
         float BER_float target_float
-        (IEEE_to_BER_exact prec emax)
+        (IEEE_to_BER_exact prec emax scaled)
         (BER_to_IEEE_rounded target_prec target_emax target_prec_gt_1 target_Hmax rounding)
         (correctly_rounded_nan_t rounding)
         f.

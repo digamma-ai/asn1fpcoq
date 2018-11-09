@@ -78,7 +78,7 @@ End Atomic.
 Theorem BER_bitstring_roundtrip (scaled : bool) (f : BER_float) :
   roundtrip_option
     BER_float BER_bitstring BER_float
-    (BER_to_bitstring scaled)
+    BER_to_bitstring
     bitstring_to_BER
     BER_float_strict_eqb
     f.

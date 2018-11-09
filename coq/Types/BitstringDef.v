@@ -7,6 +7,7 @@ Import ListNotations.
 Open Scope Z.
 
 Definition real_id_b := 9.
+Definition binary_bit := 1.
 
 Definition pzero_b   := 2304.
 Definition nzero_b   := 590147.
@@ -68,6 +69,7 @@ Inductive BER_bitstring :=
   | long  (id co t s bb ff ee eo e m : Z) :
       (valid_long id co t s bb ff ee eo e m) = true -> BER_bitstring.
 
+(* TODO *)
 Definition BER_bitstring_eqb (b1 b2 : BER_bitstring) : bool :=
   match b1, b2 with
   | special val1, special val2 => Z.eqb val1 val2

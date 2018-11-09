@@ -42,32 +42,30 @@ Section Atomic.
 
 End Atomic.
 
-(* TODO: scaling *)
 Definition finite_BER_to_bitstring
-            (scaled : bool) (s : bool) (b : radix) (m : positive) (e : Z) : option BER_bitstring :=
+            (s : bool) (b : radix) (f : Z) (m : positive) (e : Z) : option BER_bitstring :=
   let m := signif2bits m in
   let s := sign2bits s in
   let bb := radix2bits b in
-  let ff := 0%Z in
   let e_olen := twos_olen e in let e := exp2bits e_olen e in
     if Z.ltb (e_olen) 4
     then
-      match (valid_short_sumbool real_id_b (e_olen + olen m + 1)%Z 1 s bb ff (e_olen - 1) e m) with
+      match (valid_short_sumbool real_id_b (e_olen + olen m + 1)%Z binary_bit s bb f (e_olen - 1) e m) with
       | right _ => None
-      | left V => Some (short real_id_b (e_olen + olen m + 1)%Z 1 s bb ff (e_olen - 1) e m V)
+      | left V => Some (short real_id_b (e_olen + olen m + 1)%Z binary_bit s bb f (e_olen - 1) e m V)
       end
     else
-      match (valid_long_sumbool real_id_b (e_olen + olen m + 2)%Z 1 s bb ff 3 e_olen e m) with
+      match (valid_long_sumbool real_id_b (e_olen + olen m + 2)%Z binary_bit s bb f 3 e_olen e m) with
           | right _ => None
-          | left V => Some (long real_id_b (e_olen + olen m + 2)%Z 1 s bb ff 3 e_olen e m V)
+          | left V => Some (long real_id_b (e_olen + olen m + 2)%Z binary_bit s bb f 3 e_olen e m V)
       end.
 
-Definition BER_to_bitstring (scaled : bool) (f : BER_float) : option BER_bitstring :=
+Definition BER_to_bitstring (f : BER_float) : option BER_bitstring :=
   match f with
   | BER_zero s => Some (if s then special nzero_b else special pzero_b)
   | BER_infinity s => Some (if s then special ninf_b else special pinf_b)
   | BER_nan => Some (special nan_b)
-  | BER_finite s b m e _ => finite_BER_to_bitstring scaled s b m e
+  | BER_finite s b ff m e _ => finite_BER_to_bitstring s b ff m e
   end.
 
 (******************************************************************************)
@@ -147,9 +145,9 @@ Definition bitstring_to_BER (b : BER_bitstring) : option BER_float :=
     let b := (bits2radix bb) in
     let m := (bits2signif m) in
     let e := (bits2exp (ee + 1) e) in
-    match valid_BER_sumbool m e b with
+    match valid_BER_sumbool b ff m e with
     | right _ => None
-    | left V => Some (BER_finite s b m e V)
+    | left V => Some (BER_finite s b ff m e V)
     end
 
   | long id co t s bb ff ee eo e m _ =>
@@ -157,8 +155,8 @@ Definition bitstring_to_BER (b : BER_bitstring) : option BER_float :=
     let b := (bits2radix bb) in
     let m := (bits2signif m) in
     let e := (bits2exp (eo) e) in
-    match valid_BER_sumbool m e b with
+    match valid_BER_sumbool b ff m e with
     | right _ => None
-    | left V => Some (BER_finite s b m e V)
+    | left V => Some (BER_finite s b ff m e V)
     end
   end.

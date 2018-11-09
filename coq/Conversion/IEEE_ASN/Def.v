@@ -49,14 +49,16 @@ Section Conversions.
      *  4) After the conversion, IEEE-754 NaN payload is lost,
      *     as it is not supported by the ASN.1 standard
      *)
-    Definition IEEE_to_BER_exact (f : float) : option BER_float :=
+    (* TODO: scaling *)
+    Definition IEEE_to_BER_exact (scaled : bool) (f : float) : option BER_float :=
+      let ff := 0%Z in
       match f with
       | B754_zero _ _ s => Some (BER_zero s)
       | B754_infinity _ _ s => Some (BER_infinity s)
       | B754_nan _ _ _ _ _ => Some (BER_nan)
       | B754_finite _ _ s m e _ =>
-        match valid_BER_sumbool m e radix2 with
-        | left G => Some (BER_finite s radix2 m e G)
+        match valid_BER_sumbool radix2 ff m e with
+        | left G => Some (BER_finite s radix2 ff m e G)
         | right _ => None
         end
       end.
@@ -75,13 +77,15 @@ Section Conversions.
      *  3) If the BER encoding is a NaN,
      *     float's NaN payload is set to 1
      *)
+    (* TODO: radix *)
+    (* TODO: scaling *)
     Definition BER_to_IEEE_exact (r : BER_float) : option float :=
       match r with
       | BER_zero s => Some (B754_zero _ _ s)
       | BER_infinity s => Some (B754_infinity _ _ s)
       | BER_nan => Some (B754_nan _ _ false 1 def_NaN)
-      | BER_finite s b m e x =>
-        if Z.eqb (radix_val b) 2
+      | BER_finite s b f m e x =>
+        if andb (b =? 2) (f =? 0)
         then match binary_bounded_sumbool m e with
              | left B => Some (B754_finite _ _ s m e B)
              | right _ => None
@@ -140,13 +144,15 @@ Section Conversions.
      *  3) If the ASN encoding is a NaN,
      *     float's NaN payload is set to 1
      *)
+    (* TODO: scaling *)
+    (* TODO: radix *)
     Definition BER_to_IEEE_rounded (rounding : mode) (r : BER_float) : option (target_float) :=
       match r with
       | BER_zero s => Some (B754_zero _ _ s)
       | BER_infinity s => Some (B754_infinity _ _ s)
       | BER_nan => Some (B754_nan _ _ false 1 def_target_NaN)
-      | BER_finite s b m e x =>
-        if Z.eqb (radix_val b) 2
+      | BER_finite s b f m e x =>
+        if andb (b =? 2) (f =? 0)
         then Some (round_finite rounding s m e)
         else None
       end.
