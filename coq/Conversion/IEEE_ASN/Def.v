@@ -34,6 +34,26 @@ Section Conversions.
       apply Z.ltb_lt, Z.gt_lt, prec_gt_1.
     Qed.
 
+    (* max{2^k | m % 2^k = 0} *)
+    Let mptd (m : positive) : N :=
+      N.log2 (((Pos.lxor m (m-1)) + 1) / 2).
+
+    (* DER-normalize.
+     * For any pair (m,e), return
+     * (mx,ex) such that
+     *   m*2^e = mx*2^ex
+     * and
+     *  mx is odd
+     *)
+    Definition normalize (m : positive) (e : Z) : positive * Z :=
+      let t := mptd m in
+      (Pos.shiftr m t, e + (Z.of_N t)).
+
+    (* Fixpoint normalize (m : positive) (e : Z) : positive * Z := *)
+    (*   if ((Zpos m) mod 2) =? 0 *)
+    (*   then normalize (Pos.shiftr m 1) (e + 1) *)
+    (*   else (m,e). *)
+    
     (*
      *  for any float s*m*(2^e)
      *  return its ASN.1 BER representation if possible
@@ -50,19 +70,6 @@ Section Conversions.
      *     as it is not supported by the ASN.1 standard
      *)
     (* TODO: scaling *)
-    Let mptd (m : positive) : N :=
-      N.log2 (((Pos.lxor m (m-1)) + 1) / 2).
-
-    Definition normalize (m : positive) (e : Z) : positive * Z :=
-      let t := mptd m in
-      (Pos.shiftr m t, e + (Z.of_N t)).
-
-    (* Fixpoint normalize (m : positive) (e : Z) : positive * Z := *)
-    (*   if ((Zpos m) mod 2) =? 0 *)
-    (*   then normalize (Pos.shiftr m 1) (e + 1) *)
-    (*   else (m,e). *)
-    
-    
     Definition IEEE_to_BER_exact (scaled : bool) (f : float) : option BER_float :=
       let ff := 0%Z in
       match f with
@@ -76,6 +83,10 @@ Section Conversions.
         | right _ => None
         end
       end.
+
+
+    (* Flocq IEEE normalization *)
+    Let shl_align_fexp := shl_align_fexp prec emax.
 
     (*
      *  for any ASN.1 BER-encoded real number s*m*(b^e)
@@ -93,8 +104,6 @@ Section Conversions.
      *)
     (* TODO: radix *)
     (* TODO: scaling *)
-    Let shl_align_fexp := shl_align_fexp prec emax.
-
     Definition BER_to_IEEE_exact (r : BER_float) : option float :=
       match r with
       | BER_zero s => Some (B754_zero _ _ s)
