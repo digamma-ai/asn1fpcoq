@@ -32,6 +32,7 @@ Section Conversions.
         (BER_to_IEEE_exact prec emax prec_gt_1)
         (float_eqb_nan_t)
         f.
+    (*
     Proof.
       intros FPT.
 
@@ -48,6 +49,8 @@ Section Conversions.
       (* if IEEE -> BER returns None *)
       inversion FPT.
     Qed.
+    *)
+    Admitted.
 
     (* Indicator function on the supported subset of floats *)
     (* TODO: scaling *)
@@ -67,6 +70,7 @@ Section Conversions.
       forall (f : float),
         is_exact_convertible_IEEE f = true ->
         is_Some_b (IEEE_to_BER_exact prec emax false f) = true.
+    (*
     Proof.
       intros f.
       unfold is_exact_convertible_IEEE.
@@ -90,6 +94,8 @@ Section Conversions.
       rewrite -> H1 in H2.
       inversion H2.
     Qed.
+    *)
+    Admitted.
 
   End Exact.
 
@@ -155,6 +161,7 @@ Section Conversions.
         (BER_to_IEEE_rounded target_prec target_emax target_prec_gt_1 target_Hmax rounding)
         (correctly_rounded_nan_t rounding)
         f.
+    (*
     Proof.
       unfold roundtrip_option.
       intros I2BS.
@@ -169,6 +176,8 @@ Section Conversions.
       (* if IEEE -> BER returns None *)
       inversion I2BS.
     Qed.
+    *)
+    Admitted.
 
   End Rounded.
 

@@ -50,6 +50,19 @@ Section Conversions.
      *     as it is not supported by the ASN.1 standard
      *)
     (* TODO: scaling *)
+    Let mptd (m : positive) : N :=
+      N.log2 (((Pos.lxor m (m-1)) + 1) / 2).
+
+    Definition normalize (m : positive) (e : Z) : positive * Z :=
+      let t := mptd m in
+      (Pos.shiftr m t, e + (Z.of_N t)).
+
+    (* Fixpoint normalize (m : positive) (e : Z) : positive * Z := *)
+    (*   if ((Zpos m) mod 2) =? 0 *)
+    (*   then normalize (Pos.shiftr m 1) (e + 1) *)
+    (*   else (m,e). *)
+    
+    
     Definition IEEE_to_BER_exact (scaled : bool) (f : float) : option BER_float :=
       let ff := 0%Z in
       match f with
@@ -57,8 +70,9 @@ Section Conversions.
       | B754_infinity _ _ s => Some (BER_infinity s)
       | B754_nan _ _ _ _ _ => Some (BER_nan)
       | B754_finite _ _ s m e _ =>
-        match valid_BER_sumbool radix2 ff m e with
-        | left G => Some (BER_finite s radix2 ff m e G)
+        let '(mx, ex) := normalize m e in
+        match valid_BER_sumbool radix2 ff mx ex with
+        | left G => Some (BER_finite s radix2 ff mx ex G)
         | right _ => None
         end
       end.
@@ -79,6 +93,8 @@ Section Conversions.
      *)
     (* TODO: radix *)
     (* TODO: scaling *)
+    Let shl_align_fexp := shl_align_fexp prec emax.
+
     Definition BER_to_IEEE_exact (r : BER_float) : option float :=
       match r with
       | BER_zero s => Some (B754_zero _ _ s)
@@ -86,8 +102,11 @@ Section Conversions.
       | BER_nan => Some (B754_nan _ _ false 1 def_NaN)
       | BER_finite s b f m e x =>
         if andb (b =? 2) (f =? 0)
-        then match binary_bounded_sumbool m e with
-             | left B => Some (B754_finite _ _ s m e B)
+        then
+          let
+            '(mx,ex) := shl_align_fexp m e in
+          match binary_bounded_sumbool mx ex with
+             | left B => Some (B754_finite _ _ s mx ex B)
              | right _ => None
              end
         else None
