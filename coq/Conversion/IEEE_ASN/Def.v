@@ -69,9 +69,13 @@ Section Exact.
 
     Let IEEE_normal := bounded prec emax.
 
+    (* TODO: general purpose defs, move somewhere *)
+    Definition curry {A B C: Type} (f: (A*B)->C) (x:A) (y:B) := f (x, y).
+    Definition uncurry {A B C: Type} (g:A->B->C) (t:A*B) :=
+      let '(x,y) := t in g x y.
+
     Lemma minimal_roundtrip (m : positive) (e : Z) (meN : IEEE_normal m e = true) :
-      let '(m_DER, e_DER) := DER_normalize m e in
-      IEEE_normalize m_DER e_DER = Some (m, e).
+      uncurry IEEE_normalize (DER_normalize m e) = Some (m, e).
     Admitted.
 
   End minimal_example.
