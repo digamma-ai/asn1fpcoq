@@ -37,7 +37,7 @@ Section Exact.
 
     (* max{2^k | m % 2^k = 0} *)
     Let mptd (m : positive) : N :=
-        N.log2 (((Pos.lxor m (m-1)) + 1) / 2).
+      N.log2 (((Pos.lxor m (m-1)) + 1) / 2).
 
     (* 
     * DER-normalize.
@@ -48,8 +48,8 @@ Section Exact.
     *   mx is odd
     *)
     Definition DER_normalize (m : positive) (e : Z) : positive * Z :=
-        let t := mptd m in
-        (Pos.shiftr m t, e + (Z.of_N t)).
+      let t := mptd m in
+      (Pos.shiftr m t, e + (Z.of_N t)).
 
     (* recursive DER_normalize *)
     (*
@@ -61,18 +61,17 @@ Section Exact.
 
     (* Flocq IEEE normalization *)
     Definition IEEE_normalize (m : positive) (e : Z) : option (positive * Z) :=
-        let '(mx,ex) := shl_align_fexp m e in
-        match binary_bounded_sumbool m e with
-        | left B => Some (mx, ex)
-        | right _ => None
-        end.
+      let '(mx,ex) := shl_align_fexp m e in
+      match binary_bounded_sumbool m e with
+      | left B => Some (mx, ex)
+      | right _ => None
+      end.
 
     Let IEEE_normal := bounded prec emax.
 
-    Lemma minimal_roundtrip (m : positive) (e : Z) :
-        let '(m_DER, e_DER) := DER_normalize m e in
-        IEEE_normal m e = true ->
-        IEEE_normalize m_DER e_DER = Some (m, e).
+    Lemma minimal_roundtrip (m : positive) (e : Z) (meN : IEEE_normal m e = true) :
+      let '(m_DER, e_DER) := DER_normalize m e in
+      IEEE_normalize m_DER e_DER = Some (m, e).
     Admitted.
 
   End minimal_example.
