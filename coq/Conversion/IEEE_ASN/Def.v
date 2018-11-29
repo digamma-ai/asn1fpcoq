@@ -1,6 +1,7 @@
 Require Import ZArith.
 Require Import ASN1FP.Types.ASNDef ASN1FP.Types.IEEEAux
-               ASN1FP.Aux.Roundtrip ASN1FP.Aux.Option ASN1FP.Aux.StructTactics ASN1FP.Aux.Tactics.
+        ASN1FP.Aux.Roundtrip ASN1FP.Aux.Option ASN1FP.Aux.StructTactics ASN1FP.Aux.Tactics
+        ASN1FP.Aux.Aux.
 Require Import Flocq.IEEE754.Binary Flocq.Core.Zaux Flocq.Core.FLX.
 
 Definition Prec_gt_1 (prec : Z) := Z.gt prec 1.
@@ -70,11 +71,6 @@ Section Conversion.
         end.
   
       Let IEEE_normal := bounded prec emax.
-  
-      (* TODO: general purpose defs, move somewhere *)
-      Definition curry {A B C: Type} (f: (A*B)->C) (x:A) (y:B) := f (x, y).
-      Definition uncurry {A B C: Type} (g:A->B->C) (t:A*B) :=
-        let '(x,y) := t in g x y.
   
       Lemma minimal_roundtrip (m : positive) (e : Z) (meN : IEEE_normal m e = true) :
         uncurry IEEE_normalize (DER_normalize m e) = Some (m, e).

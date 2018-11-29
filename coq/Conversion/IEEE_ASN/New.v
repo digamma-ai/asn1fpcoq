@@ -1,6 +1,7 @@
 Require Import ZArith PArith.
 Require Import ASN1FP.Types.ASNDef ASN1FP.Types.IEEEAux
-               ASN1FP.Aux.Roundtrip.
+               ASN1FP.Aux.Roundtrip ASN1FP.Aux.StructTactics ASN1FP.Aux.Aux.
+
 Require Import Flocq.Core.Zaux Flocq.IEEE754.Binary.
 
 Section Conversion.
@@ -79,14 +80,11 @@ Section Conversion.
 
   Section Proofs.
   
-    (* TODO: general purpose defs, move somewhere *)
-    Definition curry {A B C: Type} (f: (A*B)->C) (x:A) (y:B) := f (x, y).
-    Definition uncurry {A B C: Type} (g:A->B->C) (t:A*B) :=
-      let '(x,y) := t in g x y.
-  
-    Lemma minimal_roundtrip {m : positive} {e : Z} (V : valid_IEEE m e = true) :
-     uncurry normalize_IEEE_finite (normalize_BER_finite m e) = (m, e).
+    Lemma arithmetic_roundtrip {m : positive} {e : Z} (V : valid_IEEE m e = true) :
+      uncurry normalize_IEEE_finite (normalize_BER_finite m e) = (m, e).
     Admitted.
+
+    (* Lemma pass_guarantee *)
 
     Theorem main_roundtrip (scaled : bool) (f : IEEE_float):
       roundtrip_option
@@ -95,6 +93,12 @@ Section Conversion.
         IEEE_of_BER
         (float_eqb_nan_t)
         f.
+    Proof.
+      intros FPT.
+      unfold bool_het_inverse'; simpl.
+      destruct f; simpl; try reflexivity.
+      - admit.
+      - unfold make_BER_finite.
     Admitted.
   
   End Proofs.
