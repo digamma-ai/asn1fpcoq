@@ -1,6 +1,7 @@
 Require Import ZArith PArith.
 Require Import ASN1FP.Types.ASNDef ASN1FP.Types.IEEEAux
-               ASN1FP.Aux.Roundtrip ASN1FP.Aux.StructTactics ASN1FP.Aux.Aux.
+        ASN1FP.Aux.Roundtrip ASN1FP.Aux.StructTactics ASN1FP.Aux.Aux
+        ASN1FP.Aux.Tactics.
 
 Require Import Flocq.Core.Zaux Flocq.IEEE754.Binary.
 
@@ -84,7 +85,7 @@ Section Conversion.
       uncurry normalize_IEEE_finite (normalize_BER_finite m e) = (m, e).
     Admitted.
 
-    (* Lemma pass_guarantee *)
+    (* Lemma pass_guarantee : ??? forward ? backward ? *)
 
     Theorem main_roundtrip (scaled : bool) (f : IEEE_float):
       roundtrip_option
@@ -96,9 +97,18 @@ Section Conversion.
     Proof.
       intros FPT.
       unfold bool_het_inverse'; simpl.
-      destruct f; simpl; try reflexivity.
-      - admit.
-      - unfold make_BER_finite.
+      break_match.
+      - (* forward pass successful *)
+        clear FPT.
+        break_match.
+        + (* backward pass successful *)
+          (* arithmetic_roundtrip comes in play *)
+          destruct f; destruct b; simpl in *; repeat try some_inv; try auto.
+        + (* backward pass unsuccessful *)
+          (* pass_guarantee comes in play *)
+      - (* forward pass unsuccessful *)
+        inversion FPT.
+
     Admitted.
   
   End Proofs.
