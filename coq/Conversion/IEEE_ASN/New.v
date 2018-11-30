@@ -1,7 +1,7 @@
 Require Import ZArith PArith.
 Require Import ASN1FP.Types.ASNDef ASN1FP.Types.IEEEAux
         ASN1FP.Aux.Roundtrip ASN1FP.Aux.StructTactics ASN1FP.Aux.Aux
-        ASN1FP.Aux.Tactics.
+        ASN1FP.Aux.Tactics ASN1FP.Aux.Option.
 
 Require Import Flocq.Core.Zaux Flocq.IEEE754.Binary.
 
@@ -81,11 +81,36 @@ Section Conversion.
 
   Section Proofs.
   
+    (* TODO: meaningful supported formats *)
+    Variable supported_format : prec < 1000 /\ emax < 1000.
+
     Lemma arithmetic_roundtrip {m : positive} {e : Z} (V : valid_IEEE m e = true) :
       uncurry normalize_IEEE_finite (normalize_BER_finite m e) = (m, e).
     Admitted.
 
-    (* Lemma pass_guarantee : ??? forward ? backward ? *)
+    Lemma forward_pass_guarantee (scaled : bool) (f : IEEE_float) :
+      is_Some_b (BER_of_IEEE scaled f) = true.
+    Admitted.
+
+    Let l1 {A B : Type } (f : A -> option B) : (option A -> option B) :=
+      fun x : option A =>
+        match x with
+        | Some a => f a
+        | None => None
+        end.
+    
+    Lemma backward_pass_guarantee (scaled : bool) (f : IEEE_float) :
+      is_Some_b ((l1 IEEE_of_BER) (BER_of_IEEE scaled f)) = true.
+    Admitted.
+
+    Ltac inv_make_BER_finite :=
+      match goal with
+      | [ H : make_BER_finite _ _ _ _ _ = Some _ |- _ ] =>
+        unfold make_BER_finite in H;
+        destruct normalize_BER_finite;
+        destruct valid_BER_sumbool;
+        inversion H
+      end.
 
     Theorem main_roundtrip (scaled : bool) (f : IEEE_float):
       roundtrip_option
@@ -102,14 +127,48 @@ Section Conversion.
         clear FPT.
         break_match.
         + (* backward pass successful *)
-          (* arithmetic_roundtrip comes in play *)
           destruct f; destruct b; simpl in *; repeat try some_inv; try auto.
+          (* structural errors *)
+          * unfold float_eqb_nan_t, Bcompare.
+            repeat break_match; (repeat try some_inv);
+              try compare_nrefl; try reflexivity.
+          * inv_make_BER_finite.
+          * inv_make_BER_finite.
+          * inv_make_BER_finite.
+
+          * (* arithmetic_roundtrip comes in play *)
+             destruct ((b =? 2) && (f =? 0))%bool; inversion Heqo0; clear H0.
+
+            (* simplify forward conversions *)
+            unfold make_BER_finite in *.
+            destruct normalize_BER_finite eqn:NB.
+            destruct valid_BER_sumbool; inversion Heqo.
+            clear Heqo; subst.
+            
+            (* simplify backward conversions *)
+            unfold make_IEEE_finite in *.
+            destruct normalize_IEEE_finite eqn:NI.
+            destruct valid_IEEE_sumbool; inversion Heqo0.
+            clear Heqo0; subst.
+
+            (* apply arithmetic roundtrip *)
+            generalize dependent (arithmetic_roundtrip e0); intros.
+            rewrite -> NB in H.
+            simpl in H.
+            rewrite -> NI in H.
+            inversion H; clear H; subst.
+            unfold float_eqb_nan_t, Bcompare.
+            repeat break_match; (repeat try some_inv);
+              try compare_nrefl; try reflexivity.
+
         + (* backward pass unsuccessful *)
-          (* pass_guarantee comes in play *)
+          exfalso.
+          generalize dependent (backward_pass_guarantee scaled f); intros.
+          rewrite -> Heqo in H; simpl in H.
+          rewrite -> Heqo0 in H; inversion H.
       - (* forward pass unsuccessful *)
         inversion FPT.
-
-    Admitted.
+    Qed.
   
   End Proofs.
 
