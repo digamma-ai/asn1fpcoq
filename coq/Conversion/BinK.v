@@ -7,7 +7,7 @@ Section B32.
 
   Let prec := 24.
   Let emax := 128.
-  Let prec_gt_1 : Prec_gt_1 prec.
+  Let prec_gt_1 : prec > 1.
   Proof. reflexivity. Qed.
   Let prec_lt_emax : prec < emax.
   Proof. subst prec. subst emax. reflexivity. Qed.
@@ -24,7 +24,7 @@ Section B64.
 
   Let prec := 53%Z.
   Let emax := 1024%Z.
-  Let prec_gt_1 : Prec_gt_1 prec.
+  Let prec_gt_1 : prec > 1.
   Proof. reflexivity. Qed.
   Let prec_lt_emax : prec < emax.
   Proof. subst prec. subst emax. reflexivity. Qed.
