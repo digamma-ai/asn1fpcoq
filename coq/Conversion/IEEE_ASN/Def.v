@@ -171,7 +171,37 @@ Section Conversion.
     
     Lemma backward_pass_guarantee (scaled : bool) (f : IEEE_float) :
       is_Some_b ((l1 BER_to_IEEE_exact) (IEEE_to_BER_exact scaled f)) = true.
-    Admitted.
+    Proof.
+      unfold is_Some_b, l1.
+      repeat break_match; try reflexivity.
+      - (* yes forward, no backward *)
+        exfalso.
+        clear l1.
+        destruct f; simpl in Heqo0; inversion Heqo0.
+        + rewrite <- H0 in Heqo; simpl in Heqo; inversion Heqo.
+        + rewrite <- H0 in Heqo; simpl in Heqo; inversion Heqo.
+        + rewrite <- H0 in Heqo; simpl in Heqo; inversion Heqo.
+        + clear H0.
+          unfold make_BER_finite in Heqo0.
+          destruct normalize_BER_finite eqn:NB.
+          destruct valid_BER_sumbool; inversion Heqo0; clear Heqo0.
+          rewrite <- H0 in Heqo.
+          simpl in Heqo.
+          unfold make_IEEE_finite in Heqo.
+          destruct normalize_IEEE_finite eqn:NI.
+          destruct valid_IEEE_sumbool; inversion Heqo; clear Heqo.
+          generalize dependent (arithmetic_roundtrip e0); intros.
+          rewrite -> NB in H.
+          simpl in H.
+          rewrite -> NI in H.
+          inversion H; subst.
+          rewrite e0 in e2.
+          inversion e2.
+      - (* no forward *)
+        exfalso; generalize dependent (forward_pass_guarantee scaled f); intros.
+        rewrite -> Heqo0 in H.
+        inversion H.
+    Qed.
 
     Ltac inv_make_BER_finite :=
       match goal with
