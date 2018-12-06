@@ -10,22 +10,18 @@ Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux.
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
 
-Import MonadNotation.
-Local Open Scope monad_scope.
+Import MonadNotation. Local Open Scope monad_scope.
 
 Open Scope Z.
 
 (* Left-to-right composition of Kleisli arrows. *)
 Notation "f >=> g" := (fun x => pbind (f x) g) (at level 50, left associativity) : monad_scope.
 
+(* extraction-ready functions for the most common IEEE formats *)
+
 Section B32.
 
   Definition float32_to_BER_exact (target_radix : radix) (scaled : bool) : Z -> option Z :=
-    (*
-      These are handled down the line.
-      option_filer (negb scaled) >=>
-      option_filer (target_radix =? 2)%Z >=>
-    *)
       compose (b32_to_BER_abstract false) b32_of_bits >=> BER_to_bitstring >=>
       compose ret bitstring_to_bits.
 
@@ -41,11 +37,6 @@ End B32.
 Section B64.
 
   Definition float64_to_BER_exact (target_radix : radix) (scaled : bool) : Z -> option Z :=
-    (*
-      These are handled down the line.
-      option_filer (negb scaled) >=>
-      option_filer (target_radix =? 2)%Z >=>
-    *)
       compose (b64_to_BER_abstract false) b64_of_bits >=> BER_to_bitstring >=>
       compose ret bitstring_to_bits.
 

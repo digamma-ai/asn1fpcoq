@@ -3,6 +3,12 @@ Require Import ASN1FP.Conversion.IEEE_ASN.Def.
 
 Open Scope Z.
 
+(*
+ * auxiliary functions for the most common formats
+ * combining partial conversions into one full pass
+ *)
+
+
 Section B32.
 
   Let prec := 24.
