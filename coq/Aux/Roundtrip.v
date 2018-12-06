@@ -54,6 +54,14 @@ Definition roundtrip_option
    is_Some_b (f x) = true ->
    bool_het_inverse' option A1 B A2 f b e x = Some true.
 
+(*
+ * if
+ *     b1 = f1^(-1)
+ *   and
+ *     b2 = f2^(-1)
+ * then
+ *   b1 . b2 = (f2 . f1)^(-1)
+ *)
 Lemma inv_trans {A1 A2 B C : Type}
       {f1 : A1 -> B} {b1 : B -> A2} {ea : A1 -> A2 -> bool}
       {f2 : B -> C} {b2 : C -> B} {eb : B -> B -> bool}
