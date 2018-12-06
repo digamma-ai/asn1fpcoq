@@ -1,5 +1,4 @@
 Require Import ZArith PArith.
-Require Import Flocq.IEEE754.Binary.
 
 Ltac some_eq_none_inv :=
   match goal with
@@ -34,9 +33,9 @@ Ltac split_andb_goal :=
   end.
 
 (*
-*  different cases for
-*  (a ?= a) != Eq
-*)
+ *  different cases for
+ *  (a ?= a) != Eq
+ *)
 Ltac compare_nrefl :=
   match goal with
   | [ H: (Z.compare ?z ?z) = Lt |- _ ] => rewrite -> Z.compare_refl in H; inversion H
@@ -47,10 +46,4 @@ Ltac compare_nrefl :=
   | [ H: _ (Pos.compare_cont Eq ?p ?p) = Gt |- _ ] => rewrite -> Pos.compare_cont_refl in H; inversion H
   | [ H: (Pos.compare_cont Eq ?p ?p) = Lt |- _ ] => rewrite -> Pos.compare_cont_refl in H; inversion H
   | [ H: (Pos.compare_cont Eq ?p ?p) = Gt |- _ ] => rewrite -> Pos.compare_cont_refl in H; inversion H
-  end.
-
-Ltac bcompare_nrefl :=
-  match goal with
-  | [ H: Bcompare _ _ _ _ = _ |- _] =>
-    assert (H1 := H); rewrite -> Bcompare_swap in H1; rewrite -> H in H1; inversion H1
   end.

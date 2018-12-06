@@ -150,6 +150,12 @@ Section Conversion.
   End Def.
 
   Section Proof.
+    
+    Ltac bcompare_nrefl :=
+      match goal with
+      | [ H: Bcompare _ _ _ _ = _ |- _] =>
+        assert (H1 := H); rewrite -> Bcompare_swap in H1; rewrite -> H in H1; inversion H1
+      end.
 
     (* TODO: meaningful supported formats *)
     Variable supported_format : prec < 1000 /\ emax < 1000.
