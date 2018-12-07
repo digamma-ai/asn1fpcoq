@@ -45,8 +45,9 @@ Definition valid_special (val : Z) : bool :=
   end.
 
 (*
- * can [co] be classified as a
+ * is [co] the correct
  * content length octet in short form
+ * for given octet lengths of exponent and mantissa
  *)
 Definition correct_short_co (co e_olen m_olen : Z) : bool :=
   ((e_olen + m_olen) <? co) && (co <? 128).
@@ -77,8 +78,13 @@ Definition valid_short (id co t s bb ff ee e m : Z) : bool :=
                                            (* (it is two's complement) *)
   && (Z.ltb 0 m).                          (* mantissa is positive *)
 
+(*
+ * is [co] the correct
+ * content length octet in long form
+ * for given octet lengths of exponent and mantissa
+ *)
 Definition correct_long_co (co e_olen m_olen : Z) : bool :=
-  ((e_olen + m_olen + 1) <? co) && (co <? 128).
+  ((e_olen + m_olen + 1) <? co) && (127 <? co) && (co <? 256).
 
 (*
  * do the atomic parts constitute a valid BER-encoded real
@@ -108,6 +114,10 @@ Definition valid_long (id co t s bb ff ee eo e m : Z) : bool :=
                                        (* (it is two's complement) *)
   && (Z.ltb 0 m).                      (* mantissa is positive *)
 
+(*
+ * a tuple containing all elementary parts of a BER-encoded real
+ * the parts are final binary strings, which only need to be concatenated
+ *)
 Inductive BER_bitstring :=
   | special   (val : Z)
   | short (id co t s bb ff ee e m : Z) :
@@ -128,15 +138,8 @@ Definition BER_bitstring_eqb (b1 b2 : BER_bitstring) : bool :=
   | _, _ => false
   end.
 
-  Definition valid_short_sumbool (id co t s bb ff ee e m : Z) :=
-    Sumbool.sumbool_of_bool (valid_short id co t s bb ff ee e m).
+Definition valid_short_sumbool (id co t s bb ff ee e m : Z) :=
+  Sumbool.sumbool_of_bool (valid_short id co t s bb ff ee e m).
 
-  Definition valid_long_sumbool (id co t s bb ff ee eo e m : Z) :=
-    Sumbool.sumbool_of_bool (valid_long id co t s bb ff ee eo e m).
-
-(* Definition correct_bitstring (b : BER_bitstring) : bool := *)
-(*   match b with *)
-(*   | special val => (valid_special val) *)
-(*   | short id co t s bb ff ee    e m => (valid_short id co t s bb ff ee    e m) *)
-(*   | long  id co t s bb ff ee eo e m => (valid_long  id co t s bb ff ee eo e m) *)
-(*   end. *)
+Definition valid_long_sumbool (id co t s bb ff ee eo e m : Z) :=
+  Sumbool.sumbool_of_bool (valid_long id co t s bb ff ee eo e m).
