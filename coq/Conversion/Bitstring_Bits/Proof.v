@@ -9,8 +9,8 @@ Definition Some_ize {A B : Type} : (A -> B) -> (A -> option B)
 Theorem bitsrting_bits_roundtrip (b : BER_bitstring) :
   roundtrip_option
       BER_bitstring Z BER_bitstring
-      (Some_ize bitstring_to_bits)
-      bits_to_bitstring
+      (Some_ize bits_of_bitstring)
+      bitstring_of_bits
       BER_bitstring_eqb
       b.
 Admitted.

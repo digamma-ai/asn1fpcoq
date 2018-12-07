@@ -9,17 +9,17 @@ Open Scope Z.
 
 Section Atomic.
 
-Lemma radix2bits_inv (b : radix) :
+Lemma bits_of_radix_inv (b : radix) :
   valid_radix b = true ->
   bool_het_inverse
     radix Z radix
-    radix2bits
-    bits2radix 
+    bits_of_radix
+    radix_of_bits 
     Z.eqb
     b.
 Proof.
   intros H.
-  unfold bool_het_inverse, Basics.compose, bits2radix, radix2bits.
+  unfold bool_het_inverse, Basics.compose, radix_of_bits, bits_of_radix.
   destruct (Z.eqb b 2) eqn:R2.
   - simpl. apply R2.
   - destruct (Z.eqb b 4) eqn:R4.
@@ -36,37 +36,37 @@ Proof.
         }
 Qed.
 
-Lemma sign2bits_inv (s : bool) :
+Lemma bits_of_sign_inv (s : bool) :
   bool_het_inverse
     bool Z bool
-    sign2bits
-    bits2sign
+    bits_of_sign
+    sign_of_bits
     Bool.eqb
     s.
 Proof.
-  unfold bool_het_inverse, bits2sign, sign2bits.
+  unfold bool_het_inverse, sign_of_bits, bits_of_sign.
   destruct s.
   - reflexivity.
   - reflexivity.
 Qed.
 
- Lemma signif2bits_inv (m : positive) :
+ Lemma bits_of_signif_inv (m : positive) :
   bool_het_inverse
 	positive Z positive
-	signif2bits
-	bits2signif
+	bits_of_signif
+	signif_of_bits
 	Pos.eqb
 	m.
 Proof.
-  unfold bool_het_inverse, bits2signif, signif2bits.
+  unfold bool_het_inverse, signif_of_bits, bits_of_signif.
   simpl. apply Pos.eqb_refl.
 Qed.
 
-Lemma exp2bits_inv (e_olen e  : Z) :
+Lemma bits_of_exp_inv (e_olen e  : Z) :
   bool_het_inverse
     Z Z Z
-    (exp2bits e_olen)
-    (bits2exp e_olen)
+    (bits_of_exp e_olen)
+    (exp_of_bits e_olen)
     Z.eqb
     e.
 Proof.
@@ -87,7 +87,8 @@ End Atomic.
 (*                                                                            *)
 (*  Lemma valid_short_valid_BER {id co t s bb ff ee e m : Z} :                *)
 (*    valid_short id co t s bb ff ee e m = true ->                            *)
-(*    valid_BER (bits2signif m) (bits2exp (ee + 1) e) (bits2radix bb) = true. *)
+(*    valid_BER                                                               *)
+(*     (signif_of_bits m) (exp_of_bits (ee + 1) e) (radix_of_bits bb) = true. *)
 (*  Proof.                                                                    *)
 (*    unfold valid_short. intros H.                                           *)
 (*    unfold valid_BER. apply andb_true_intro. split.                         *)
@@ -104,16 +105,17 @@ End Atomic.
 (*    (*   + (* long *) *)                                                    *)
 (*    (*     contradict Heqb. *)                                              *)
 (*    (*     rewrite not_Zlt_Zle. *)                                          *)
-(*    (*     unfold bits2exp. *)                                              *)
+(*    (*     unfold exp_of_bits. *)                                           *)
 (*    (*     admit. *)                                                        *)
 (*    (*   + (* short *) *)                                                   *)
-(*    (*     unfold bits2signif; rewrite Z2Pos.id. *)                         *)
+(*    (*     unfold signif_of_bits; rewrite Z2Pos.id. *)                      *)
 (*    (*     rewrite Z.ltb_ge in Heqb. *)                                     *)
 (*  Admitted.                                                                 *)
 (*                                                                            *)
 (*  Lemma valid_long_valid_BER {id co t s bb ff ee eo e m : Z} :              *)
 (*    valid_long id co t s bb ff ee eo e m = true ->                          *)
-(*    valid_BER (bits2signif m) (bits2exp (eo) e) (bits2radix bb) = true.     *)
+(*    valid_BER                                                               *)
+(*     (signif_of_bits m) (exp_of_bits (eo) e) (radix_of_bits bb) = true.     *)
 (*  Admitted.                                                                 *)
 (*                                                                            *)
 (*    Lemma BER_to_bitstring_correct (scaled : bool) (f : BER_float) :        *)
@@ -133,8 +135,8 @@ End Atomic.
 Theorem BER_bitstring_roundtrip (scaled : bool) (f : BER_float) :
   roundtrip_option
     BER_float BER_bitstring BER_float
-    BER_to_bitstring
-    bitstring_to_BER
+    bitstring_of_BER
+    BER_of_bitstring
     BER_float_strict_eqb
     f.
 Admitted.
@@ -160,20 +162,20 @@ Admitted.
 (*         simpl in *.                                                     *)
 (*         destruct valid_short_sumbool eqn:VS; try some_eq_none_inv.      *)
 (*         inversion Heqo as [H]. clear Heqo.                              *)
-(*         rewrite sign2bits_inv.                                          *)
+(*         rewrite bits_of_sign_inv.                                       *)
 (*                                                                         *)
 (*         (* radix needs to be correct to be invertable *)                *)
 (*         inversion e0 as [BV].                                           *)
 (*         unfold valid_BER in BV.                                         *)
 (*         apply andb_prop in BV. inversion BV as [B V]. clear B.          *)
-(*         rewrite (radix2bits_inv b0 V).                                  *)
+(*         rewrite (bits_of_radix_inv b0 V).                               *)
 (*                                                                         *)
-(*         rewrite signif2bits_inv.                                        *)
+(*         rewrite bits_of_signif_inv.                                     *)
 (*                                                                         *)
 (*         remember (twos_olen e) as toe.                                  *)
 (*         assert (T : (toe - 1 + 1 = toe)%Z) by ring.                     *)
 (*         rewrite T.                                                      *)
-(*         rewrite exp2bits_inv.                                           *)
+(*         rewrite bits_of_exp_inv.                                        *)
 (*                                                                         *)
 (*         rewrite e0.                                                     *)
 (*                                                                         *)
@@ -182,16 +184,16 @@ Admitted.
 (*         simpl in *.                                                     *)
 (*         destruct valid_long_sumbool eqn:VS; try some_eq_none_inv.       *)
 (*         inversion Heqo as [H]. clear Heqo.                              *)
-(*         rewrite sign2bits_inv.                                          *)
+(*         rewrite bits_of_sign_inv.                                       *)
 (*                                                                         *)
 (*         (* radix needs to be correct to be invertable *)                *)
 (*         inversion e0 as [BV].                                           *)
 (*         unfold valid_BER in BV.                                         *)
 (*         apply andb_prop in BV. inversion BV as [B V]. clear B.          *)
-(*         rewrite (radix2bits_inv b0 V).                                  *)
+(*         rewrite (bits_of_radix_inv b0 V).                               *)
 (*                                                                         *)
-(*         rewrite signif2bits_inv.                                        *)
-(*         rewrite exp2bits_inv.                                           *)
+(*         rewrite bits_of_signif_inv.                                     *)
+(*         rewrite bits_of_exp_inv.                                        *)
 (*         rewrite e0.                                                     *)
 (*         reflexivity.                                                    *)
 (*   - (* no pass *)                                                       *)

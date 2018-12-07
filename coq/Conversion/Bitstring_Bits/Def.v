@@ -2,7 +2,7 @@ Require Import ZArith.
 Require Import ASN1FP.Types.BitstringDef
                ASN1FP.Aux.Bits.
 
-Definition bitstring_to_bits (b : BER_bitstring) : Z :=
+Definition bits_of_bitstring (b : BER_bitstring) : Z :=
   match b with
   | special val =>
     match classify_BER val with
@@ -47,7 +47,7 @@ Definition bitstring_to_bits (b : BER_bitstring) : Z :=
                       significand))))))))
   end.
 
-Definition bits_to_bitstring (b : Z) : option BER_bitstring :=
+Definition bitstring_of_bits (b : Z) : option BER_bitstring :=
   match classify_BER b with
     | Some pzero => Some (special pzero_b)
     | Some nzero => Some (special nzero_b)

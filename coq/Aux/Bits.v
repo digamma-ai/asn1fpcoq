@@ -37,7 +37,7 @@ Section Length.
    *  rounded toward positive infinity
    *  (workaround for division with rounding toward +inf)
    *)
-  Definition blen_to_olen (n : Z) : Z :=
+  Definition olen_of_blen (n : Z) : Z :=
     (n + 7) / 8.
 
   (*
@@ -45,7 +45,7 @@ Section Length.
    *  to encode a given number in binary
    *)
   Definition olen (n : Z) : Z :=
-    blen_to_olen (blen n).
+    olen_of_blen (blen n).
 
 End Length.
 
@@ -100,7 +100,7 @@ Section Twos_comp_def.
    *  encode an integer's two's complement.
    *)
   Definition twos_olen : Z :=
-    blen_to_olen (twos_blen).
+    olen_of_blen (twos_blen).
 
   (*
    * two's complement of n on b bits if possible

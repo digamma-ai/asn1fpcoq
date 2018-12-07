@@ -65,7 +65,7 @@ Section Conversion.
      * no rounding is performed: if conversion is impossible without rounding
      * `None` is returned
      *)
-    Definition IEEE_to_BER_exact (scaled : bool) (f : IEEE_float) : option BER_float :=
+    Definition BER_of_IEEE_exact (scaled : bool) (f : IEEE_float) : option BER_float :=
       let b := radix2 in
       let ff := 0%Z in
       match f with
@@ -97,7 +97,7 @@ Section Conversion.
      * no rounding is performed: if conversion is impossible without rounding
      * `None` is returned
      *)
-    Definition BER_to_IEEE_exact (f : BER_float) : option IEEE_float := 
+    Definition IEEE_of_BER_exact (f : BER_float) : option IEEE_float := 
       match f with
       | BER_zero s => Some (B754_zero _ _ s)
       | BER_infinity s => Some (B754_infinity _ _ s)
@@ -133,7 +133,7 @@ Section Conversion.
      *)
     (* TODO: scaling *)
     (* TODO: radix *)
-    Definition BER_to_IEEE_rounded (Hmax : prec < emax) (rounding : mode) (r : BER_float) : option (IEEE_float) :=
+    Definition IEEE_of_BER_rounded (Hmax : prec < emax) (rounding : mode) (r : BER_float) : option (IEEE_float) :=
       match r with
       | BER_zero s => Some (B754_zero _ _ s)
       | BER_infinity s => Some (B754_infinity _ _ s)
@@ -150,7 +150,7 @@ Section Conversion.
      *
      *  NaN payload is set to 1 uncoditionally
      *)
-    Definition IEEE_to_IEEE_round_reset_nan (Hmax : prec < emax) (rounding : mode) (f : IEEE_float) : IEEE_float :=
+    Definition IEEE_of_IEEE_round_reset_nan (Hmax : prec < emax) (rounding : mode) (f : IEEE_float) : IEEE_float :=
       match f with
       | B754_nan _ _ _ _ _ => B754_nan _ _ false 1 def_NaN
       | B754_infinity _ _ s => B754_infinity _ _ s
@@ -176,7 +176,7 @@ Section Conversion.
     Admitted.
     
     Lemma forward_pass_guarantee (scaled : bool) (f : IEEE_float) :
-      is_Some_b (IEEE_to_BER_exact scaled f) = true.
+      is_Some_b (BER_of_IEEE_exact scaled f) = true.
     Admitted.
 
     Let l1 {A B : Type } (f : A -> option B) : (option A -> option B) :=
@@ -187,7 +187,7 @@ Section Conversion.
         end.
     
     Lemma backward_pass_guarantee (scaled : bool) (f : IEEE_float) :
-      is_Some_b ((l1 BER_to_IEEE_exact) (IEEE_to_BER_exact scaled f)) = true.
+      is_Some_b ((l1 IEEE_of_BER_exact) (BER_of_IEEE_exact scaled f)) = true.
     Proof.
       unfold is_Some_b, l1.
       repeat break_match; try reflexivity.
@@ -232,8 +232,8 @@ Section Conversion.
     Theorem main_roundtrip (scaled : bool) (f : IEEE_float):
       roundtrip_option
         IEEE_float BER_float IEEE_float
-        (IEEE_to_BER_exact scaled)
-        BER_to_IEEE_exact
+        (BER_of_IEEE_exact scaled)
+        IEEE_of_BER_exact
         (float_eqb_nan_t)
         f.
     Proof.
