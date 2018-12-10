@@ -2,9 +2,11 @@ Require Import ZArith.
 Require Import ASN1FP.Types.ASNDef
                ASN1FP.Aux.Roundtrip ASN1FP.Aux.Bits ASN1FP.Aux.StructTactics ASN1FP.Aux.Tactics.
 
+(*
 Require Import Template.All Switch.Switch Strings.String Lists.List.
 
 Import ListNotations.
+*)
 
 Open Scope Z.
 
@@ -28,6 +30,7 @@ Definition pinf_b    := 590144.
 Definition ninf_b    := 590145.
 Definition nan_b     := 590146.
 
+(*
 Run TemplateProgram
   (mkSwitch Z Z.eqb
     [ (pzero_b, "pzero") ;
@@ -37,6 +40,22 @@ Run TemplateProgram
       (nan_b,     "nan") ]
     "BER_specials" "classify_BER"
   ).
+*)
+
+Inductive BER_specials :=
+| pzero
+| nzero
+| pinf
+| ninf
+| nan.
+
+Definition classify_BER (val : Z) : option BER_specials :=
+  if val =? pzero_b then Some pzero
+  else if val =? nzero_b then Some nzero
+    else if val =? pinf_b then Some pinf
+      else if val =? ninf_b then Some ninf
+        else if val =? nan_b then Some nan
+           else None.
 
 Definition valid_special (val : Z) : bool :=
   match (classify_BER val) with
