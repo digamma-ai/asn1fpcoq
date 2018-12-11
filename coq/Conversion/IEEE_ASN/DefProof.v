@@ -168,16 +168,37 @@ Section Conversion.
         assert (H1 := H); rewrite -> Bcompare_swap in H1; rewrite -> H in H1; inversion H1
       end.
 
-    (* TODO: meaningful supported formats *)
-    Variable supported_format : prec < 1000 /\ emax < 1000.
-
     Lemma arithmetic_roundtrip {m : positive} {e : Z} (V : valid_IEEE m e = true) :
       uncurry normalize_IEEE_finite (normalize_BER_finite m e) = (m, e).
     Admitted.
     
+    Definition supported_IEEE (f : IEEE_float) : bool :=
+      match f with
+      | B754_finite _ _ _ m e _ => uncurry (valid_BER radix2 0) (normalize_BER_finite m e)
+      | _ => true
+      end.
+      
     Lemma forward_pass_guarantee (scaled : bool) (f : IEEE_float) :
+      supported_IEEE f = true <->
       is_Some_b (BER_of_IEEE_exact scaled f) = true.
-    Admitted.
+    Proof.
+      split.
+      - (* supported -> passes *)
+        unfold supported_IEEE, is_Some_b, BER_of_IEEE_exact, make_BER_finite.
+        intros.
+        repeat break_match; try reflexivity; inversion H; inversion Heqo.
+        rewrite -> e1 in H1.
+        inversion H1.
+      - (* passes -> supported *)
+        destruct f eqn:F; try reflexivity.
+        unfold BER_of_IEEE_exact, make_BER_finite, supported_IEEE.
+        repeat break_match.
+        + (* valid_BER *)
+          simpl; intros G; clear G.
+          apply e1.
+        + (* not valid_BER *)
+          intros H; inversion H.
+    Qed.
 
     Let l1 {A B : Type } (f : A -> option B) : (option A -> option B) :=
       fun x : option A =>
@@ -187,6 +208,7 @@ Section Conversion.
         end.
     
     Lemma backward_pass_guarantee (scaled : bool) (f : IEEE_float) :
+      supported_IEEE f = true ->
       is_Some_b ((l1 IEEE_of_BER_exact) (BER_of_IEEE_exact scaled f)) = true.
     Proof.
       unfold is_Some_b, l1.
@@ -215,7 +237,9 @@ Section Conversion.
           rewrite e0 in e2.
           inversion e2.
       - (* no forward *)
+        intros.
         exfalso; generalize dependent (forward_pass_guarantee scaled f); intros.
+        apply H0 in H; clear H0.
         rewrite -> Heqo0 in H.
         inversion H.
     Qed.
@@ -282,7 +306,14 @@ Section Conversion.
           exfalso.
           generalize dependent (backward_pass_guarantee scaled f); intros.
           rewrite -> Heqo in H; simpl in H.
-          rewrite -> Heqo0 in H; inversion H.
+          rewrite -> Heqo0 in H.
+          assert (H1 : supported_IEEE f = true).
+          {
+            rewrite -> (forward_pass_guarantee scaled f), Heqo.
+            reflexivity.
+          }
+          apply H in H1.
+          inversion H1.
       - (* forward pass unsuccessful *)
         inversion FPT.
     Qed.
