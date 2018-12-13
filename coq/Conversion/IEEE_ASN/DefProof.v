@@ -4,11 +4,30 @@ Require Import ASN1FP.Types.ASNDef ASN1FP.Types.IEEEAux
         ASN1FP.Aux.Tactics ASN1FP.Aux.Option.
 
 Require Import Flocq.Core.Zaux Flocq.IEEE754.Binary.
+Require Import Flocq.Core.Defs.
+
+Open Scope Z.
 
 Section Conversion.
 
   Variable prec emax : Z.
   Variable prec_gt_1 : prec > 1.
+  Variable r : radix.
+
+  Let Float := Float r.
+  Let float := float r.
+
+  (*
+   * Fixpoint normalize (m e : Z) : Z * Z :=
+   *   if (m mod r =? 0)
+   *   then normalize (Z.div m r) (e + 1)
+   *   else (m, e).
+   *
+   * Fixpoint simpler_normalize (m : Z) : Z :=
+   *   if (m mod r =? 0)
+   *   then normalize (Z.div m r)
+   *   else m.
+   *)
 
   (* 1 can always be the payload of a NaN *)
   Lemma def_NaN :
@@ -18,16 +37,16 @@ Section Conversion.
     apply Z.ltb_lt, Z.gt_lt, prec_gt_1.
   Qed.
 
-    Lemma prec_gt_0 : Flocq.Core.FLX.Prec_gt_0 prec.
-    Proof.
-      unfold Flocq.Core.FLX.Prec_gt_0.
-      apply (Z.lt_trans 0 1 prec).
-      - (* 1 < 0 *)
-        reflexivity.
-      - (* 1 < prec *)
-        apply Z.gt_lt.
-        apply prec_gt_1.
-    Qed.
+  Lemma prec_gt_0 : Flocq.Core.FLX.Prec_gt_0 prec.
+  Proof.
+    unfold Flocq.Core.FLX.Prec_gt_0.
+    apply (Z.lt_trans 0 1 prec).
+    - (* 1 < 0 *)
+      reflexivity.
+    - (* 1 < prec *)
+      apply Z.gt_lt.
+      apply prec_gt_1.
+  Qed.
 
   Definition IEEE_float := binary_float prec emax.
   Definition valid_IEEE := bounded prec emax.
@@ -161,44 +180,45 @@ Section Conversion.
   End Def.
 
   Section Proof.
-    
-    Ltac bcompare_nrefl :=
-      match goal with
-      | [ H: Bcompare _ _ _ _ = _ |- _] =>
-        assert (H1 := H); rewrite -> Bcompare_swap in H1; rewrite -> H in H1; inversion H1
-      end.
 
-    Lemma arithmetic_roundtrip {m : positive} {e : Z} (V : valid_IEEE m e = true) :
-      uncurry normalize_IEEE_finite (normalize_BER_finite m e) = (m, e).
-    Admitted.
-    
-    Definition supported_IEEE (f : IEEE_float) : bool :=
+    Definition normal_IEEE : positive -> Z -> bool := valid_IEEE.
+    Definition normal_BER  : positive -> Z -> bool := ASN1FP.Types.ASNDef.bounded.
+
+    Definition converible_IEEE (m : positive) (e : Z) :=
+      andb (normal_IEEE m e) (uncurry normal_BER (normalize_BER_finite m e)).
+    Definition converible_BER  (m : positive) (e : Z) :=
+      andb (normal_BER m e) (uncurry normal_IEEE (normalize_IEEE_finite m e)).
+
+    Definition supported_IEEE (f : IEEE_float) :=
       match f with
-      | B754_finite _ _ _ m e _ => uncurry (valid_BER radix2 0) (normalize_BER_finite m e)
+      | B754_finite _ _ _ m e _ => converible_IEEE m e
       | _ => true
       end.
-      
-    Lemma forward_pass_guarantee (scaled : bool) (f : IEEE_float) :
-      supported_IEEE f = true <->
-      is_Some_b (BER_of_IEEE_exact scaled f) = true.
-    Proof.
-      split.
-      - (* supported -> passes *)
-        unfold supported_IEEE, is_Some_b, BER_of_IEEE_exact, make_BER_finite.
-        intros.
-        repeat break_match; try reflexivity; inversion H; inversion Heqo.
-        rewrite -> e1 in H1.
-        inversion H1.
-      - (* passes -> supported *)
-        destruct f eqn:F; try reflexivity.
-        unfold BER_of_IEEE_exact, make_BER_finite, supported_IEEE.
-        repeat break_match.
-        + (* valid_BER *)
-          simpl; intros G; clear G.
-          apply e1.
-        + (* not valid_BER *)
-          intros H; inversion H.
-    Qed.
+
+    Definition supported_BER (f : BER_float) :=
+      match f with
+      | BER_finite _ _ _ m e _ => converible_BER m e
+      | _ => true
+      end.
+
+    Definition supported_float (m : positive) (e : Z) :=
+      orb (converible_BER m e) (converible_IEEE m e).
+
+    Definition forward_pass (scaled : bool) (f : IEEE_float) :=
+      is_Some_b (BER_of_IEEE_exact scaled f).
+    Definition backward_pass (f : BER_float) :=
+      is_Some_b (IEEE_of_BER_exact f).
+
+    Lemma forward_pass_guarantee {scaled : bool}
+          {s : bool} {m : positive} {e : Z} {b : valid_IEEE m e = true} :
+      forward_pass scaled (B754_finite _ _ s m e b) = true <->
+      converible_IEEE m e = true.
+    Admitted.
+
+    Lemma backward_pass_guarantee {s : bool} {m : positive} {e : Z} {b : valid_BER radix2 0 m e = true} :
+      backward_pass (BER_finite s radix2 0 m e b) = true <->
+      converible_BER m e = true.
+    Admitted.
 
     Let l1 {A B : Type } (f : A -> option B) : (option A -> option B) :=
       fun x : option A =>
@@ -207,42 +227,15 @@ Section Conversion.
         | None => None
         end.
     
-    Lemma backward_pass_guarantee (scaled : bool) (f : IEEE_float) :
+    Lemma bak_pas_gnt_aux (scaled : bool) (f : IEEE_float) :
       supported_IEEE f = true ->
       is_Some_b ((l1 IEEE_of_BER_exact) (BER_of_IEEE_exact scaled f)) = true.
-    Proof.
-      unfold is_Some_b, l1.
-      repeat break_match; try reflexivity.
-      - (* yes forward, no backward *)
-        exfalso.
-        clear l1.
-        destruct f; simpl in Heqo0; inversion Heqo0.
-        + rewrite <- H0 in Heqo; simpl in Heqo; inversion Heqo.
-        + rewrite <- H0 in Heqo; simpl in Heqo; inversion Heqo.
-        + rewrite <- H0 in Heqo; simpl in Heqo; inversion Heqo.
-        + clear H0.
-          unfold make_BER_finite in Heqo0.
-          destruct normalize_BER_finite eqn:NB.
-          destruct valid_BER_sumbool; inversion Heqo0; clear Heqo0.
-          rewrite <- H0 in Heqo.
-          simpl in Heqo.
-          unfold make_IEEE_finite in Heqo.
-          destruct normalize_IEEE_finite eqn:NI.
-          destruct valid_IEEE_sumbool; inversion Heqo; clear Heqo.
-          generalize dependent (arithmetic_roundtrip e0); intros.
-          rewrite -> NB in H.
-          simpl in H.
-          rewrite -> NI in H.
-          inversion H; subst.
-          rewrite e0 in e2.
-          inversion e2.
-      - (* no forward *)
-        intros.
-        exfalso; generalize dependent (forward_pass_guarantee scaled f); intros.
-        apply H0 in H; clear H0.
-        rewrite -> Heqo0 in H.
-        inversion H.
-    Qed.
+    Admitted.
+    
+    Theorem arithmetic_roundtrip (m : positive) (e : Z) :
+      normal_IEEE m e = true ->
+      uncurry normalize_IEEE_finite (normalize_BER_finite m e) = (m, e).
+    Admitted.
 
     Ltac inv_make_BER_finite :=
       match goal with
@@ -253,6 +246,12 @@ Section Conversion.
         inversion H
     end.
 
+    Ltac bcompare_nrefl :=
+      match goal with
+      | [ H: Bcompare _ _ _ _ = _ |- _] =>
+        assert (H1 := H); rewrite -> Bcompare_swap in H1; rewrite -> H in H1; inversion H1
+      end.
+    
     Theorem main_roundtrip (scaled : bool) (f : IEEE_float):
       roundtrip_option
         IEEE_float BER_float IEEE_float
@@ -285,7 +284,7 @@ Section Conversion.
             destruct normalize_BER_finite eqn:NB.
             destruct valid_BER_sumbool; inversion Heqo.
             clear Heqo; subst.
-            
+    
             (* simplify backward conversions *)
             unfold make_IEEE_finite in *.
             destruct normalize_IEEE_finite eqn:NI.
@@ -293,18 +292,23 @@ Section Conversion.
             clear Heqo0; subst.
     
             (* apply arithmetic roundtrip *)
-            generalize dependent (arithmetic_roundtrip e0); intros.
-            rewrite -> NB in H.
-            simpl in H.
-            rewrite -> NI in H.
-            inversion H; clear H; subst.
+            generalize dependent (arithmetic_roundtrip m e); intros;
+              unfold normal_IEEE, valid_IEEE in H.
+            copy_apply H e0.
+            rewrite -> NB in H0.
+            simpl in H0.
+            rewrite -> NI in H0.
+            inversion H0; subst.
             unfold float_eqb_nan_t, Bcompare.
             repeat break_match; (repeat try some_inv);
               try compare_nrefl; try reflexivity.
     
         + (* backward pass unsuccessful *)
           exfalso.
-          generalize dependent (backward_pass_guarantee scaled f); intros.
+          generalize (bak_pas_gnt_aux scaled f).
+          unfold supported_IEEE, converible_IEEE.
+          admit.
+          (*
           rewrite -> Heqo in H; simpl in H.
           rewrite -> Heqo0 in H.
           assert (H1 : supported_IEEE f = true).
@@ -314,9 +318,10 @@ Section Conversion.
           }
           apply H in H1.
           inversion H1.
+          *)
       - (* forward pass unsuccessful *)
         inversion FPT.
-    Qed.
+    Admitted.
 
   End Proof.
 
