@@ -49,8 +49,10 @@ Section Conversion.
   Qed.
 
   Definition IEEE_float := binary_float prec emax.
-  Definition valid_IEEE := bounded prec emax.
-  Definition valid_IEEE_sumbool := binary_bounded_sumbool prec emax.
+  Definition fits_IEEE := bounded prec emax.
+  Definition fits_IEEE_sumbool := binary_bounded_sumbool prec emax.
+
+  Definition fits_BER := ASN1FP.Types.ASNDef.bounded.
 
   Section Def.
 
@@ -105,7 +107,7 @@ Section Conversion.
     (* given all meaningful parts of an IEEE float, construct it, if possible *)
     Definition make_IEEE_finite (s : bool) (m : positive) (e : Z) : option IEEE_float :=
       let '(mx, ex) := normalize_IEEE_finite m e in
-      match (valid_IEEE_sumbool mx ex) with
+      match (fits_IEEE_sumbool mx ex) with
       | left V => Some (B754_finite _ _ s mx ex V)
       | right _ => None
       end.
@@ -181,13 +183,11 @@ Section Conversion.
 
   Section Proof.
 
-    Definition normal_IEEE : positive -> Z -> bool := valid_IEEE.
-    Definition normal_BER  : positive -> Z -> bool := ASN1FP.Types.ASNDef.bounded.
-
     Definition converible_IEEE (m : positive) (e : Z) :=
-      andb (normal_IEEE m e) (uncurry normal_BER (normalize_BER_finite m e)).
+      andb (fits_IEEE m e) (uncurry fits_BER (normalize_BER_finite m e)).
+
     Definition converible_BER  (m : positive) (e : Z) :=
-      andb (normal_BER m e) (uncurry normal_IEEE (normalize_IEEE_finite m e)).
+      andb (fits_BER m e) (uncurry fits_IEEE (normalize_IEEE_finite m e)).
 
     Definition supported_IEEE (f : IEEE_float) :=
       match f with
@@ -201,16 +201,14 @@ Section Conversion.
       | _ => true
       end.
 
-    Definition supported_float (m : positive) (e : Z) :=
-      orb (converible_BER m e) (converible_IEEE m e).
-
     Definition forward_pass (scaled : bool) (f : IEEE_float) :=
       is_Some_b (BER_of_IEEE_exact scaled f).
+
     Definition backward_pass (f : BER_float) :=
       is_Some_b (IEEE_of_BER_exact f).
 
     Lemma forward_pass_guarantee {scaled : bool}
-          {s : bool} {m : positive} {e : Z} {b : valid_IEEE m e = true} :
+          {s : bool} {m : positive} {e : Z} {b : fits_IEEE m e = true} :
       forward_pass scaled (B754_finite _ _ s m e b) = true <->
       converible_IEEE m e = true.
     Admitted.
@@ -233,7 +231,7 @@ Section Conversion.
     Admitted.
     
     Theorem arithmetic_roundtrip (m : positive) (e : Z) :
-      normal_IEEE m e = true ->
+      fits_IEEE m e = true ->
       uncurry normalize_IEEE_finite (normalize_BER_finite m e) = (m, e).
     Admitted.
 
@@ -288,12 +286,12 @@ Section Conversion.
             (* simplify backward conversions *)
             unfold make_IEEE_finite in *.
             destruct normalize_IEEE_finite eqn:NI.
-            destruct valid_IEEE_sumbool; inversion Heqo0.
+            destruct fits_IEEE_sumbool; inversion Heqo0.
             clear Heqo0; subst.
     
             (* apply arithmetic roundtrip *)
             generalize dependent (arithmetic_roundtrip m e); intros;
-              unfold normal_IEEE, valid_IEEE in H.
+              unfold fits_IEEE, fits_IEEE in H.
             copy_apply H e0.
             rewrite -> NB in H0.
             simpl in H0.
