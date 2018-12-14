@@ -79,7 +79,7 @@ Inductive BER_float :=
   | BER_zero (s : bool)
   | BER_infinity (s : bool)
   | BER_nan
-  | BER_finite (s : bool) (b : radix) (f : Z) (m : positive) (e : Z) :
+  | BER_finite (b : radix) (f : Z) (s : bool) (m : positive) (e : Z) :
     (valid_BER b f m e = true) -> BER_float.
 
 (*
@@ -101,8 +101,8 @@ Definition BER_float_strict_eqb (f1 f2 : BER_float) : bool :=
   | BER_zero s1, BER_zero s2 => Bool.eqb s1 s2
   | BER_infinity s1, BER_infinity s2 => Bool.eqb s1 s2
   | BER_nan, BER_nan => true
-  | BER_finite s1 b1 f1 m1 e1 _, BER_finite s2 b2 f2 m2 e2 _ =>
-    (Bool.eqb s1 s2) && (Z.eqb b1 b2) && (Z.eqb f1 f2) && (Pos.eqb m1 m2) && (Z.eqb e1 e2)
+  | BER_finite b1 f1 s1 m1 e1 _, BER_finite b2 f2 s2 m2 e2 _ =>
+    (Z.eqb b1 b2) && (Z.eqb f1 f2) && (Bool.eqb s1 s2) && (Pos.eqb m1 m2) && (Z.eqb e1 e2)
   | _ , _ => false
   end.
 

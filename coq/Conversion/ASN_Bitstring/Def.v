@@ -52,7 +52,7 @@ Section Atomic.
 End Atomic.
 
 Definition bitstring_of_finite_BER
-            (s : bool) (b : radix) (f : Z) (m : positive) (e : Z) : option BER_bitstring :=
+            (b : radix) (f : Z) (s : bool) (m : positive) (e : Z) : option BER_bitstring :=
   let m := bits_of_signif m in
   let s := bits_of_sign s in
   let bb := bits_of_radix b in
@@ -95,7 +95,7 @@ Definition BER_of_bitstring (b : BER_bitstring) : option BER_float :=
     let e := (exp_of_bits (ee + 1) e) in
     match valid_BER_sumbool b ff m e with
     | right _ => None
-    | left V => Some (BER_finite s b ff m e V)
+    | left V => Some (BER_finite b ff s m e V)
     end
   | long id co t s bb ff ee eo e m _ =>
     let s := (sign_of_bits s) in
@@ -104,6 +104,6 @@ Definition BER_of_bitstring (b : BER_bitstring) : option BER_float :=
     let e := (exp_of_bits (eo) e) in
     match valid_BER_sumbool b ff m e with
     | right _ => None
-    | left V => Some (BER_finite s b ff m e V)
+    | left V => Some (BER_finite b ff s m e V)
     end
   end.

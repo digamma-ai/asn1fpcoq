@@ -8,26 +8,27 @@ Require Import Flocq.Core.Defs.
 
 Open Scope Z.
 
-Section Conversion.
+Section Base2.
 
   Variable prec emax : Z.
   Variable prec_gt_1 : prec > 1.
-  Variable r : radix.
 
-  Let Float := Float r.
-  Let float := float r.
-
-  (*
-   * Fixpoint normalize (m e : Z) : Z * Z :=
-   *   if (m mod r =? 0)
-   *   then normalize (Z.div m r) (e + 1)
-   *   else (m, e).
-   *
-   * Fixpoint simpler_normalize (m : Z) : Z :=
-   *   if (m mod r =? 0)
-   *   then normalize (Z.div m r)
-   *   else m.
+  (* only radix = 2 is considered for both formats in this section
+   * scaling factor is, therefore, not required in BER
+   * TODO: for arbitrary radix/scaling combinations, refer to another section
    *)
+  Let r := radix2.
+  Let scl := 0.
+
+  (* can a given (m,e) pair be represented in IEEE/BER exactly *)
+  Let valid_IEEE := bounded prec emax.
+  Let valid_BER := valid_BER r scl.
+
+  (* aux: apply variables *)
+  Let IEEE_float := binary_float prec emax.
+  Let valid_IEEE_sumbool := binary_bounded_sumbool prec emax.
+  Let BER_finite_b2 := BER_finite r scl.
+  Let valid_BER_sumbool := valid_BER_sumbool r scl.
 
   (* 1 can always be the payload of a NaN *)
   Lemma def_NaN :
@@ -48,12 +49,6 @@ Section Conversion.
       apply prec_gt_1.
   Qed.
 
-  Definition IEEE_float := binary_float prec emax.
-  Definition fits_IEEE := bounded prec emax.
-  Definition fits_IEEE_sumbool := binary_bounded_sumbool prec emax.
-
-  Definition fits_BER := ASN1FP.Types.ASNDef.bounded.
-
   Section Def.
 
     (* TODO: recursive definition *)
@@ -67,16 +62,15 @@ Section Conversion.
       let t := N.log2 (((Pos.lxor m (m-1)) + 1) / 2) in
       (Pos.shiftr m t, e + (Z.of_N t)).
 
-    (* TODO: add missing normalization parts *)
     (*
      * given all meaningful parts of a BER real, construct it, if possible
      * The content is normalized in accordance with [ 11.3.1 ] if possible
      *)
-    Definition make_BER_finite (s : bool) (b : radix) (ff : Z) (m : positive) (e : Z)
+    Definition make_BER_finite (s : bool) (m : positive) (e : Z)
       : option BER_float :=
       let '(mx, ex) := normalize_BER_finite m e in
-      match valid_BER_sumbool b ff mx ex with
-      | left V => Some (BER_finite s b ff mx ex V)
+      match valid_BER_sumbool mx ex with
+      | left V => Some (BER_finite_b2 s mx ex V)
       | right _ => None
       end.
     
@@ -86,14 +80,12 @@ Section Conversion.
      * no rounding is performed: if conversion is impossible without rounding
      * `None` is returned
      *)
-    Definition BER_of_IEEE_exact (scaled : bool) (f : IEEE_float) : option BER_float :=
-      let b := radix2 in
-      let ff := 0%Z in
+    Definition BER_of_IEEE_exact (f : IEEE_float) : option BER_float :=
       match f with
       | B754_zero _ _ s => Some (BER_zero s)
       | B754_infinity _ _ s => Some (BER_infinity s)
       | B754_nan _ _ _ _ _ => Some (BER_nan)
-      | B754_finite _ _ s m e _ => make_BER_finite s b ff m e
+      | B754_finite _ _ s m e _ => make_BER_finite s m e
       end.
 
     (*
@@ -107,14 +99,14 @@ Section Conversion.
     (* given all meaningful parts of an IEEE float, construct it, if possible *)
     Definition make_IEEE_finite (s : bool) (m : positive) (e : Z) : option IEEE_float :=
       let '(mx, ex) := normalize_IEEE_finite m e in
-      match (fits_IEEE_sumbool mx ex) with
+      match (valid_IEEE_sumbool mx ex) with
       | left V => Some (B754_finite _ _ s mx ex V)
       | right _ => None
       end.
 
-    (* TODO: radix, scaling (remove `if`, handle conversion properly) *)
     (*
      * exact conversion from BER to IEEE
+     * radix2 with no scaling asssumed: if input does not match, 'None' returned
      * no rounding is performed: if conversion is impossible without rounding
      * `None` is returned
      *)
@@ -123,7 +115,7 @@ Section Conversion.
       | BER_zero s => Some (B754_zero _ _ s)
       | BER_infinity s => Some (B754_infinity _ _ s)
       | BER_nan => Some (B754_nan _ _ false 1 def_NaN)
-      | BER_finite s b f m e _ =>
+      | BER_finite b f s m e _ =>
         if andb (b =? 2) (f =? 0) then
           make_IEEE_finite s m e
         else None
@@ -134,7 +126,8 @@ Section Conversion.
      *  return a corresponding binary_float,
      *  correctly rounded in accordance with the specified rounding mode
      *)
-    Definition round_finite (Hmax : prec < emax) (rounding : mode)
+    Definition round_finite
+               (Hmax : prec < emax) (rounding : mode)
                (s : bool) (m : positive) (e : Z) : IEEE_float :=
       binary_normalize
         prec emax prec_gt_0 Hmax
@@ -147,19 +140,17 @@ Section Conversion.
      *  rounded in accordnace with the provided rounding mode if necessary
      *
      *  NOTE:
-     *  2) If initial BER encoding has radix /= 2,
+     *  1) If initial BER encoding has radix /= 2 or scaling factor /= 0
      *     `None` is returned
-     *  3) If the ASN encoding is a NaN,
+     *  2) If the ASN encoding is a NaN,
      *     float's NaN payload is set to 1
      *)
-    (* TODO: scaling *)
-    (* TODO: radix *)
     Definition IEEE_of_BER_rounded (Hmax : prec < emax) (rounding : mode) (r : BER_float) : option (IEEE_float) :=
       match r with
       | BER_zero s => Some (B754_zero _ _ s)
       | BER_infinity s => Some (B754_infinity _ _ s)
       | BER_nan => Some (B754_nan _ _ false 1 def_NaN)
-      | BER_finite s b f m e x =>
+      | BER_finite b f s m e x =>
         if andb (b =? 2) (f =? 0)
         then Some (round_finite Hmax rounding s m e)
         else None
@@ -181,13 +172,14 @@ Section Conversion.
 
   End Def.
 
+
   Section Proof.
 
     Definition converible_IEEE (m : positive) (e : Z) :=
-      andb (fits_IEEE m e) (uncurry fits_BER (normalize_BER_finite m e)).
+      andb (valid_IEEE m e) (uncurry valid_BER (normalize_BER_finite m e)).
 
     Definition converible_BER  (m : positive) (e : Z) :=
-      andb (fits_BER m e) (uncurry fits_IEEE (normalize_IEEE_finite m e)).
+      andb (valid_BER m e) (uncurry valid_IEEE (normalize_IEEE_finite m e)).
 
     Definition supported_IEEE (f : IEEE_float) :=
       match f with
@@ -201,20 +193,20 @@ Section Conversion.
       | _ => true
       end.
 
-    Definition forward_pass (scaled : bool) (f : IEEE_float) :=
-      is_Some_b (BER_of_IEEE_exact scaled f).
+    Definition forward_pass (f : IEEE_float) :=
+      is_Some_b (BER_of_IEEE_exact f).
 
     Definition backward_pass (f : BER_float) :=
       is_Some_b (IEEE_of_BER_exact f).
 
-    Lemma forward_pass_guarantee {scaled : bool}
-          {s : bool} {m : positive} {e : Z} {b : fits_IEEE m e = true} :
-      forward_pass scaled (B754_finite _ _ s m e b) = true <->
+    Lemma forward_pass_guarantee
+          {s : bool} {m : positive} {e : Z} {b : valid_IEEE m e = true} :
+      forward_pass (B754_finite _ _ s m e b) = true <->
       converible_IEEE m e = true.
     Admitted.
 
-    Lemma backward_pass_guarantee {s : bool} {m : positive} {e : Z} {b : valid_BER radix2 0 m e = true} :
-      backward_pass (BER_finite s radix2 0 m e b) = true <->
+    Lemma backward_pass_guarantee {s : bool} {m : positive} {e : Z} {b : valid_BER m e = true} :
+      backward_pass (BER_finite_b2 s m e b) = true <->
       converible_BER m e = true.
     Admitted.
 
@@ -227,17 +219,17 @@ Section Conversion.
     
     Lemma bak_pas_gnt_aux (scaled : bool) (f : IEEE_float) :
       supported_IEEE f = true ->
-      is_Some_b ((l1 IEEE_of_BER_exact) (BER_of_IEEE_exact scaled f)) = true.
+      is_Some_b ((l1 IEEE_of_BER_exact) (BER_of_IEEE_exact f)) = true.
     Admitted.
     
     Theorem arithmetic_roundtrip (m : positive) (e : Z) :
-      fits_IEEE m e = true ->
+      valid_IEEE m e = true ->
       uncurry normalize_IEEE_finite (normalize_BER_finite m e) = (m, e).
     Admitted.
 
     Ltac inv_make_BER_finite :=
       match goal with
-      | [ H : make_BER_finite _ _ _ _ _ = Some _ |- _ ] =>
+      | [ H : make_BER_finite _ _ _ = Some _ |- _ ] =>
         unfold make_BER_finite in H;
         destruct normalize_BER_finite;
         destruct valid_BER_sumbool;
@@ -253,7 +245,7 @@ Section Conversion.
     Theorem main_roundtrip (scaled : bool) (f : IEEE_float):
       roundtrip_option
         IEEE_float BER_float IEEE_float
-        (BER_of_IEEE_exact scaled)
+        (BER_of_IEEE_exact)
         IEEE_of_BER_exact
         (float_eqb_nan_t)
         f.
@@ -286,12 +278,12 @@ Section Conversion.
             (* simplify backward conversions *)
             unfold make_IEEE_finite in *.
             destruct normalize_IEEE_finite eqn:NI.
-            destruct fits_IEEE_sumbool; inversion Heqo0.
+            destruct valid_IEEE_sumbool; inversion Heqo0.
             clear Heqo0; subst.
     
             (* apply arithmetic roundtrip *)
             generalize dependent (arithmetic_roundtrip m e); intros;
-              unfold fits_IEEE, fits_IEEE in H.
+              unfold valid_IEEE in H.
             copy_apply H e0.
             rewrite -> NB in H0.
             simpl in H0.
@@ -323,4 +315,4 @@ Section Conversion.
 
   End Proof.
 
-End Conversion.
+End Base2.
