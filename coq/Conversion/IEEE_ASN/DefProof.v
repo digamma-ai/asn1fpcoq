@@ -191,6 +191,7 @@ Section Base2.
       apply Zeq_bool_eq in H0.
       apply Zle_bool_imp_le in H1.
       tuple_inversion.
+      unfold FLT.FLT_exp in *.
 
     Admitted.
 
