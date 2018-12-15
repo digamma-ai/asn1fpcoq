@@ -177,6 +177,21 @@ Section Base2.
     Theorem arithmetic_roundtrip (m : positive) (e : Z) :
       valid_IEEE m e = true ->
       uncurry normalize_IEEE_finite (normalize_BER_finite m e) = (m, e).
+    Proof.
+      intros H.
+      unfold uncurry.
+      break_let.
+      rename p into mx, z into ex.
+      unfold normalize_BER_finite in *.
+      unfold normalize_IEEE_finite, shl_align_fexp, shl_align.
+      subst valid_IEEE valid_BER.
+      clear IEEE_float valid_IEEE_sumbool valid_BER_sumbool BER_finite_b2 r scl.
+      unfold bounded, canonical_mantissa in *.
+      split_andb.
+      apply Zeq_bool_eq in H0.
+      apply Zle_bool_imp_le in H1.
+
+
     Admitted.
 
     Ltac inv_make_BER_finite :=
