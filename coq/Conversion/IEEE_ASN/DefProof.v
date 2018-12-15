@@ -10,6 +10,12 @@ Open Scope Z.
 
 Section Base2.
 
+  Fixpoint normalize (m : positive) (e : Z) : positive * Z :=
+    match m with
+    | xO p => normalize p (e + 1)
+    | _ => (m, e)
+    end.
+
   Variable prec emax : Z.
   Variable prec_gt_1 : prec > 1.
 
