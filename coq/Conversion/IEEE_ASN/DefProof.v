@@ -190,7 +190,7 @@ Section Base2.
       split_andb.
       apply Zeq_bool_eq in H0.
       apply Zle_bool_imp_le in H1.
-
+      tuple_inversion.
 
     Admitted.
 
