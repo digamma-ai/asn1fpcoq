@@ -172,7 +172,6 @@ Section Base2.
 
   End Def.
 
-
   Section Proof.
 
     Definition converible_IEEE (m : positive) (e : Z) :=
@@ -203,24 +202,76 @@ Section Base2.
           {s : bool} {m : positive} {e : Z} {b : valid_IEEE m e = true} :
       forward_pass (B754_finite _ _ s m e b) = true <->
       converible_IEEE m e = true.
-    Admitted.
-
-    Lemma backward_pass_guarantee {s : bool} {m : positive} {e : Z} {b : valid_BER m e = true} :
+    Proof.
+      unfold forward_pass.
+      simpl.
+      split.
+      - (* pass -> converible *)
+        unfold make_BER_finite.
+        repeat break_match.
+        + (* true -> ... *)
+          intros H; clear H.
+          unfold converible_IEEE.
+          rewrite b, Heqp.
+          simpl.
+          apply e0.
+        + (* false -> ... *)
+          intros C; inversion C.
+      - (* converible -> pass *)
+        unfold converible_IEEE, make_BER_finite.
+        rewrite b.
+        destruct normalize_BER_finite eqn:NI.
+        intros H; simpl in H.
+        break_match.
+        + (* ... -> true *)
+          reflexivity.
+        + (* ... -> false *)
+          exfalso.
+          unfold valid_BER in H.
+          rewrite H in e0.
+          inversion e0.
+    Qed.
+    
+    Lemma backward_pass_guarantee
+          {s : bool} {m : positive} {e : Z} {b : valid_BER m e = true} :
       backward_pass (BER_finite_b2 s m e b) = true <->
       converible_BER m e = true.
-    Admitted.
-
+    Proof.
+      unfold backward_pass.
+      simpl.
+      split.
+      - (* pass -> converible *)
+        unfold make_IEEE_finite.
+        repeat break_match.
+        + (* true -> ... *)
+          intros H; clear H.
+          unfold converible_BER.
+          rewrite b, Heqp.
+          simpl.
+          apply e0.
+        + (* false -> ... *)
+          intros C; inversion C.
+      - (* converible -> pass *)
+        unfold converible_BER, make_IEEE_finite.
+        rewrite b.
+        destruct normalize_IEEE_finite eqn:NI.
+        intros H; simpl in H.
+        break_match.
+        + (* ... -> true *)
+          reflexivity.
+        + (* ... -> false *)
+          exfalso.
+          unfold valid_IEEE in H.
+          rewrite H in e0.
+          inversion e0.
+    Qed.
+    
     Let l1 {A B : Type } (f : A -> option B) : (option A -> option B) :=
       fun x : option A =>
         match x with
         | Some a => f a
         | None => None
         end.
-    
-    Lemma bak_pas_gnt_aux (scaled : bool) (f : IEEE_float) :
-      supported_IEEE f = true ->
-      is_Some_b ((l1 IEEE_of_BER_exact) (BER_of_IEEE_exact f)) = true.
-    Admitted.
     
     Theorem arithmetic_roundtrip (m : positive) (e : Z) :
       valid_IEEE m e = true ->
@@ -265,7 +316,6 @@ Section Base2.
           * inv_make_BER_finite.
           * inv_make_BER_finite.
           * inv_make_BER_finite.
-    
           * (* arithmetic_roundtrip comes in play *)
              destruct ((b =? 2) && (f =? 0))%bool; inversion Heqo0; clear H0.
     
@@ -282,37 +332,37 @@ Section Base2.
             clear Heqo0; subst.
     
             (* apply arithmetic roundtrip *)
-            generalize dependent (arithmetic_roundtrip m e); intros;
-              unfold valid_IEEE in H.
-            copy_apply H e0.
-            rewrite -> NB in H0.
-            simpl in H0.
-            rewrite -> NI in H0.
-            inversion H0; subst.
+            copy_apply (arithmetic_roundtrip m e) e0.
+            rewrite -> NB in H.
+            simpl in H.
+            rewrite -> NI in H.
+            inversion H; subst.
             unfold float_eqb_nan_t, Bcompare.
             repeat break_match; (repeat try some_inv);
               try compare_nrefl; try reflexivity.
     
         + (* backward pass unsuccessful *)
-          exfalso.
-          generalize (bak_pas_gnt_aux scaled f).
-          unfold supported_IEEE, converible_IEEE.
-          admit.
-          (*
-          rewrite -> Heqo in H; simpl in H.
-          rewrite -> Heqo0 in H.
-          assert (H1 : supported_IEEE f = true).
-          {
-            rewrite -> (forward_pass_guarantee scaled f), Heqo.
-            reflexivity.
-          }
-          apply H in H1.
-          inversion H1.
-          *)
+          destruct f; simpl in Heqo; inversion Heqo; subst; inversion Heqo0.
+          clear H0 H1; exfalso.
+          unfold make_BER_finite in Heqo.
+          destruct normalize_BER_finite eqn:NB, valid_BER_sumbool;
+            inversion Heqo; clear Heqo.
+          subst.
+          unfold BER_finite_b2 in Heqo0.
+          simpl in Heqo0.
+          unfold make_IEEE_finite in Heqo0.
+          destruct normalize_IEEE_finite eqn:NI.
+          destruct valid_IEEE_sumbool; inversion Heqo0; clear Heqo0.
+          copy_apply (arithmetic_roundtrip m e) e0.
+          rewrite -> NB in H.
+          simpl in H.
+          rewrite -> NI in H.
+          inversion H; subst.
+          rewrite e0 in e2; inversion e2.
       - (* forward pass unsuccessful *)
         inversion FPT.
-    Admitted.
-
+    Qed.
+    
   End Proof.
 
 End Base2.
