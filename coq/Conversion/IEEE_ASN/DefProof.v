@@ -10,12 +10,6 @@ Open Scope Z.
 
 Section Base2.
 
-  Fixpoint normalize (m : positive) (e : Z) : positive * Z :=
-    match m with
-    | xO p => normalize p (e + 1)
-    | _ => (m, e)
-    end.
-
   Variable prec emax : Z.
   Variable prec_gt_1 : prec > 1.
 
@@ -57,16 +51,21 @@ Section Base2.
 
   Section Def.
 
-    (* TODO: recursive definition *)
     (*
      * given a pair (m,e), return (mx, ex) such that
      *   m*2^e = mx*2^ex
      * and
      *   m is odd
      *)
-    Definition normalize_BER_finite (m : positive) (e : Z) : (positive * Z) :=
+    Definition normalize_BER_finite_nrec (m : positive) (e : Z) : (positive * Z) :=
       let t := N.log2 (((Pos.lxor m (m-1)) + 1) / 2) in
       (Pos.shiftr m t, e + (Z.of_N t)).
+
+    Fixpoint normalize_BER_finite (m : positive) (e : Z) : positive * Z :=
+      match m with
+      | xO p => normalize_BER_finite p (e + 1)
+      | _ => (m, e)
+      end.
 
     (*
      * given all meaningful parts of a BER real, construct it, if possible
@@ -179,27 +178,93 @@ Section Base2.
   End Def.
 
   Section Proof.
+
+    Definition R_of_float (m : positive) (e : Z) :=
+      F2R (Float radix2 (Zpos m) e).
+      
+    Lemma R_of_valid_IEEE_inj {m1 m2 : positive} {e1 e2 : Z} :
+      valid_IEEE m1 e1 = true -> valid_IEEE m2 e2 = true ->
+      R_of_float m1 e1 = R_of_float m2 e2 ->
+      (m1, e1) = (m2,e2).
+    Proof.
+      intros V1 V2 Req.
+      remember (B754_finite prec emax false m1 e1 V1) as f1.
+      remember (B754_finite prec emax false m2 e2 V2) as f2.
+      assert (fin_f1 : is_finite_strict prec emax f1 = true) by (subst; auto).
+      assert (fin_f2 : is_finite_strict prec emax f2 = true) by (subst; auto).
+      generalize (B2R_inj prec emax f1 f2 fin_f1 fin_f2); intros.
+      unfold B2R in H.
+      rewrite Heqf1, Heqf2 in H.
+      apply H in Req.
+      inversion Req.
+      auto.
+    Qed.
+
+    Lemma normalize_IEEE_eq (m : positive) (e : Z) :
+      R_of_float m e =
+      uncurry R_of_float (normalize_IEEE_finite m e).
+    Proof.
+      unfold R_of_float, normalize_IEEE_finite, uncurry.
+      break_let.
+      generalize (shl_align_fexp_correct prec emax m e).
+      intros H; rewrite Heqp in H; apply proj1 in H.
+      apply H.
+    Qed.
+
+    Lemma normalize_BER_eq (m : positive) (e : Z) :
+      uncurry R_of_float (normalize_BER_finite m e) =
+      R_of_float m e.
+    Proof.
+      unfold R_of_float, uncurry.
+      break_let.
+      rename p into mx, z into ex.
+      induction m as [m' | m' |].
+        - simpl in Heqp; inversion Heqp; subst; try reflexivity.
+        - admit.
+        - simpl in Heqp; inversion Heqp; subst; try reflexivity.
+    Admitted.
+
+    Let normalize_roundtrip (m : positive) (e : Z) :=
+      uncurry normalize_IEEE_finite
+              (normalize_BER_finite m e).
+
+    Lemma normalize_roundtrip_eq (m : positive) (e : Z) :
+      uncurry R_of_float (normalize_roundtrip m e) =
+      R_of_float m e.
+    Proof.
+      unfold normalize_roundtrip.
+      rewrite <- normalize_BER_eq.
+      destruct (normalize_BER_finite m e) as (mx,ex) eqn:NB.
+      assert (uncurry normalize_IEEE_finite (mx, ex) = normalize_IEEE_finite mx ex)
+        by (unfold uncurry; reflexivity).
+      rewrite H.
+      rewrite <- normalize_IEEE_eq.
+      auto.
+    Qed.
+
+    Lemma normalize_roundtrip_valid (m : positive) (e : Z) :
+      valid_IEEE m e = true ->
+      uncurry valid_IEEE
+              (normalize_roundtrip m e) = true.
+    Admitted.
     
     Theorem arithmetic_roundtrip (m : positive) (e : Z) :
       valid_IEEE m e = true ->
-      uncurry normalize_IEEE_finite (normalize_BER_finite m e) = (m, e).
+      normalize_roundtrip m e = (m, e).
     Proof.
       intros H.
-      unfold uncurry.
-      break_let.
-      rename p into mx, z into ex.
-      unfold normalize_BER_finite in *.
-      unfold normalize_IEEE_finite, shl_align_fexp, shl_align.
-      subst valid_IEEE valid_BER.
-      clear IEEE_float valid_IEEE_sumbool valid_BER_sumbool BER_finite_b2 r scl.
-      unfold bounded, canonical_mantissa in *.
-      split_andb.
-      apply Zeq_bool_eq in H0.
-      apply Zle_bool_imp_le in H1.
-      tuple_inversion.
-      unfold FLT.FLT_exp in *.
-
-    Admitted.
+      copy_apply normalize_roundtrip_valid H.
+      unfold normalize_roundtrip, uncurry in *.
+      destruct normalize_BER_finite as (mx,ex) eqn:NB.
+      destruct normalize_IEEE_finite as (m',e') eqn:NI.
+      apply R_of_valid_IEEE_inj.
+      apply H0.
+      apply H.
+      assert (R_of_float m' e' = uncurry R_of_float (normalize_roundtrip m e)) by
+        (unfold uncurry, normalize_roundtrip; rewrite NB, NI; reflexivity).
+      rewrite H1.
+      apply normalize_roundtrip_eq.
+    Qed.
 
     Ltac inv_make_BER_finite :=
       match goal with
