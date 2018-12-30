@@ -321,6 +321,7 @@ Section Base2.
     
             (* apply arithmetic roundtrip *)
             copy_apply (arithmetic_roundtrip m e) e0.
+            unfold normalize_roundtrip in H.
             rewrite -> NB in H.
             simpl in H.
             rewrite -> NI in H.
@@ -342,6 +343,7 @@ Section Base2.
           destruct normalize_IEEE_finite eqn:NI.
           destruct valid_IEEE_sumbool; inversion Heqo0; clear Heqo0.
           copy_apply (arithmetic_roundtrip m e) e0.
+          unfold normalize_roundtrip in H.
           rewrite -> NB in H.
           simpl in H.
           rewrite -> NI in H.
