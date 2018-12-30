@@ -246,6 +246,13 @@ Section Base2.
       valid_IEEE m e = true ->
       uncurry valid_IEEE
               (normalize_roundtrip m e) = true.
+    Proof.
+      unfold normalize_roundtrip, normalize_IEEE_finite, valid_IEEE.
+      unfold bounded, canonical_mantissa, uncurry.
+      break_let.
+      unfold FLT.FLT_exp.
+      intros H.
+
     Admitted.
     
     Theorem arithmetic_roundtrip (m : positive) (e : Z) :
