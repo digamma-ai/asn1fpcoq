@@ -14,9 +14,6 @@ Import MonadNotation. Local Open Scope monad_scope.
 
 Open Scope Z.
 
-(* Left-to-right composition of Kleisli arrows. *)
-(*Notation "f >=> g" := (fun x => pbind (f x) g) (at level 50, left associativity) : monad_scope.*)
-
 (* TODO: radix, scaling *)
 (* extraction-ready functions for the most common IEEE formats *)
 Section B32.
@@ -32,6 +29,10 @@ Section B32.
   Definition BER_to_float32_rounded (rounding: mode): Z -> option Z :=
     bitstring_of_bits >=> BER_of_bitstring >=> b32_of_BER_abstract_rounded rounding >=>
              compose ret bits_of_b32.
+
+  Definition normalize_float32 (m e : Z) : Z * Z :=
+    normalize_b32_abstract m e.
+
 End B32.
 
 Section B64.
@@ -47,4 +48,8 @@ Section B64.
   Definition BER_to_float64_rounded (rounding: mode): Z -> option Z :=
     bitstring_of_bits >=> BER_of_bitstring >=> b64_of_BER_abstract_rounded rounding >=>
              compose ret bits_of_b64.
+
+  Definition normalize_float64 (m e : Z) : Z * Z :=
+    normalize_b64_abstract m e.
+
 End B64.

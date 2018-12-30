@@ -8,7 +8,6 @@ Open Scope Z.
  * combining partial conversions into one full pass
  *)
 
-
 Section B32.
 
   Let prec := 24.
@@ -17,6 +16,13 @@ Section B32.
   Proof. reflexivity. Qed.
   Let prec_lt_emax : prec < emax.
   Proof. subst prec. subst emax. reflexivity. Qed.
+
+  Compute round_finite prec emax prec_gt_1 prec_lt_emax Binary.mode_NE false 3%positive 4.
+
+
+  Definition normalize_b32_abstract (m e : Z) :=
+    let '(mx, ex) := normalize_IEEE_finite prec emax (Z.to_pos m) e in
+    (Zpos mx, ex).
   
   Definition BER_of_b32_abstract := BER_of_IEEE_exact prec emax.
 
@@ -35,6 +41,10 @@ Section B64.
   Let prec_lt_emax : prec < emax.
   Proof. subst prec. subst emax. reflexivity. Qed.
   
+  Definition normalize_b64_abstract (m e : Z) :=
+    let '(mx, ex) := normalize_IEEE_finite prec emax (Z.to_pos m) e in
+    (Zpos mx, ex).
+
   Definition BER_of_b64_abstract := BER_of_IEEE_exact prec emax.
 
   Definition b64_of_BER_abstract_exact := IEEE_of_BER_exact prec emax prec_gt_1.

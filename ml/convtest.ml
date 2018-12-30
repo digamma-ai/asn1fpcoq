@@ -3,6 +3,8 @@ open OUnit2
 open Big_int
 open Core
 
+open FullBin
+
 let opt_float_eqb_nan_t o1 o2 =
   match o1, o2 with
   | None, None -> true
@@ -63,3 +65,7 @@ let _ =
        negative_subnormal_numbers_suite 100 ;
        positive_numbers_suite 100 ;
        special_values_suite])
+
+let n34 = normalize_float32 (big_int_of_int 3) (big_int_of_int 4) ;;
+
+Printf.printf "(%ld, %ld)" (int32_of_big_int (fst n34)) (int32_of_big_int (snd n34))
