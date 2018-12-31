@@ -266,21 +266,25 @@ Section Base2.
 
       (* remove bool *)
       intros H.
-      (* optional: destruct Z.max in NI *)
-      break_match;
-      (* /optional *)
-      split_andb; split_andb_goal;
-        try apply Zeq_bool_true; try apply Zle_bool_true;
-        try apply Zeq_bool_eq in H0; try apply Zle_bool_imp_le in H1.
+      apply andb_prop in H.
+      destruct H as [H1 H2];
+      apply Zeq_bool_eq in H1.
+      apply Zle_bool_imp_le in H2.
+      split_andb_goal; [apply Zeq_bool_true | apply Zle_bool_true].
 
-      (** * Optional *)
       (* Get rid of Flocq's digits2_pos *)
       rewrite digits2_size in *.
+
+      (** * Optional *)
       (* Rewrite size using log2 *)
       rewrite Psize_log_inf in *.
 
+      (* optional: destruct Z.max in NI *)
+      break_match.
+
+
     Admitted.
-    
+
     Theorem arithmetic_roundtrip (m : positive) (e : Z) :
       valid_IEEE m e = true ->
       normalize_roundtrip m e = (m, e).
