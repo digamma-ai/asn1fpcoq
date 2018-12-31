@@ -12,6 +12,7 @@ Section Base2.
 
   Variable prec emax : Z.
   Variable prec_gt_1 : prec > 1.
+  Hypothesis Hmax : (prec < emax)%Z.
 
   (* only radix = 2 is considered for both formats in this section
    * scaling factor is, therefore, not required in BER
@@ -242,16 +243,41 @@ Section Base2.
       auto.
     Qed.
 
+    Lemma digits2_size (p : positive) :
+      Digits.digits2_pos p = Pos.size p.
+    Proof.
+      induction p; simpl; try rewrite IHp; reflexivity.
+    Qed.
+
     Lemma normalize_roundtrip_valid (m : positive) (e : Z) :
       valid_IEEE m e = true ->
       uncurry valid_IEEE
               (normalize_roundtrip m e) = true.
     Proof.
-      unfold normalize_roundtrip, normalize_IEEE_finite, valid_IEEE.
-      unfold bounded, canonical_mantissa, uncurry.
-      break_let.
-      unfold FLT.FLT_exp.
+      (* unfold everything, clean up *)
+      unfold normalize_roundtrip.
+      destruct (normalize_BER_finite m e) as (mx, ex) eqn:NB.
+      destruct (uncurry normalize_IEEE_finite (mx, ex)) as (m', e') eqn:NI.
+      unfold uncurry in *.
+      unfold normalize_IEEE_finite, valid_IEEE, shl_align_fexp, shl_align, 
+        bounded, canonical_mantissa, uncurry, FLT.FLT_exp in *.
+      clear r scl valid_IEEE valid_BER IEEE_float valid_IEEE_sumbool
+        BER_finite_b2 valid_BER_sumbool normalize_roundtrip.
+
+      (* remove bool *)
       intros H.
+      (* optional: destruct Z.max in NI *)
+      break_match;
+      (* /optional *)
+      split_andb; split_andb_goal;
+        try apply Zeq_bool_true; try apply Zle_bool_true;
+        try apply Zeq_bool_eq in H0; try apply Zle_bool_imp_le in H1.
+
+      (** * Optional *)
+      (* Get rid of Flocq's digits2_pos *)
+      rewrite digits2_size in *.
+      (* Rewrite size using log2 *)
+      rewrite Psize_log_inf in *.
 
     Admitted.
     
