@@ -270,17 +270,18 @@ Section Base2.
       destruct H as [H1 H2];
       apply Zeq_bool_eq in H1.
       apply Zle_bool_imp_le in H2.
-      split_andb_goal; [apply Zeq_bool_true | apply Zle_bool_true].
-
-      (* Get rid of Flocq's digits2_pos *)
-      rewrite digits2_size in *.
+      split_andb_goal; [apply Zeq_bool_true | apply Zle_bool_true];
+        rewrite digits2_size in *.
 
       (** * Optional *)
       (* Rewrite size using log2 *)
       rewrite Psize_log_inf in *.
 
-      (* optional: destruct Z.max in NI *)
-      break_match.
+      -
+        admit.
+      -
+        break_match.
+        tuple_inversion.
 
 
     Admitted.
