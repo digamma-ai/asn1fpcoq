@@ -307,8 +307,9 @@ Section Base2.
       -
         destruct H2 as [d [H2 H3]].
         subst.
-        unfold F2R.
-        simpl.
+        rewrite Pos2Z.inj_mul.
+        rewrite Pos2Z.inj_pow.
+        apply Float_prop.F2R_change_exp.
         admit.
     Admitted.
 
