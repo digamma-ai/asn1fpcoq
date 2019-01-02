@@ -309,9 +309,12 @@ Section Base2.
         subst.
         rewrite Pos2Z.inj_mul.
         rewrite Pos2Z.inj_pow.
-        apply Float_prop.F2R_change_exp.
-        admit.
-    Admitted.
+        remember (ex - Z.pos d) as ex'.
+        replace (Z.pos d) with (ex - ex').
+        apply (Float_prop.F2R_change_exp radix2).
+        lia.
+        lia.
+    Qed.
 
     Let normalize_roundtrip (m : positive) (e : Z) :=
       uncurry normalize_IEEE_finite
