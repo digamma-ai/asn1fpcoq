@@ -271,9 +271,9 @@ Section Base2.
           by (rewrite Positive_as_OT.add_1_r, Positive_as_DT.pow_succ_r; trivial).
         lia.
     Qed.
-    
-    Lemma normalize_BER_spec (m : positive) (e : Z) :
-      let '(mx, ex) := normalize_BER_finite m e in
+
+    Lemma normalize_BER_spec (m mx : positive) (e ex : Z) :
+      (mx, ex) = normalize_BER_finite m e ->
       Podd mx
       /\
       ((mx, ex) = (m, e)
@@ -281,16 +281,16 @@ Section Base2.
       exists (d : positive),
         m = (mx * 2^d)%positive /\ e = ex - (Zpos d)).
     Proof.
-      destruct (normalize_BER_finite m e) as (mx,ex) eqn:NB.
+      intros NB.
       split.
       - generalize (normalize_BER_odd m e); intros.
-        rewrite NB in H.
+        rewrite <- NB in H.
         apply H.
       - generalize (normalize_BER_eq m e); intros.
-        rewrite NB in H.
+        rewrite <- NB in H.
         apply H.
     Qed.
-
+    
     Lemma normalize_BER_Req (m : positive) (e : Z) :
       uncurry R_of_float (normalize_BER_finite m e) =
       R_of_float m e.
@@ -349,27 +349,28 @@ Section Base2.
       destruct H as [H1 H2];
       apply Zeq_bool_eq in H1.
       apply Zle_bool_imp_le in H2.
-      generalize (normalize_BER_spec m e); intros; rewrite NB in H; destruct H.
+
+      symmetry in NB. apply normalize_BER_spec in NB.
+      destruct NB as [H3 H4].
+
       split_andb_goal; [apply Zeq_bool_true | apply Zle_bool_true];
         rewrite digits2_size in *.
 
       (** * Optional *)
       (* Rewrite size using log2 *)
       rewrite Psize_log_inf in *.
-      destruct H0.
+      destruct H4.
       tuple_inversion.
       destruct (Z.max (Z.succ (log_inf m) + e - prec) (3 - emax - prec) - e) eqn:ZMAX;
         try (tuple_inversion; apply H1).
       - admit.
-      - destruct H0 as [d H0].
+      - destruct H as [d H0].
         break_match.
         + tuple_inversion; lia.
         + tuple_inversion. exfalso. (* Heqz vs goal *) admit.
         + admit.
       - admit.
         
-          
-
 
     Admitted.
 
