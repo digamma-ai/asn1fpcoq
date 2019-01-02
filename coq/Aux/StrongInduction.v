@@ -12,18 +12,6 @@ Proof.
   intros x y H. apply Pos2Nat.inj_lt, H.
 Qed.
 
-Lemma positive_lt_rec :
-  forall P:positive -> Type,
-    (forall x:positive, (forall y:positive, y < x -> P y) -> P x) ->
-    forall x:positive, P x.
-Proof.
-  intros P Hrec.
-  induction x as [x IH] using (well_founded_induction_type Plt_wf).
-  destruct x; apply Hrec; trivial.
-Defined.
+Definition positive_lt_rec := well_founded_induction_type Plt_wf.
 
-Lemma positive_lt_ind :
-  forall P:positive -> Prop,
-    (forall x:positive, (forall y:positive, y < x -> P y) -> P x) ->
-    forall x:positive, P x.
-Proof. intros; now apply positive_lt_rec. Qed.
+Definition positive_lt_ind := well_founded_induction Plt_wf.
