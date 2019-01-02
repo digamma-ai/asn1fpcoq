@@ -313,7 +313,7 @@ Section Base2.
       R_of_float m e.
     Proof.
       unfold normalize_roundtrip.
-      rewrite <- normalize_BER_eq.
+      rewrite <- normalize_BER_Req.
       destruct (normalize_BER_finite m e) as (mx,ex) eqn:NB.
       assert (uncurry normalize_IEEE_finite (mx, ex) = normalize_IEEE_finite mx ex)
         by (unfold uncurry; reflexivity).
@@ -355,7 +355,6 @@ Section Base2.
       (** * Optional *)
       (* Rewrite size using log2 *)
       rewrite Psize_log_inf in *.
-
       -
         admit.
       -
@@ -363,7 +362,6 @@ Section Base2.
         tuple_inversion.
         induction m.
         apply IHm.
-
 
     Admitted.
 

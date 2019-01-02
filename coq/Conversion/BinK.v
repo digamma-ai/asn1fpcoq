@@ -17,9 +17,6 @@ Section B32.
   Let prec_lt_emax : prec < emax.
   Proof. subst prec. subst emax. reflexivity. Qed.
 
-  Compute round_finite prec emax prec_gt_1 prec_lt_emax Binary.mode_NE false 3%positive 4.
-
-
   Definition normalize_b32_abstract (m e : Z) :=
     let '(mx, ex) := normalize_IEEE_finite prec emax (Z.to_pos m) e in
     (Zpos mx, ex).
