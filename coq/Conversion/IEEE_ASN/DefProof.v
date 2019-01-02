@@ -297,11 +297,19 @@ Section Base2.
     Proof.
       unfold R_of_float, uncurry.
       break_let.
-      rename p into mx, z into ex.
-      induction m as [m' | m' |].
-        - simpl in Heqp; inversion Heqp; subst; try reflexivity.
-        - admit.
-        - simpl in Heqp; inversion Heqp; subst; try reflexivity.
+      rename p into mx, z into ex, Heqp into H.
+      symmetry in H.
+      apply normalize_BER_spec in H.
+      destruct H as [H0 [H1|H2]].
+      -
+        tuple_inversion.
+        reflexivity.
+      -
+        destruct H2 as [d [H2 H3]].
+        subst.
+        unfold F2R.
+        simpl.
+        admit.
     Admitted.
 
     Let normalize_roundtrip (m : positive) (e : Z) :=
