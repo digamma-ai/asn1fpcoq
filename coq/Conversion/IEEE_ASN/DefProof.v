@@ -280,9 +280,18 @@ Section Base2.
       \/
       exists (d : positive),
         m = (mx * 2^d)%positive /\ e = ex - (Zpos d)).
-    Abort.
-    
-    Lemma normalize_BER_eq (m : positive) (e : Z) :
+    Proof.
+      destruct (normalize_BER_finite m e) as (mx,ex) eqn:NB.
+      split.
+      - generalize (normalize_BER_odd m e); intros.
+        rewrite NB in H.
+        apply H.
+      - generalize (normalize_BER_eq m e); intros.
+        rewrite NB in H.
+        apply H.
+    Qed.
+
+    Lemma normalize_BER_Req (m : positive) (e : Z) :
       uncurry R_of_float (normalize_BER_finite m e) =
       R_of_float m e.
     Proof.
