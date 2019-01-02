@@ -357,9 +357,11 @@ Section Base2.
         rewrite digits2_size in *.
       -
         rewrite Psize_log_inf in *.
+        rewrite <- Zlog2_log_inf in *.
+
         destruct H4.
         tuple_inversion.
-        destruct (Z.max (Z.succ (log_inf m) + e - prec) (3 - emax - prec) - e) eqn:ZMAX;
+        destruct (Z.max (Z.succ (Z.log2 (Z.pos m)) + e - prec) (3 - emax - prec) - e) eqn:ZMAX;
           try (tuple_inversion; apply H1).
         + admit.
         + destruct H as [d H0].
