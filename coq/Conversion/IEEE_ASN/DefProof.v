@@ -364,7 +364,7 @@ Section Base2.
         destruct (Z.max (Z.succ (Z.log2 (Z.pos m)) + e - prec) (3 - emax - prec) - e) eqn:ZMAX;
           try (tuple_inversion; apply H1).
         + admit.
-        + destruct H as [d H0].
+        + destruct H as [d [H0 H5]].
           break_match.
           * tuple_inversion; lia.
           * tuple_inversion. exfalso. (* Heqz vs goal *) admit.
