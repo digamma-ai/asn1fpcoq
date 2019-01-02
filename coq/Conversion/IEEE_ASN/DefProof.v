@@ -213,10 +213,10 @@ Section Base2.
       apply H.
     Qed.
 
-    Definition Podd_bool (p : positive) : bool :=
+    Definition Podd (p : positive) : Prop :=
       match p with
-      | xO _ => false
-      | _ => true
+      | xO _ => False
+      | _ => True
       end.
 
     Lemma p_lt_2p (p : positive) :
@@ -225,7 +225,7 @@ Section Base2.
 
     Lemma normalize_BER_odd (m : positive) (e : Z) :
       let '(mx, ex) := normalize_BER_finite m e in
-      Podd_bool mx = true.
+      Podd mx.
     Proof.
       generalize e.
       induction m using positive_lt_ind.
@@ -274,7 +274,7 @@ Section Base2.
     
     Lemma normalize_BER_spec (m : positive) (e : Z) :
       let '(mx, ex) := normalize_BER_finite m e in
-      Podd_bool mx = true
+      Podd mx
       /\
       ((mx, ex) = (m, e)
       \/
@@ -349,19 +349,27 @@ Section Base2.
       destruct H as [H1 H2];
       apply Zeq_bool_eq in H1.
       apply Zle_bool_imp_le in H2.
+      generalize (normalize_BER_spec m e); intros; rewrite NB in H; destruct H.
       split_andb_goal; [apply Zeq_bool_true | apply Zle_bool_true];
         rewrite digits2_size in *.
 
       (** * Optional *)
       (* Rewrite size using log2 *)
       rewrite Psize_log_inf in *.
-      -
-        admit.
-      -
+      destruct H0.
+      tuple_inversion.
+      destruct (Z.max (Z.succ (log_inf m) + e - prec) (3 - emax - prec) - e) eqn:ZMAX;
+        try (tuple_inversion; apply H1).
+      - admit.
+      - destruct H0 as [d H0].
         break_match.
-        tuple_inversion.
-        induction m.
-        apply IHm.
+        + tuple_inversion; lia.
+        + tuple_inversion. exfalso. (* Heqz vs goal *) admit.
+        + admit.
+      - admit.
+        
+          
+
 
     Admitted.
 
