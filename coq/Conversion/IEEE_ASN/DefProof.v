@@ -355,22 +355,20 @@ Section Base2.
 
       split_andb_goal; [apply Zeq_bool_true | apply Zle_bool_true];
         rewrite digits2_size in *.
-
-      (** * Optional *)
-      (* Rewrite size using log2 *)
-      rewrite Psize_log_inf in *.
-      destruct H4.
-      tuple_inversion.
-      destruct (Z.max (Z.succ (log_inf m) + e - prec) (3 - emax - prec) - e) eqn:ZMAX;
-        try (tuple_inversion; apply H1).
-      - admit.
-      - destruct H as [d H0].
-        break_match.
-        + tuple_inversion; lia.
-        + tuple_inversion. exfalso. (* Heqz vs goal *) admit.
+      -
+        rewrite Psize_log_inf in *.
+        destruct H4.
+        tuple_inversion.
+        destruct (Z.max (Z.succ (log_inf m) + e - prec) (3 - emax - prec) - e) eqn:ZMAX;
+          try (tuple_inversion; apply H1).
         + admit.
-      - admit.
-        
+        + destruct H as [d H0].
+          break_match.
+          * tuple_inversion; lia.
+          * tuple_inversion. exfalso. (* Heqz vs goal *) admit.
+          * admit.
+      -
+        admit.
 
     Admitted.
 
