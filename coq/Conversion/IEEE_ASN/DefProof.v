@@ -1,7 +1,9 @@
 Require Import ZArith PArith.
 Require Import ASN1FP.Types.ASNDef ASN1FP.Types.IEEEAux
         ASN1FP.Aux.Roundtrip ASN1FP.Aux.StructTactics ASN1FP.Aux.Aux
-        ASN1FP.Aux.Tactics ASN1FP.Aux.Option.
+        ASN1FP.Aux.Tactics ASN1FP.Aux.Option ASN1FP.Aux.StrongInduction.
+
+Require Import Lia.
 
 Require Import Flocq.Core.Zaux Flocq.IEEE754.Binary.
 Require Import Flocq.Core.Defs.
@@ -20,8 +22,7 @@ Section Base2.
    *)
   Let r := radix2.
   Let scl := 0.
-
-  (* can a given (m,e) pair be represented in IEEE/BER exactly *)
+(* can a given (m,e) pair be represented in IEEE/BER exactly *)
   Let valid_IEEE := bounded prec emax.
   Let valid_BER := valid_BER r scl.
 
@@ -212,6 +213,75 @@ Section Base2.
       apply H.
     Qed.
 
+    Definition Podd_bool (p : positive) : bool :=
+      match p with
+      | xO _ => false
+      | _ => true
+      end.
+
+    Lemma p_lt_2p (p : positive) :
+      (p < p~0)%positive.
+    Proof. rewrite <- (Pos.add_diag p); lia. Qed.
+
+    Lemma normalize_BER_odd (m : positive) (e : Z) :
+      let '(mx, ex) := normalize_BER_finite m e in
+      Podd_bool mx = true.
+    Proof.
+      generalize e.
+      induction m using positive_lt_ind.
+      destruct m; try reflexivity.
+      simpl.
+      assert (H1 : (m < m~0)%positive) by apply p_lt_2p.
+      intros.
+      apply H with (y := m) (e := e0 + 1) in H1.
+      apply H1.
+    Qed.
+
+    Lemma normalize_BER_eq (m : positive) :
+      forall (e : Z),
+      let '(mx, ex) := normalize_BER_finite m e in
+      (mx, ex) = (m, e)
+      \/
+      exists (d : positive),
+        m = (mx * 2^d)%positive /\ e = ex - (Zpos d).
+    Proof.
+      clear Hmax valid_IEEE IEEE_float valid_IEEE_sumbool prec emax prec_gt_1 Hmax.
+      clear r scl valid_BER_sumbool BER_finite_b2 valid_BER.
+
+      induction m using positive_lt_ind.
+      intros.
+      destruct (normalize_BER_finite m e) as (mx,ex) eqn:NB.
+      destruct m; try (simpl in NB; tuple_inversion; left; trivial).
+      rewrite <- Pos.add_diag.
+
+      simpl in NB.
+      assert (H1 : (m < m~0)%positive) by apply p_lt_2p.
+      apply H with (y := m) (e := e + 1) in H1.
+      rewrite NB in H1.
+      destruct H1.
+      - tuple_inversion.
+        right.
+        exists (1%positive). 
+        replace (2^1)%positive with 2%positive by trivial.
+        lia.
+      - right.
+        destruct H0 as [d H0].
+        exists (d + 1)%positive.
+        replace (2^(d + 1))%positive with (2 * (2^d))%positive
+          by (rewrite Positive_as_OT.add_1_r, Positive_as_DT.pow_succ_r; trivial).
+        lia.
+    Qed.
+    
+    Lemma normalize_BER_spec (m : positive) (e : Z) :
+      let '(mx, ex) := normalize_BER_finite m e in
+      Podd_bool mx = true
+      /\
+      ((mx, ex) = (m, e)
+      \/
+      exists (d : positive),
+        m = (mx * 2^d)%positive /\ e = ex - (Zpos d)).
+    Abort.
+    
     Lemma normalize_BER_eq (m : positive) (e : Z) :
       uncurry R_of_float (normalize_BER_finite m e) =
       R_of_float m e.
@@ -282,6 +352,8 @@ Section Base2.
       -
         break_match.
         tuple_inversion.
+        induction m.
+        apply IHm.
 
 
     Admitted.
