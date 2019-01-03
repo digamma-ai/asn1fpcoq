@@ -372,8 +372,7 @@ Section Base2.
       symmetry in NB. apply normalize_BER_spec in NB.
       destruct NB as [H3 H4].
 
-      split_andb_goal; [apply Zeq_bool_true | apply Zle_bool_true];
-        rewrite digits2_size in *.
+      split_andb_goal; debool; rewrite digits2_size in *.
       -
         rewrite Psize_log_inf in *.
         rewrite <- Zlog2_log_inf in *.
@@ -385,15 +384,26 @@ Section Base2.
         + destruct H as [d [H0 H5]].
           break_match_hyp.
           * tuple_inversion; lia.
-          * tuple_inversion. exfalso. (* Heqz vs goal *) admit.
-          * admit.
+          * tuple_inversion.
+            exfalso. (* Heqz vs goal *)
+            unfold Z.max in *.
+            repeat break_match_hyp; simpl; debool; try lia.
+            -- admit.
+            -- admit.
+            -- admit.
+          *
+            -- admit.
       -
         destruct H4.
         + tuple_inversion.
-          destruct (Z.max (Z.pos (Pos.size m) + e - prec) (3 - emax - prec) - e) eqn:ZMAX;
-            try (tuple_inversion; apply H2).
-          admit.
-        + destruct H as [d [H4 H5]]; subst.
+          break_match_hyp.
+          * tuple_inversion.
+            apply H2.
+          * tuple_inversion.
+            apply H2.
+          * lia.
+        + destruct H as [d [H4 H5]].
+          subst.
           admit.
     Admitted.
 
