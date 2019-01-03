@@ -55,6 +55,9 @@ Ltac debool :=
          | [ H: Z.compare _ _ = Eq |- _ ] => apply Z.compare_eq in H
          | [ |- Zeq_bool _ _ = true ] => apply Zeq_bool_true
          | [ H: Zeq_bool _ _ = true |- _ ] => apply Zeq_bool_eq in H
+         | [ |- (_ =? _)%Z = true ] => apply Z.eqb_eq
+         | [ H: (_ =? _)%Z = true |- _ ] => apply Z.eqb_eq in H
+         | [ H: Bool.eqb _ _ = true |- _ ] => apply Bool.eqb_prop in H
          | [ |- Z.leb _ _ = true ] => apply Zle_bool_true
          | [ H: Z.leb _ _ = true |- _] => apply Zle_bool_imp_le in H
          | [ H: Z.compare _ _ = Gt |- _ ] => apply Z.compare_gt_iff in H
