@@ -374,15 +374,20 @@ Section Base2.
         tuple_inversion.
         destruct (Z.max (Z.succ (Z.log2 (Z.pos m)) + e - prec) (3 - emax - prec) - e) eqn:ZMAX;
           try (tuple_inversion; apply H1).
-        + admit.
+        + rewrite H1 in ZMAX. rewrite Z.sub_diag in ZMAX. inversion ZMAX.
         + destruct H as [d [H0 H5]].
           break_match.
           * tuple_inversion; lia.
           * tuple_inversion. exfalso. (* Heqz vs goal *) admit.
           * admit.
       -
-        admit.
-
+        destruct H4.
+        + tuple_inversion.
+          destruct (Z.max (Z.pos (Pos.size m) + e - prec) (3 - emax - prec) - e) eqn:ZMAX;
+            try (tuple_inversion; apply H2).
+          admit.
+        + destruct H as [d [H4 H5]]; subst.
+          admit.
     Admitted.
 
     Theorem arithmetic_roundtrip (m : positive) (e : Z) :
