@@ -345,6 +345,7 @@ Section Base2.
              | [ |- Zeq_bool _ _ = true ] => apply Zeq_bool_true
              | [ |- Z.leb _ _ = true ] => apply Zle_bool_true
              | [ H: Z.compare _ _ = Gt |- _ ] => apply Z.compare_gt_iff in H
+             | [ H: Z.compare _ _ = Lt |- _ ] => rewrite Z.compare_lt_iff in H
              end.
 
     Lemma normalize_roundtrip_valid (m : positive) (e : Z) :
@@ -372,11 +373,9 @@ Section Base2.
       symmetry in NB. apply normalize_BER_spec in NB.
       destruct NB as [H3 H4].
 
-      split_andb_goal; debool; rewrite digits2_size in *.
+      split_andb_goal; debool;
+        rewrite digits2_size, Psize_log_inf, <- Zlog2_log_inf in *.
       -
-        rewrite Psize_log_inf in *.
-        rewrite <- Zlog2_log_inf in *.
-
         destruct H4.
         tuple_inversion.
         break_match_hyp; try (tuple_inversion; apply H1).
@@ -387,12 +386,10 @@ Section Base2.
           * tuple_inversion.
             exfalso. (* Heqz vs goal *)
             unfold Z.max in *.
-            repeat break_match_hyp; simpl; debool; try lia.
-            -- admit.
-            -- admit.
-            -- admit.
+            repeat break_match_hyp; simpl; debool; try lia;
+              rewrite Pos2Z.inj_mul, Pos2Z.inj_pow, Z.log2_mul_pow2 in *; lia.
           *
-            -- admit.
+            admit.
       -
         destruct H4.
         + tuple_inversion.
@@ -403,8 +400,15 @@ Section Base2.
             apply H2.
           * lia.
         + destruct H as [d [H4 H5]].
-          subst.
-          admit.
+
+
+          break_match_hyp.
+          * tuple_inversion.
+             rewrite Pos2Z.inj_mul, Pos2Z.inj_pow, Z.log2_mul_pow2 in *; lia.
+          * tuple_inversion.
+             rewrite Pos2Z.inj_mul, Pos2Z.inj_pow, Z.log2_mul_pow2 in *; lia.
+          *
+            admit.
     Admitted.
 
     Theorem arithmetic_roundtrip (m : positive) (e : Z) :
