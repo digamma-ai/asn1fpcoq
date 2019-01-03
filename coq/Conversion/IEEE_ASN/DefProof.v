@@ -339,6 +339,7 @@ Section Base2.
       induction p; simpl; try rewrite IHp; reflexivity.
     Qed.
 
+    (* TODO: perhaps should be moved elswhere to be used in other modules *)
     Ltac debool :=
       repeat match goal with
              | [ H: Z.compare _ _ = Eq |- _ ] => apply Z.compare_eq in H
@@ -390,7 +391,19 @@ Section Base2.
             repeat break_match_hyp; simpl; debool; try lia;
               rewrite Pos2Z.inj_mul, Pos2Z.inj_pow, Z.log2_mul_pow2 in *; lia.
           *
-            admit.
+            subst.
+            remember (shift_pos p mx) as pm.
+            remember (Z.max (Z.succ (Z.log2 (Z.pos mx)) + ex - prec) (3 - emax - prec)) as pe.
+            inversion NI. clear NI.
+            subst pe pm.
+            apply Pos2Z.inj_iff in H0.
+            rewrite shift_pos_correct in H0.
+            rewrite Pos2Z.inj_mul, Pos2Z.inj_pow, Z.log2_mul_pow2 in *; try lia.
+            rewrite Z.pow_pos_fold in H0.
+            subst.
+            rewrite <- H0. clear m' H0.
+            rewrite Z.mul_comm.
+            rewrite Z.log2_mul_pow2; lia.
       -
         destruct H4.
         + tuple_inversion.
@@ -415,7 +428,7 @@ Section Base2.
             apply Pos2Z.inj_iff in H0.
             rewrite shift_pos_correct in H0.
             rewrite Pos2Z.inj_mul, Pos2Z.inj_pow, Z.log2_mul_pow2 in *; lia.
-    Admitted.
+    Qed.
 
     Theorem arithmetic_roundtrip (m : positive) (e : Z) :
       valid_IEEE m e = true ->
