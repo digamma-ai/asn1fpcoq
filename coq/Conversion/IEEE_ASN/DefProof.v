@@ -372,11 +372,10 @@ Section Base2.
 
         destruct H4.
         tuple_inversion.
-        destruct (Z.max (Z.succ (Z.log2 (Z.pos m)) + e - prec) (3 - emax - prec) - e) eqn:ZMAX;
-          try (tuple_inversion; apply H1).
-        + rewrite H1 in ZMAX. rewrite Z.sub_diag in ZMAX. inversion ZMAX.
+        break_match_hyp; try (tuple_inversion; apply H1).
+        + rewrite H1 in Heqz. rewrite Z.sub_diag in Heqz. inversion Heqz.
         + destruct H as [d [H0 H5]].
-          break_match.
+          break_match_hyp.
           * tuple_inversion; lia.
           * tuple_inversion. exfalso. (* Heqz vs goal *) admit.
           * admit.
