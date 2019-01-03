@@ -343,7 +343,9 @@ Section Base2.
       repeat match goal with
              | [ H: Z.compare _ _ = Eq |- _ ] => apply Z.compare_eq in H
              | [ |- Zeq_bool _ _ = true ] => apply Zeq_bool_true
+             | [ H: Zeq_bool _ _ = true |- _ ] => apply Zeq_bool_eq in H
              | [ |- Z.leb _ _ = true ] => apply Zle_bool_true
+             | [ H: Z.leb _ _ = true |- _] => apply Zle_bool_imp_le in H
              | [ H: Z.compare _ _ = Gt |- _ ] => apply Z.compare_gt_iff in H
              | [ H: Z.compare _ _ = Lt |- _ ] => rewrite Z.compare_lt_iff in H
              end.
@@ -359,16 +361,15 @@ Section Base2.
       destruct (uncurry normalize_IEEE_finite (mx, ex)) as (m', e') eqn:NI.
       unfold uncurry in *.
       unfold normalize_IEEE_finite, valid_IEEE, shl_align_fexp, shl_align, 
-        bounded, canonical_mantissa, uncurry, FLT.FLT_exp in *.
+      bounded, canonical_mantissa, uncurry, FLT.FLT_exp in *.
       clear r scl valid_IEEE valid_BER IEEE_float valid_IEEE_sumbool
-        BER_finite_b2 valid_BER_sumbool normalize_roundtrip.
+            BER_finite_b2 valid_BER_sumbool normalize_roundtrip.
 
       (* remove bool *)
       intros H.
       apply andb_prop in H.
-      destruct H as [H1 H2];
-      apply Zeq_bool_eq in H1.
-      apply Zle_bool_imp_le in H2.
+      destruct H as [H1 H2].
+      debool.
 
       symmetry in NB. apply normalize_BER_spec in NB.
       destruct NB as [H3 H4].
@@ -400,15 +401,20 @@ Section Base2.
             apply H2.
           * lia.
         + destruct H as [d [H4 H5]].
-
-
           break_match_hyp.
           * tuple_inversion.
-             rewrite Pos2Z.inj_mul, Pos2Z.inj_pow, Z.log2_mul_pow2 in *; lia.
+            rewrite Pos2Z.inj_mul, Pos2Z.inj_pow, Z.log2_mul_pow2 in *; lia.
           * tuple_inversion.
-             rewrite Pos2Z.inj_mul, Pos2Z.inj_pow, Z.log2_mul_pow2 in *; lia.
+            rewrite Pos2Z.inj_mul, Pos2Z.inj_pow, Z.log2_mul_pow2 in *; lia.
           *
-            admit.
+            subst.
+            remember (shift_pos p mx) as pm.
+            remember (Z.max (Z.succ (Z.log2 (Z.pos mx)) + ex - prec) (3 - emax - prec)) as pe.
+            inversion NI. clear NI.
+            subst pe pm.
+            apply Pos2Z.inj_iff in H0.
+            rewrite shift_pos_correct in H0.
+            rewrite Pos2Z.inj_mul, Pos2Z.inj_pow, Z.log2_mul_pow2 in *; lia.
     Admitted.
 
     Theorem arithmetic_roundtrip (m : positive) (e : Z) :
