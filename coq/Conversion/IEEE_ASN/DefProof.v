@@ -310,9 +310,8 @@ Section Base2.
         rewrite Pos2Z.inj_mul.
         rewrite Pos2Z.inj_pow.
         remember (ex - Z.pos d) as ex'.
-        replace (Z.pos d) with (ex - ex').
+        replace (Z.pos d) with (ex - ex') by lia.
         apply (Float_prop.F2R_change_exp radix2).
-        lia.
         lia.
     Qed.
 
