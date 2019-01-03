@@ -339,18 +339,6 @@ Section Base2.
       induction p; simpl; try rewrite IHp; reflexivity.
     Qed.
 
-    (* TODO: perhaps should be moved elswhere to be used in other modules *)
-    Ltac debool :=
-      repeat match goal with
-             | [ H: Z.compare _ _ = Eq |- _ ] => apply Z.compare_eq in H
-             | [ |- Zeq_bool _ _ = true ] => apply Zeq_bool_true
-             | [ H: Zeq_bool _ _ = true |- _ ] => apply Zeq_bool_eq in H
-             | [ |- Z.leb _ _ = true ] => apply Zle_bool_true
-             | [ H: Z.leb _ _ = true |- _] => apply Zle_bool_imp_le in H
-             | [ H: Z.compare _ _ = Gt |- _ ] => apply Z.compare_gt_iff in H
-             | [ H: Z.compare _ _ = Lt |- _ ] => rewrite Z.compare_lt_iff in H
-             end.
-
     Lemma normalize_roundtrip_valid (m : positive) (e : Z) :
       valid_IEEE m e = true ->
       uncurry valid_IEEE

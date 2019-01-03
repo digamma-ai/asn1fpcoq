@@ -47,3 +47,16 @@ Ltac compare_nrefl :=
   | [ H: (Pos.compare_cont Eq ?p ?p) = Lt |- _ ] => rewrite -> Pos.compare_cont_refl in H; inversion H
   | [ H: (Pos.compare_cont Eq ?p ?p) = Gt |- _ ] => rewrite -> Pos.compare_cont_refl in H; inversion H
   end.
+
+Require Import Flocq.Core.Zaux.
+
+Ltac debool :=
+  repeat match goal with
+         | [ H: Z.compare _ _ = Eq |- _ ] => apply Z.compare_eq in H
+         | [ |- Zeq_bool _ _ = true ] => apply Zeq_bool_true
+         | [ H: Zeq_bool _ _ = true |- _ ] => apply Zeq_bool_eq in H
+         | [ |- Z.leb _ _ = true ] => apply Zle_bool_true
+         | [ H: Z.leb _ _ = true |- _] => apply Zle_bool_imp_le in H
+         | [ H: Z.compare _ _ = Gt |- _ ] => apply Z.compare_gt_iff in H
+         | [ H: Z.compare _ _ = Lt |- _ ] => rewrite Z.compare_lt_iff in H
+         end.
