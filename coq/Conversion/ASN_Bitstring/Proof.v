@@ -9,8 +9,7 @@ Open Scope Z.
 
 Section Atomic.
 
-Lemma bits_of_radix_inv (b : radix) :
-  valid_radix b = true ->
+Lemma bits_of_radix_inv (b : radix) : valid_radix b = true ->
   bool_het_inverse
     radix Z radix
     bits_of_radix
@@ -110,6 +109,16 @@ End Atomic.
      (radix_of_bits bb) ff (signif_of_bits m) (exp_of_bits (eo) e) = true.
  Admitted.
 
+Lemma valid_BER_valid_radix {b : radix} {f e : Z} {m : positive} :
+  valid_BER b f m e = true ->
+  valid_radix b = true.
+Proof.
+  intros H.
+  unfold valid_BER in H.
+  repeat split_andb.
+  apply H2.
+Qed.
+
 Theorem BER_bitstring_roundtrip (scaled : bool) (f : BER_float) :
   roundtrip_option
     BER_float BER_bitstring BER_float
@@ -140,12 +149,28 @@ Proof.
           break_match; inversion FP; subst; clear FP;
           simpl in BP;
           break_match; inversion BP; subst; clear BP.
+        (* TODO: the following two branches should fit in two lines *)
         -- generalize (bits_of_radix_inv b0); intros.
            generalize (bits_of_sign_inv s); intros.
            generalize (bits_of_exp_inv (twos_olen e) e); intros.
            unfold bool_het_inverse in *.
-           admit.
-        -- admit.
+           inversion e0.
+           apply valid_BER_valid_radix in H3.
+           apply H in H3; clear H.
+           assert (H2 : twos_olen e - 1 + 1 = twos_olen e) by lia.
+           unfold BER_float_strict_eqb.
+           rewrite H3, H0, H2, H1, Z.eqb_refl, Pos.eqb_refl, e0.
+           trivial.
+        -- generalize (bits_of_radix_inv b0); intros.
+           generalize (bits_of_sign_inv s); intros.
+           generalize (bits_of_exp_inv (twos_olen e) e); intros.
+           unfold bool_het_inverse in *.
+           inversion e0.
+           apply valid_BER_valid_radix in H3.
+           apply H in H3; clear H.
+           unfold BER_float_strict_eqb.
+           rewrite H3, H0, H1, Z.eqb_refl, Pos.eqb_refl, e0.
+           trivial.
 
     + (* backward pass unsuccessful *)
       exfalso; rename Heqo into FP, Heqo0 into BP.
@@ -169,4 +194,4 @@ Proof.
         rewrite e1 in H0. inversion H0.
   - (* forward pass unsuccessful *)
     intros H; inversion H.
-Admitted.
+Qed.
