@@ -82,31 +82,41 @@ Proof.
   unfold valid_short. intros H.
   repeat split_andb.
   debool.
-  clear H0 H6 H7 H8 H9 H10 H11 H12.
-  clear id t s.
-  (* apply Z.lt_le_pred in H14; simpl in H14. *)
+  clear H0 H12 id t.
+  clear H10 H11 s.
 
   unfold valid_BER. apply andb_true_intro; split; apply andb_true_intro; split.
   - (* bounded *)
+    clear H6 H7 ff; clear H8 H9 bb.
     unfold bounded.
     break_match; debool.
     + (* long exponent *)
-      unfold exp_of_bits.
+      (** should be a contradiction *)
       replace 1 with (Z.succ 0) in H1 by trivial; apply Z.le_succ_l in H1.
       unfold signif_of_bits; rewrite (Z2Pos.id m H1).
       admit.
     + (* short exponent *)
+      rewrite Z.ltb_ge in Heqb.
+      replace 1 with (Z.succ 0) in H1 by trivial; apply Z.le_succ_l in H1.
+      unfold signif_of_bits; rewrite (Z2Pos.id m H1).
+      remember (twos_olen (exp_of_bits (ee + 1) e)) as t;
+        remember (olen m) as om.
+      (* om <= co - ee - 2 <= 127 - ee - 2 = 125 - ee <= 125 *)
+      (* t <= 3 *)
+      (* om + t <= 128 *)
+      (* and needs to be <= 126 *)
+      (* it might be possible to get <= 127 by clever reasoning, but not 126 *)
       admit.
-
-
   - (* valid radix *)
-    admit.
+    unfold radix_of_bits.
+    repeat break_match; auto.
   - (* scaling lower bound *)
-    admit.
+    debool;
+      replace 0 with (Z.succ (-1)) in H7 by trivial; apply Z.le_succ_l in H7;
+      apply H7.
   - (* scaling upper bound *)
-    admit.
-      
-
+    debool;
+      apply Zle_lt_succ in H6; apply H6.
 Admitted.
 
 Lemma valid_long_valid_BER {id co t s bb ff ee eo e m : Z} :
