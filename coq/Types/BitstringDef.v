@@ -64,14 +64,6 @@ Definition valid_special (val : Z) : bool :=
   end.
 
 (*
- * is [co] the correct
- * content length octet in short form
- * for given octet lengths of exponent and mantissa
- *)
-Definition correct_short_co (co e_olen m_olen : Z) : bool :=
-  ((e_olen + m_olen) <? co) && (co <? 128).
-
-(*
  * do the atomic parts constitute a valid BER-encoded real
  * in short form:
  *   id - identifier octet(s) [ 8.1.2 ]
@@ -85,25 +77,18 @@ Definition correct_short_co (co e_olen m_olen : Z) : bool :=
  *   m  - mantissa bits [ 8.5.7.5 ]
  *)
 Definition valid_short (id co t s bb ff ee e m : Z) : bool :=
-     (Z.eqb id real_id_b)                  (* identifier is "REAL" *) (* TODO *)
-  && (correct_short_co co (ee+1) (olen m)) (* encoding length is correct *)
-  && (Z.eqb t 1)                           (* encoding is binary *)
-  && (Z.ltb (-1)  s) && (Z.ltb  s 2)       (* sign bit is well-formed *)
-  && (Z.ltb (-1) bb) && (Z.ltb bb 4)       (* radix bit is well-formed *)
-  && (Z.ltb (-1) ff) && (Z.ltb ff 4)       (* scaling factor is well-formed *)
-  && (Z.ltb (-1) ee) && (Z.ltb ee 3)       (* exponent length is well-formed *)
-  && (Z.ltb (olen e) (ee + 2))             (* exponent length is correct *)
-  && (Z.ltb (-1) e)                        (* exponent is non-negative *)
-                                           (* (it is two's complement) *)
-  && (Z.ltb 0 m).                          (* mantissa is positive *)
-
-(*
- * is [co] the correct
- * content length octet in long form
- * for given octet lengths of exponent and mantissa
- *)
-Definition correct_long_co (co e_olen m_olen : Z) : bool :=
-  ((e_olen + m_olen + 1) <? co) && (127 <? co) && (co <? 256).
+     (id =? real_id_b)          (* identifier is "REAL" *)
+  && (1 <=? co) && (co <=? 127) (* encoding is in short form *)
+  && ((olen m) + ee + 2 <=? co) (* content fits in given space *)
+  && (t =? 1)                   (* encoding is binary *)
+  && (0 <=? s) && (s <=? 1 )    (* sign bit is well-formed *)
+  && (0 <=? bb) && (bb <=? 3)   (* radix bit is well-formed *)
+  && (0 <=? ff) && (ff <=? 3)   (* scaling factor is well-formed *)
+  && (0 <=? ee) && (ee <=? 2)   (* exponent length is well-formed *)
+  && ((olen e) <=? ee)          (* exponent length is correct *)
+  && (0 <=? e)                  (* exponent is non-negative
+                                   (it is two's complement) *)
+  && (1 <=? m).                 (* mantissa is positive *)
 
 (*
  * do the atomic parts constitute a valid BER-encoded real
@@ -120,18 +105,19 @@ Definition correct_long_co (co e_olen m_olen : Z) : bool :=
  *   m  - mantissa bits [ 8.5.7.5 ]
  *)
 Definition valid_long (id co t s bb ff ee eo e m : Z) : bool :=
-     (Z.eqb id real_id_b)              (* identifier is "REAL" *)
-  && (correct_long_co co eo (olen m))  (* encoding length is correct *)
-  && (Z.eqb t 1)                       (* encoding is binary *)
-  && (Z.ltb (-1)  s) && (Z.ltb  s 2)   (* sign bit is well-formed *)
-  && (Z.ltb (-1) bb) && (Z.ltb bb 4)   (* radix bit is well-formed *)
-  && (Z.ltb (-1) ff) && (Z.ltb ff 4)   (* scaling factor is well-formed *)
-  && (Z.eqb ee 3)                      (* exponent is in long form *)
-  && (Z.ltb (-1) eo) && (Z.ltb eo 256) (* exponent length is well-formed *)
-  && (Z.ltb (olen e) (eo + 1))         (* exponent length is correct *)
-  && (Z.ltb (-1) e)                    (* exponent is non-negative *)
-                                       (* (it is two's complement) *)
-  && (Z.ltb 0 m).                      (* mantissa is positive *)
+     (id =? real_id_b)          (* identifier is "REAL" *)
+  && (1 <=? co) && (co <=? 127) (* encoding is in short form *)
+  && ((olen m) + eo + 2 <=? co) (* content fits in given space *)
+  && (t =? 1)                   (* encoding is binary *)
+  && (0 <=? s) && (s <=? 1 )    (* sign bit is well-formed *)
+  && (0 <=? bb) && (bb <=? 3)   (* radix bit is well-formed *)
+  && (0 <=? ff) && (ff <=? 3)   (* scaling factor is well-formed *)
+  && (ee =? 3)                  (* exponent length identifier is well-formed *)
+  && (1 <=? eo) && (eo <=? 255) (* exponent length is well-formed *)
+  && ((olen e) <=? eo)          (* exponent length is correct *)
+  && (0 <=? e)                  (* exponent is non-negative
+                                   (it is two's complement) *)
+  && (1 <=? m).                 (* mantissa is positive *)
 
 (*
  * a tuple containing all elementary parts of a BER-encoded real
