@@ -74,40 +74,46 @@ Qed.
 
 End Atomic.
 
- Lemma valid_short_valid_BER {id co t s bb ff ee e m : Z} :
-   valid_short id co t s bb ff ee e m = true ->
-   valid_BER
-    (radix_of_bits bb) ff (signif_of_bits m) (exp_of_bits (ee + 1) e) = true.
- Proof.
-   unfold valid_short. intros H.
-   unfold valid_BER. apply andb_true_intro. split.
-   unfold correct_short_co in H.
-   repeat split_andb; rewrite Z.ltb_lt in *; rewrite Z.eqb_eq in *.
-   clear H0 H6 H7 H8 H9 H10 H11 H12.
-   apply Z.lt_le_pred in H.
+Lemma valid_short_valid_BER {id co t s bb ff ee e m : Z} :
+  valid_short id co t s bb ff ee e m = true ->
+  valid_BER
+   (radix_of_bits bb) ff (signif_of_bits m) (exp_of_bits (ee + 1) e) = true.
+Proof.
+  unfold valid_short. intros H.
+  repeat split_andb.
+  debool.
+  clear H0 H6 H7 H8 H9 H10 H11 H12.
+  clear id t s.
+  (* apply Z.lt_le_pred in H14; simpl in H14. *)
 
-   (*
-   apply (Z.le_trans (eeo + olen m) (co - 1) 126) in H; try lia.
-   apply (Z.le_trans (olen e) (ee+2-1) 3) in H3; try lia.
-   *)
-   (* - (* bounded *) *)
-   (*   unfold bounded. *)
-   (*   break_match; rewrite Z.ltb_lt in *. *)
-   (*   + (* long *) *)
-   (*     contradict Heqb. *)
-   (*     rewrite not_Zlt_Zle. *)
-   (*     unfold exp_of_bits. *)
-   (*     admit. *)
-   (*   + (* short *) *)
-   (*     unfold signif_of_bits; rewrite Z2Pos.id. *)
-   (*     rewrite Z.ltb_ge in Heqb. *)
- Admitted.
+  unfold valid_BER. apply andb_true_intro; split; apply andb_true_intro; split.
+  - (* bounded *)
+    unfold bounded.
+    break_match; debool.
+    + (* long exponent *)
+      unfold exp_of_bits.
+      replace 1 with (Z.succ 0) in H1 by trivial; apply Z.le_succ_l in H1.
+      unfold signif_of_bits; rewrite (Z2Pos.id m H1).
+      admit.
+    + (* short exponent *)
+      admit.
 
- Lemma valid_long_valid_BER {id co t s bb ff ee eo e m : Z} :
-   valid_long id co t s bb ff ee eo e m = true ->
-   valid_BER
-     (radix_of_bits bb) ff (signif_of_bits m) (exp_of_bits (eo) e) = true.
- Admitted.
+
+  - (* valid radix *)
+    admit.
+  - (* scaling lower bound *)
+    admit.
+  - (* scaling upper bound *)
+    admit.
+      
+
+Admitted.
+
+Lemma valid_long_valid_BER {id co t s bb ff ee eo e m : Z} :
+  valid_long id co t s bb ff ee eo e m = true ->
+  valid_BER
+    (radix_of_bits bb) ff (signif_of_bits m) (exp_of_bits (eo) e) = true.
+Admitted.
 
 Lemma valid_BER_valid_radix {b : radix} {f e : Z} {m : positive} :
   valid_BER b f m e = true ->

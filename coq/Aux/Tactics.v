@@ -57,6 +57,8 @@ Ltac debool :=
          | [ H: Zeq_bool _ _ = true |- _ ] => apply Zeq_bool_eq in H
          | [ |- (_ =? _)%Z = true ] => apply Z.eqb_eq
          | [ H: (_ =? _)%Z = true |- _ ] => apply Z.eqb_eq in H
+         | [ |- (_ <? _)%Z = true ] => apply Zlt_bool_true
+         | [ H: (_ <? _)%Z = true |- _ ] => apply Z.ltb_lt in H
          | [ H: Bool.eqb _ _ = true |- _ ] => apply Bool.eqb_prop in H
          | [ |- Z.leb _ _ = true ] => apply Zle_bool_true
          | [ H: Z.leb _ _ = true |- _] => apply Zle_bool_imp_le in H
