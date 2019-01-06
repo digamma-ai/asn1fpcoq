@@ -85,7 +85,7 @@ Definition valid_short (id co t s bb ff ee e m : Z) : bool :=
   && (0 <=? bb) && (bb <=? 3)   (* radix bit is well-formed *)
   && (0 <=? ff) && (ff <=? 3)   (* scaling factor is well-formed *)
   && (0 <=? ee) && (ee <=? 2)   (* exponent length is well-formed *)
-  && ((olen e) <=? ee)          (* exponent length is correct *)
+  && ((olen e) <=? ee + 1)          (* exponent length is correct *)
   && (0 <=? e)                  (* exponent is non-negative
                                    (it is two's complement) *)
   && (1 <=? m).                 (* mantissa is positive *)
