@@ -82,39 +82,54 @@ Compute (
   ).
 *)
 
+Lemma Zle_lt_or_eq (x y : Z) :
+  x <= y ->
+  x = y \/ x < y.
+Proof. lia. Qed.
+
 Lemma twos_olen_aux (e eo : Z) :
   0 <= e -> 1 <= eo -> olen e <= eo ->
   twos_olen (exp_of_bits eo e) <= eo.
 Proof.
-  unfold olen, blen, twos_olen, exp_of_bits, olen_of_blen, twos_blen, twos_comp_extended, log2_pinf.
+  unfold olen, blen, twos_olen, exp_of_bits, olen_of_blen,
+    twos_blen, twos_comp_extended, log2_pinf.
   intros Enneg EOpos EO.
   assert (A : 8 <> 0) by lia.
   assert (B : 0 < 2) by lia.
+  assert (A1 : 0 < 8) by lia.
   repeat break_match; debool; subst; try lia;
   try (simpl in EO; simpl; apply EO).
   - assert (C : 0 <= 2) by trivial.
     generalize (Z.pow_nonneg 2 (8 * eo - 1) C); intros.
     lia.
-  - remember (Z.pos p) as te.
+  - generalize (Zgt_pos_0 p); intros; apply Z.gt_lt in H.
+    remember (Z.pos p) as te.
     remember (Z.log2 te) as lte.
-    (* care: positivity of te is lost *) clear Heqte p.
-    clear EOpos Heqb0 Heqb1 Heqb.
+    clear EOpos Heqb0 Heqb1 Heqb Heqte p Enneg.
     replace (lte + 1 + 7) with (lte + 1*8) in EO by lia;
       rewrite (Z.div_add lte 1 8 A) in EO.
     replace (lte + 2 + 7) with (lte + 1 + 1*8) by lia;
       rewrite (Z.div_add (lte + 1) 1 8 A).
-  (* Heqb2, Heqlte: lte < 8*eo - 1 -> goal *)
-    admit.
-  - remember (Z.pos p) as te.
+
+    apply (Z.log2_lt_pow2 te (8 * eo - 1) H) in Heqb2.
+    rewrite <- Heqlte in Heqb2.
+    apply Zsucc_lt_compat in Heqb2.
+    replace (Z.succ (8 * eo - 1)) with (8 * eo) in Heqb2 by lia.
+    apply (Z.div_lt_upper_bound (lte + 1) 8 eo A1) in Heqb2.
+    lia.
+  - exfalso.
+    generalize (Zgt_pos_0 p); intros; apply Z.gt_lt in H.
+    remember (Z.pos p) as te.
     remember (Z.log2 te) as lte.
-    (* care: positivity of te is lost *) clear Heqte p.
-    clear EOpos Heqb0 Heqb1 Heqb2 Heqb.
+    clear Heqb0 Heqb1 Heqb2 Heqb Enneg.
     replace (lte + 1 + 7) with (lte + 1*8) in EO by lia;
       rewrite (Z.div_add lte 1 8 A) in EO.
-    replace (lte + 2 + 7) with (lte + 1 + 1*8) by lia;
-      rewrite (Z.div_add (lte + 1) 1 8 A).
-    (* Heqb3 : te >= 2^(8*eo) -> lte >= 8*eo -> contradiction in EO *)
-    admit.
+    rewrite <- (Z.pow_succ_r 2 (8 * eo - 1)) in Heqb3 by lia;
+      replace (Z.succ (8 * eo - 1)) with (8 * eo) in Heqb3 by lia.
+    apply (Z.log2_le_pow2 te (8 * eo) H) in Heqb3.
+    rewrite <- Heqlte in Heqb3.
+    apply (Z.div_le_lower_bound lte 8 eo A1) in Heqb3.
+    lia.
   - remember (- Z.neg p) as te.
     (* care: positiviry of te is lost *) rewrite <- Heqz in Heqte; clear Heqz p.
     clear Heqb0 Heqb1 Heqb2 Enneg.
@@ -123,11 +138,18 @@ Proof.
       rewrite (Z.div_add le 1 8 A) in EO.
     replace (lte + 1 + 7) with (lte + 1*8) by lia;
       rewrite (Z.div_add lte 1 8 A).
-    replace (2 * 2^(8 * eo - 1)) with (2^(8 * eo)) in * by admit.
-    replace (- (e - 2 ^ (8 * eo))) with (2^(8 * eo) - e) in Heqte by admit.
-    remember (8 * eo) as o.
-    (* Heqb3, Heqte : te <= 2^(o-1) -> |Heqb3| te <= e -> lte <= le -> goal*)
-    admit.
+    rewrite <- (Z.pow_succ_r 2 (8 * eo - 1)) in Heqte by lia;
+      replace (Z.succ (8 * eo - 1)) with (8 * eo) in Heqte by lia.
+    replace (- (e - 2 ^ (8 * eo))) with (2^(8 * eo) - e) in Heqte by lia.
+    remember (2^(8 * eo - 1)) as o in *.
+    replace (8 * eo) with (Z.succ (8 * eo - 1)) in Heqte by lia.
+    rewrite -> Z.pow_succ_r in Heqte by lia.
+    rewrite <- Heqo in Heqte.
+    assert (H : te <= e) by lia.
+    apply Z.log2_le_mono in H.
+    rewrite <- Heqle, <- Heqlte in H.
+    generalize (Z.div_le_mono lte le 8 A1 H); intros.
+    lia.
   - remember (- Z.neg p) as te.
     (* care: positiviry of te is lost *) rewrite <- Heqz in Heqte; clear Heqz p.
     clear Heqb0 Heqb1 Heqb2 Enneg.
@@ -136,11 +158,37 @@ Proof.
       rewrite (Z.div_add le 1 8 A) in EO.
     replace (lte + 1 + 1 + 7) with (lte + 1 + 1*8) by lia;
       rewrite (Z.div_add (lte + 1) 1 8 A).
-    replace (2 * 2^(8 * eo - 1)) with (2^(8 * eo)) in * by admit.
-    replace (- (e - 2 ^ (8 * eo))) with (2^(8 * eo) - e) in Heqte by admit.
-    remember (8 * eo) as o.
-    admit.
-Admitted.
+    rewrite <- (Z.pow_succ_r 2 (8 * eo - 1)) in Heqte by lia;
+      replace (Z.succ (8 * eo - 1)) with (8 * eo) in Heqte by lia.
+    replace (- (e - 2 ^ (8 * eo))) with (2^(8 * eo) - e) in Heqte by lia.
+    remember (2^(8 * eo - 1)) as o in *.
+    replace (8 * eo) with (Z.succ (8 * eo - 1)) in Heqte by lia.
+    rewrite -> Z.pow_succ_r in Heqte by lia.
+    rewrite <- Heqo in Heqte.
+    assert (H : lte + 1 < 8 * eo).
+    {
+      assert (H : te < o).
+      {
+        assert (H : te < o \/ te = o) by lia.
+        destruct H.
+        - apply H.
+        - replace o with te in *.
+          rewrite Heqo in Heqlte.
+          assert (H1 : 0 <= 8 * eo - 1) by lia.
+          rewrite (Z.log2_pow2 (8 * eo - 1) H1) in Heqlte.
+          rewrite Heqlte in Heqb.
+          rewrite Heqo in Heqb.
+          lia.
+       }
+      subst o.
+      apply Z.log2_lt_pow2 in H.
+      lia.
+      lia.
+    }
+    apply (Z.div_lt_upper_bound (lte + 1) 8 eo A1) in H.
+    lia.
+Qed.
+
 
 Lemma valid_short_valid_BER {id co t s bb ff ee e m : Z} :
   valid_short id co t s bb ff ee e m = true ->
@@ -159,10 +207,23 @@ Proof.
     unfold bounded.
     break_match; debool.
     + (* long exponent *)
-      (** should be a contradiction *)
-      replace 1 with (Z.succ 0) in H1 by trivial; apply Z.le_succ_l in H1.
-      unfold signif_of_bits; rewrite (Z2Pos.id m H1).
-      admit.
+      apply Z.lt_le_pred; simpl.
+      remember (twos_olen (exp_of_bits (ee + 1) e)) as t.
+      replace 1 with (Z.succ 0) in H1 by trivial; apply Z.le_succ_l in H1;
+        unfold signif_of_bits; rewrite (Z2Pos.id m H1);
+        remember (olen m) as om.
+      replace (om + ee + 2) with (om + (ee + 1) + 1) in H13 by lia.
+        remember (ee + 1) as eo.
+      replace ee with (eo - 1) in * by lia; clear Heqeo.
+      apply Z.le_sub_le_add_l in H4; simpl in H4.
+      apply Z.le_sub_le_add_r in H5; simpl in H5.
+      (* care *)
+      clear H15. clear H1 Heqom m.
+      apply (Z.le_trans (om + eo + 1) co 127 H13) in H14; clear H13 co;
+        apply Z.le_add_le_sub_r in H14; simpl in H14.
+      generalize (twos_olen_aux e eo H2 H5 H3); intros.
+      rewrite <- Heqt in H.
+      lia.
     + (* short exponent *)
       apply Z.lt_le_pred; simpl.
       remember (twos_olen (exp_of_bits (ee + 1) e)) as t.
@@ -191,13 +252,49 @@ Proof.
   - (* scaling upper bound *)
     debool;
       apply Zle_lt_succ in H6; apply H6.
-Admitted.
+Qed.
 
 Lemma valid_long_valid_BER {id co t s bb ff ee eo e m : Z} :
   valid_long id co t s bb ff ee eo e m = true ->
   valid_BER
     (radix_of_bits bb) ff (signif_of_bits m) (exp_of_bits (eo) e) = true.
-Admitted.
+Proof.
+  unfold valid_long. intros H.
+  repeat split_andb.
+  debool.
+  clear H H13 id t.
+  clear H11 H12 s.
+  unfold valid_BER. apply andb_true_intro; split; apply andb_true_intro; split.
+  - (* bounded *)
+    clear H7 H8 ff; clear H9 H10 bb.
+    unfold bounded.
+    break_match; debool.
+    + (* long exponent *)
+      apply Z.lt_le_pred; simpl.
+      remember (twos_olen (exp_of_bits (eo) e)) as t.
+      replace 1 with (Z.succ 0) in H1 by trivial; apply Z.le_succ_l in H1;
+        unfold signif_of_bits; rewrite (Z2Pos.id m H1);
+        remember (olen m) as om.
+      generalize (twos_olen_aux e eo H2 H5 H3); intros.
+      rewrite <- Heqt in H.
+      lia.
+    + (* short exponent *)
+      apply Z.lt_le_pred; simpl.
+      remember (twos_olen (exp_of_bits (eo) e)) as t.
+      replace 1 with (Z.succ 0) in H1 by trivial; apply Z.le_succ_l in H1;
+        unfold signif_of_bits; rewrite (Z2Pos.id m H1);
+        remember (olen m) as om.
+      generalize (twos_olen_aux e eo H2 H5 H3); intros.
+      rewrite <- Heqt in H.
+      lia.
+  - (* valid radix *)
+    unfold radix_of_bits.
+    repeat break_match; auto.
+  - (* scaling lower bound *)
+    debool; lia.
+  - (* scaling upper bound *)
+    debool; lia.
+Qed.
 
 Lemma valid_BER_valid_radix {b : radix} {f e : Z} {m : positive} :
   valid_BER b f m e = true ->
