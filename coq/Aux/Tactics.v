@@ -53,15 +53,25 @@ Require Import Flocq.Core.Zaux.
 Ltac debool :=
   repeat match goal with
          | [ H: Z.compare _ _ = Eq |- _ ] => apply Z.compare_eq in H
+
          | [ |- Zeq_bool _ _ = true ] => apply Zeq_bool_true
          | [ H: Zeq_bool _ _ = true |- _ ] => apply Zeq_bool_eq in H
+
          | [ |- (_ =? _)%Z = true ] => apply Z.eqb_eq
          | [ H: (_ =? _)%Z = true |- _ ] => apply Z.eqb_eq in H
+         | [ |- (_ =? _)%Z = false ] => apply Z.eqb_neq
+         | [ H: (_ =? _)%Z = false |- _ ] => apply Z.eqb_neq in H
+
          | [ |- (_ <? _)%Z = true ] => apply Zlt_bool_true
          | [ H: (_ <? _)%Z = true |- _ ] => apply Z.ltb_lt in H
+         | [ |- (_ <? _)%Z = false ] => apply Zlt_bool_false
+         | [ H: (_ <? _)%Z = false |- _ ] => apply Z.ltb_ge in H
+
          | [ H: Bool.eqb _ _ = true |- _ ] => apply Bool.eqb_prop in H
+
          | [ |- Z.leb _ _ = true ] => apply Zle_bool_true
          | [ H: Z.leb _ _ = true |- _] => apply Zle_bool_imp_le in H
+
          | [ H: Z.compare _ _ = Gt |- _ ] => apply Z.compare_gt_iff in H
          | [ H: Z.compare _ _ = Lt |- _ ] => rewrite Z.compare_lt_iff in H
          end.

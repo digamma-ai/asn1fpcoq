@@ -74,37 +74,13 @@ Qed.
 
 End Atomic.
 
+(*
 Compute (
     let e := 999 in
     let eo := 123 in
     orb (negb (andb (Z.leb 0 e) (Z.leb (olen e) eo))) (Z.leb (twos_olen (exp_of_bits eo e)) eo)
   ).
-
-Ltac debool :=
-  repeat match goal with
-         | [ H: Z.compare _ _ = Eq |- _ ] => apply Z.compare_eq in H
-
-         | [ |- Zeq_bool _ _ = true ] => apply Zeq_bool_true
-         | [ H: Zeq_bool _ _ = true |- _ ] => apply Zeq_bool_eq in H
-
-         | [ |- (_ =? _)%Z = true ] => apply Z.eqb_eq
-         | [ H: (_ =? _)%Z = true |- _ ] => apply Z.eqb_eq in H
-         | [ |- (_ =? _)%Z = false ] => apply Z.eqb_neq
-         | [ H: (_ =? _)%Z = false |- _ ] => apply Z.eqb_neq in H
-
-         | [ |- (_ <? _)%Z = true ] => apply Zlt_bool_true
-         | [ H: (_ <? _)%Z = true |- _ ] => apply Z.ltb_lt in H
-         | [ |- (_ <? _)%Z = false ] => apply Zlt_bool_false
-         | [ H: (_ <? _)%Z = false |- _ ] => apply Z.ltb_ge in H
-
-         | [ H: Bool.eqb _ _ = true |- _ ] => apply Bool.eqb_prop in H
-
-         | [ |- Z.leb _ _ = true ] => apply Zle_bool_true
-         | [ H: Z.leb _ _ = true |- _] => apply Zle_bool_imp_le in H
-
-         | [ H: Z.compare _ _ = Gt |- _ ] => apply Z.compare_gt_iff in H
-         | [ H: Z.compare _ _ = Lt |- _ ] => rewrite Z.compare_lt_iff in H
-         end.
+*)
 
 Lemma twos_olen_aux (e eo : Z) :
   0 <= e -> 1 <= eo -> olen e <= eo ->
@@ -113,11 +89,12 @@ Proof.
   unfold olen, blen, twos_olen, exp_of_bits, olen_of_blen, twos_blen, twos_comp_extended, log2_pinf.
   intros Enneg EOpos EO.
   assert (A : 8 <> 0) by lia.
+  assert (B : 0 < 2) by lia.
   repeat break_match; debool; subst; try lia;
   try (simpl in EO; simpl; apply EO).
-  Search Z.div Z.add.
-    Check Z.div_add.
-  - (* trivial from Heqb0 *)admit.
+  - assert (C : 0 <= 2) by trivial.
+    generalize (Z.pow_nonneg 2 (8 * eo - 1) C); intros.
+    lia.
   - remember (Z.pos p) as te.
     remember (Z.log2 te) as lte.
     (* care: positivity of te is lost *) clear Heqte p.
@@ -187,7 +164,6 @@ Proof.
       unfold signif_of_bits; rewrite (Z2Pos.id m H1).
       admit.
     + (* short exponent *)
-      rewrite Z.ltb_ge in Heqb.
       apply Z.lt_le_pred; simpl.
       remember (twos_olen (exp_of_bits (ee + 1) e)) as t.
       replace 1 with (Z.succ 0) in H1 by trivial; apply Z.le_succ_l in H1;
@@ -202,7 +178,7 @@ Proof.
       clear H15. clear H1 Heqom m.
       apply (Z.le_trans (om + eo + 1) co 127 H13) in H14; clear H13 co;
         apply Z.le_add_le_sub_r in H14; simpl in H14.
-      generalize (twos_olen_aux e eo H2 H3); intros.
+      generalize (twos_olen_aux e eo H2 H5 H3); intros.
       rewrite <- Heqt in H.
       lia.
   - (* valid radix *)
