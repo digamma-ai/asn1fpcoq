@@ -265,4 +265,60 @@ Section Split_concat.
   Definition split_octets_by_fst (octets_fst : Z) (b : Z) : Z * Z :=
     split_octets_by_snd (olen b - octets_fst) b.
 
+  Compute (let fst := 123 in let snd := 0 in let bits_snd := 8 in
+           split_bits_by_snd bits_snd (join_bits_ext bits_snd fst snd)).
+
+  Lemma split_join_bits (bits_snd fst snd : Z) :
+    0 <= snd ->
+    blen snd <= bits_snd ->
+    split_bits_by_snd bits_snd (join_bits_ext bits_snd fst snd) = (fst, snd).
+  Proof.
+    unfold blen, split_bits_by_snd, join_bits_ext.
+    intros H0 H00.
+    generalize (Z.log2_nonneg snd); intros.
+    assert (0 < 2) by lia.
+    assert (0 < bits_snd) by lia.
+    assert (0 <= bits_snd) by lia.
+    generalize (Z.pow_pos_nonneg 2 bits_snd H1 H3); intros.
+    assert (Z.log2 snd < bits_snd) by lia.
+    rewrite Z.shiftl_mul_pow2 by (apply H3).
+    remember (2^bits_snd) as s.
+    replace (fst * s + snd) with (snd + fst * s) by lia.
+    rewrite Z.div_add by lia.
+    rewrite Z.mod_add by lia.
+    assert (H000 : 0 < snd \/ 0 = snd) by lia.
+    destruct H000 as [H000 | ]; [ | subst; auto ].
+    assert (snd < s) by (apply (Z.log2_lt_pow2 snd bits_snd H000) in H5; lia).
+    rewrite Z.div_small by lia.
+    rewrite Z.mod_small by lia.
+    auto.
+  Qed.
+    
+  Lemma aux (a b : Z) :
+    0 < b ->
+    a <= b * ((a + (b - 1)) / b).
+  Proof.
+    intros.
+    destruct (a mod b) eqn:H1.
+    Search (_ mod _ = 0 -> _) Z.div.
+    case (a mod b).
+  Admitted.
+    
+  Lemma split_join_octets (octets_snd fst snd : Z) :
+    0 <= snd ->
+    olen snd <= octets_snd ->
+    split_octets_by_snd octets_snd (join_octets_ext octets_snd fst snd) = (fst, snd).
+  Proof.
+    intros.
+    unfold olen, olen_of_blen in H0.
+    unfold split_octets_by_snd, join_octets_ext.
+    apply split_join_bits.
+    apply H.
+    remember (blen snd) as b.
+    apply Z.mul_le_mono_nonneg_l with (p := 8) in H0; [| lia].
+    assert (b <= 8 * ((b + 7) / 8))
+      by (replace 7 with (8 - 1) by trivial; apply aux; lia).
+    lia.
+  Qed.
+  
 End Split_concat.
