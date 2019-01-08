@@ -15,3 +15,14 @@ Qed.
 Definition positive_lt_rec := well_founded_induction_type Plt_wf.
 
 Definition positive_lt_ind := well_founded_induction Plt_wf.
+
+
+Require Import ZArith.
+
+Open Scope Z.
+
+Let Zlt_wf : well_founded Z.lt.
+Proof.
+  apply well_founded_lt_compat with Z.to_nat.
+  intros x y H. apply Z2Nat.inj_lt, H.
+Abort.

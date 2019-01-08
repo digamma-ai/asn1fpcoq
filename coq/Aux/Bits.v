@@ -265,9 +265,6 @@ Section Split_concat.
   Definition split_octets_by_fst (octets_fst : Z) (b : Z) : Z * Z :=
     split_octets_by_snd (olen b - octets_fst) b.
 
-  Compute (let fst := 123 in let snd := 0 in let bits_snd := 8 in
-           split_bits_by_snd bits_snd (join_bits_ext bits_snd fst snd)).
-
   Lemma split_join_bits (bits_snd fst snd : Z) :
     0 <= snd ->
     blen snd <= bits_snd ->
@@ -294,14 +291,29 @@ Section Split_concat.
     auto.
   Qed.
     
-  Lemma aux (a b : Z) :
+  Lemma Zdiv_pinf_ge (a b : Z) :
     0 < b ->
     a <= b * ((a + (b - 1)) / b).
   Proof.
     intros.
+    rewrite (Z_div_mod_eq a b).
     destruct (a mod b) eqn:H1.
-    Search (_ mod _ = 0 -> _) Z.div.
-    case (a mod b).
+    - (* b | a *)
+      rewrite Z.add_0_r.
+      replace (b * (a / b) + (b - 1)) with ((b - 1) + (a / b) * b) by lia.
+      rewrite Z_div_plus by lia.
+      rewrite Z.mul_add_distr_l.
+      rewrite (Z.div_small (b - 1) b) by lia.
+      lia.
+    - remember (Z.pos p) as k; assert (0 < k) by lia; clear Heqk p.
+      replace (b * (a / b) + k + (b - 1)) with (k + (b - 1) + (a / b) * b) by lia.
+      rewrite Z_div_plus by lia.
+      rewrite Z.mul_add_distr_l.
+      (* 0 < k < a, so strong induction would help *)
+      assert (k <= (b * ((k + (b - 1)) / b))) by admit.
+      lia.
+    - exfalso.
+      generalize (Z_mod_lt a b); lia.
   Admitted.
     
   Lemma split_join_octets (octets_snd fst snd : Z) :
