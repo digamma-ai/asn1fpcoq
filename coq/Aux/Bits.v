@@ -309,7 +309,7 @@ Section Split_concat.
       replace (b * (a / b) + k + (b - 1)) with (k + (b - 1) + (a / b) * b) by lia.
       rewrite Z_div_plus by lia.
       rewrite Z.mul_add_distr_l.
-      (* 0 < k < a, so strong induction would help *)
+      (* k < a, so strong induction would help *)
       assert (k <= (b * ((k + (b - 1)) / b))) by admit.
       lia.
     - exfalso.
@@ -329,8 +329,41 @@ Section Split_concat.
     remember (blen snd) as b.
     apply Z.mul_le_mono_nonneg_l with (p := 8) in H0; [| lia].
     assert (b <= 8 * ((b + 7) / 8))
-      by (replace 7 with (8 - 1) by trivial; apply aux; lia).
+      by (replace 7 with (8 - 1) by trivial; apply Zdiv_pinf_ge; lia).
     lia.
   Qed.
+
+  Lemma join_bits_blen (bits_snd fst snd : Z) :
+    0 <= fst -> 0 <= snd ->
+    blen snd <= bits_snd ->
+    blen (join_bits_ext bits_snd fst snd) <= (blen fst) + bits_snd.
+  Proof.
+    unfold join_bits_ext, blen.
+    intros.
+    assert (0 <= bits_snd) by
+      (assert (0 <= Z.log2 snd) by apply Z.log2_nonneg; lia).
+    rewrite Z.shiftl_mul_pow2; [| apply H2].
+    assert(0 = fst \/ 0 < fst) by lia; clear H; destruct H3.
+    - (* fst = 0 *)
+      subst; rewrite Z.mul_0_l, Z.add_0_l; generalize (Z.log2_nonpos 0); intros; lia.
+    - (* fst > 0 *)
+    assert (Z.log2 (fst * 2 ^ bits_snd + snd) = Z.log2 (fst * 2 ^ bits_snd)).
+    {
+      assert(0 = snd \/ 0 < snd) by lia; clear H0; destruct H3.
+      - subst. rewrite Z.add_0_r. reflexivity.
+      - rewrite Z.log2_mul_pow2 by lia.
+        generalize (Z.log2_lt_pow2 snd bits_snd H0); intros.
+        assert (snd < 2 ^ bits_snd) by lia; clear H3.
+        remember (2^bits_snd) as sb.
+        assert (fst * sb + snd < (fst + 1) * sb) by lia.
+        assert (fst + 1 <= 2*fst) by lia.
+        apply Z.mul_le_mono_nonneg_r with (p := sb) in H5; [|lia].
+        assert (fst * sb + snd < 2 * fst * sb) by lia.
+        clear H3 H5.
+        admit.
+    }
+    rewrite Z.log2_mul_pow2 in H3 by lia.
+    lia.
+  Admitted.
   
 End Split_concat.
