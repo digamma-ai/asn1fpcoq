@@ -1,118 +1,82 @@
 Require Import ZArith PArith.
 Require Import ASN1FP.Aux.StructTactics ASN1FP.Aux.Bits.
-
-
-Open Scope nat.
-
-Section Pos_container_len.
-  
-  Definition pos_blen (v : positive) : nat :=
-    Z.to_nat ((log_inf v) + 1).
-  
-  Inductive container := cont (l : nat) (v : positive) (C : pos_blen v <= l).
-  
-  Definition join_cont (h t : container) : container.
-    destruct h eqn:H; rename l into hl, v into hv, C into hC.
-    destruct t eqn:T; rename l into tl, v into tv, C into tC.
-    remember ((Pos.shiftl_nat hv tl) + tv)%positive as rv.
-    remember (hl + tl) as rl.
-    assert (rC : pos_blen rv <= rl).
-    {
-      subst.
-      unfold pos_blen in *.
-      admit.
-    }
-    exact (cont rl rv rC).
-  Admitted.
-  
-  Definition split_cont_fst (hl : nat) (c : container) : container * container.
-    destruct c.
-    remember (l - hl) as tl.
-    remember (Pos.shiftr_nat v tl) as t.
-    remember (Z.to_pos ((Z.pos v) mod (2^(Z.of_nat tl)))) as h.
-    assert (hC : pos_blen h <= hl).
-    {
-      admit.
-    }
-    assert (tC : pos_blen t <= tl).
-    {
-      admit.
-    }
-    exact (cont hl h hC, cont tl t tC).
-  Admitted.
-
-End Pos_container_len.
-
-Section Pos_container_leading.
-  
-  Inductive word :=
-    | mk_word (l : nat) (v : positive).
-  
-  Definition join_words (h t : word) : word :=
-    match h, t with
-    | mk_word lh vh, mk_word lt vt => mk_word lh ((Pos.shiftl_nat vh lt) + vt)
-    end.
-  
-  Definition word_pos_blen (w : word) : nat :=
-    match w with
-    | mk_word l v => l + Z.to_nat ((log_inf v) + 1)
-    end.
-  
-  Definition split_head (hl : nat) (w : word) : word * word :=
-    match w with
-    | mk_word l v =>
-    let wbl := word_pos_blen w in
-    let h := Pos.shiftr_nat v (wbl - l - hl) in
-      (mk_word l h,
-       mk_word (wbl - l - Z.to_nat ((log_inf h) + 1))
-               (Z.to_pos ((Z.pos v) mod (2^(Z.of_nat hl)))))
-    end.
-  
-  Lemma split_join (h t : word) :
-    split_head (word_pos_blen h) (join_words h t) = (h, t).
-  Proof.
-    destruct h eqn:H; rename l into hl, v into hv.
-    destruct t eqn:T; rename l into tl, v into tv.
-    unfold split_head, join_words, word_pos_blen.
-    subst.
-    remember (Pos.shiftl_nat hv tl + tv)%positive as r.
-  Abort.
-
-End Pos_container_leading.
+Require Import Lia.
 
 Open Scope Z.
 
-Section Z_container_len.
-
-  Inductive zcontainer :=
-    zcont (l : Z) (v : Z) : (0 <= v) -> (blen v <= l) -> zcontainer.
-    
-  Definition join_zcont (h t : zcontainer) : zcontainer.
-    destruct h eqn:H; rename l into hl, v into hv, l0 into hOV, l1 into hBV.
-    destruct t eqn:T; rename l into tl, v into tv, l0 into tOV, l1 into tBV.
-    remember (hl + tl) as rl.
-    remember (hv * 2^tl + tv) as rv.
-    assert (rOV : 0 <= rv) by admit. (** trivial *)
-    assert (rBV : blen rv <= rl).
-    {
-      subst.
-      unfold blen in *.
-      admit.
-      (** somewhat complicated, has been attempted before *)
-    }
-    exact (zcont rl rv rOV rBV).
-  Admitted.
+Inductive container (l : Z) :=
+  cont (v : Z) (N : 0 <= v) (L : blen v <= l) : container l.
   
-  Definition split_zcont_by_fst (hl : Z) (c : zcontainer) : zcontainer * zcontainer.
-    destruct c eqn:C; rename l0 into OV, l1 into BV.
-    remember (l - hl) as tl.
-    remember (v mod 2^tl) as tv.
-    remember (v / 2^tl) as hv.
-    assert (hOV : 0 <= hv) by admit. (* simple *)
-    assert (tOV : 0 <= tv) by admit. (* simple *)
-    assert (hBV : blen hv <= hl) by admit. (* complex *)
-    assert (tBV : blen tv <= tl) by admit. (* complex *)
-    exact (zcont hl hv hOV hBV, zcont tl tv tOV tBV).
-  Admitted.
+Definition join_cont {l1 l2 : Z} (c1 : container l1) (c2 : container l2)
+  : container (l1 + l2).
+  destruct c1 eqn:C1; rename v into v1, N into N1, L into L1.
+  destruct c2 eqn:C2; rename v into v2, N into N2, L into L2.
+  remember (l1 + l2) as l.
+  remember (v1 * 2^l2 + v2) as v.
+  assert (N : 0 <= v) by admit. (** trivial *)
+  assert (L : blen v <= l).
+  {
+    subst.
+    unfold blen in *.
+    admit.
+    (** somewhat complicated, has been attempted before *)
+  }
+  exact (cont l v N L).
+Admitted.
 
-End Z_container_len.
+Definition split_cont_by_fst {l : Z} (l1 : Z) (c : container l)
+  : (l1 <= l) -> container l1 * container (l - l1).
+  intros.
+  destruct c eqn:C.
+  remember (l - l1) as l2.
+  remember (v mod 2^l2) as v2.
+  remember (v / 2^l2) as v1.
+  assert (N1 : 0 <= v1) by admit.
+  assert (N2 : 0 <= v2) by admit.
+  assert (L1 : blen v1 <= l1) by admit.
+  assert (L2 : blen v2 <= l2) by admit.
+  exact (cont l1 v1 N1 L1, cont l2 v2 N2 L2).
+Admitted.
+
+Definition cont_cast {l1 l2 : Z} (c1 : container l1) (eq : l1 = l2) : container l2 :=
+ match eq in _ = p return container p with
+   | eq_refl => c1
+ end.
+
+Lemma blen_pos (a : Z) :
+  0 < blen a.
+Proof. unfold blen; generalize (Z.log2_nonneg a); lia. Qed.
+
+Definition split_join {l1 l2 : Z} (c1 : container l1) (c2 : container l2)
+  : container l1 * container l2.
+  remember (join_cont c1 c2) as j.
+  destruct c1; rename v into v1, N into N1, L into L1.
+  destruct c2; rename v into v2, N into N2, L into L2.
+  generalize (blen_pos v2); intros.
+  assert (l1 <= l1 + l2) by lia.
+  assert (l1 + l2 - l1 = l2) by lia.
+  destruct (split_cont_by_fst l1 j H0) as [c1' c2'].
+  exact (c1', cont_cast c2' H1).
+Defined.
+
+Lemma split_join_roundtrip {l1 l2 : Z} (c1 : container l1) (c2 : container l2) :
+  split_join c1 c2 = (c1, c2).
+Admitted.
+
+Definition cont_of_Z := cont.
+
+Definition Z_of_cont {l : Z} (c : container l) :=
+  match c with cont _ v _ _ => v end.
+
+Lemma blen_Z_of_cont {l : Z} (c : container l) :
+  blen (Z_of_cont c) <= l.
+Proof. destruct c; auto. Qed.
+
+Lemma nonneg_Z_of_cont {l : Z} (c : container l) :
+  0 <= Z_of_cont c.
+Proof. destruct c; auto. Qed.
+
+Definition cont_Z_roundtrip {l : Z} (c : container l) :=
+  match c with
+  | cont _ v N L => cont_of_Z l (Z_of_cont c) (nonneg_Z_of_cont c) (blen_Z_of_cont c)
+  end.
