@@ -75,10 +75,59 @@ Proof.
   destruct c as [v N B].
   remember (v mod (two_power_nat l2)) as v2.
   remember (v / (two_power_nat l2)) as v1.
-  assert (N1 : 0 <= v1) by admit.
-  assert (N2 : 0 <= v2) by admit.
-  assert (L1 : (nblen v1 <= l1)%nat) by admit.
-  assert (L2 : (nblen v2 <= l2)%nat) by admit.
+
+  assert (N1 : 0 <= v1).
+  {
+    subst.
+    clear B.
+    rewrite two_power_nat_equiv.
+    apply Z.div_pos; auto.
+    apply Z.pow_pos_nonneg; lia.
+  }
+
+  assert (N2 : 0 <= v2).
+  {
+    subst.
+    clear N1 B.
+    rewrite two_power_nat_equiv.
+    assert(0 < 2 ^ Z.of_nat l2) by (apply Z.pow_pos_nonneg; lia).
+    apply Z.mod_pos_bound, H.
+  }
+
+  assert (L1 : (nblen v1 <= l1)%nat).
+  {
+    subst.
+    clear N2.
+    unfold nblen in *.
+    apply Nat2Z.inj_le.
+    apply Nat2Z.inj_le in B.
+    rewrite Z2Nat.id in *.
+    -
+      admit.
+    -
+      assert(0<=Z.log2 v) by apply Z.log2_nonneg.
+      lia.
+    -
+      assert(0<=Z.log2 (v / two_power_nat l2)) by apply Z.log2_nonneg.
+      lia.
+  }
+  assert (L2 : (nblen v2 <= l2)%nat).
+  {
+    subst.
+    clear L1 N1.
+    unfold nblen in *.
+    apply Nat2Z.inj_le.
+    apply Nat2Z.inj_le in B.
+    rewrite Z2Nat.id in *.
+    -
+      admit.
+    -
+      assert(0<=Z.log2 v) by apply Z.log2_nonneg.
+      lia.
+    -
+      assert(0<=Z.log2 (v mod two_power_nat l2)) by apply Z.log2_nonneg.
+      lia.
+  }
   exact (cont l1 v1 N1 L1, cont l2 v2 N2 L2).
 Admitted.
 
