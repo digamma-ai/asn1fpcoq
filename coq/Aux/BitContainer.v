@@ -15,7 +15,7 @@ Definition cast_cont {l1 l2 : nat} (c1: container l1) (E: l1 = l2): container l2
   | eq_refl => c1
   end.
 
-Lemma join_nonneg (l2 : nat) {v1 v2 : Z} (N1: 0 <= v1) (N2: 0 <= v2):
+Fact join_nonneg (l2 : nat) {v1 v2 : Z} (N1: 0 <= v1) (N2: 0 <= v2):
   0 <= v1 * two_power_nat l2 + v2.
 Proof.
   rewrite two_power_nat_correct.
@@ -32,7 +32,7 @@ Proof.
   apply Z.mul_nonneg_nonneg; auto.
 Qed.
 
-Lemma join_nblen
+Fact join_nblen
       {l1 l2 : nat}
       {v1 v2: Z}
       (N1: 0 <= v1) (N2: 0 <= v2)
@@ -70,7 +70,7 @@ Definition join_cont {l1 l2 : nat} (c1 : container l1) (c2 : container l2)
          (join_nblen N1 N2 L1 L2)
   end.
 
-Lemma split_div_nneg (l2 : nat) {v : Z} (N: 0<=v):
+Fact split_div_nneg (l2 : nat) {v : Z} (N: 0<=v):
   0 <= v / two_power_nat l2.
 Proof.
   rewrite two_power_nat_equiv.
@@ -78,7 +78,7 @@ Proof.
   apply Z.pow_pos_nonneg; lia.
 Qed.
 
-Lemma split_mod_nneg(l2 : nat) {v : Z} (N:0<=v):
+Fact split_mod_nneg(l2 : nat) {v : Z} (N:0<=v):
   0 <= v mod two_power_nat l2.
 Proof.
   rewrite two_power_nat_equiv.
@@ -86,7 +86,7 @@ Proof.
   apply Z.mod_pos_bound, H.
 Qed.
 
-Lemma split_div_nblen {l1 l2 : nat} {v : Z} (N:0<=v)
+Fact split_div_nblen {l1 l2 : nat} {v : Z} (N:0<=v)
       (B: (nblen v <= l1 + l2)%nat) :
   (nblen (v / two_power_nat l2) <= l1)%nat.
 Proof.
@@ -104,7 +104,7 @@ Proof.
     lia.
 Admitted.
 
-Lemma split_mod_nblen {l1 l2 : nat} {v : Z} (N:0<=v)
+Fact split_mod_nblen {l1 l2 : nat} {v : Z} (N:0<=v)
       (B: (nblen v <= l1 + l2)%nat):
   (nblen (v mod two_power_nat l2) <= l2)%nat.
 Proof.
