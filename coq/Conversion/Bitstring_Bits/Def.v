@@ -1,113 +1,310 @@
 Require Import ZArith.
 Require Import ASN1FP.Types.BitstringDef
-               ASN1FP.Aux.Bits.
+               ASN1FP.Aux.Bits ASN1FP.Aux.BitContainer ASN1FP.Aux.Tactics.
+Require Import Lia.
 
-Definition append_e (e m : Z) :=
-  join_octets e m.
+Open Scope Z.
 
-Section Short.
+Let z2n := Z.to_nat.
 
-  Variable id co t s bb ff ee e m : Z.
-  Hypothesis V : valid_short id co t s bb ff ee e m = true.
-  Let b := short id co t s bb ff ee e m V.
-
-  (* construct information octet *)
-  Let ffee := join_bits_ext 2 ff ee.
-  Let bbffee := join_bits_ext 4 bb ffee.
-  Let sbbffee := join_bits_ext 6 s bbffee.
-  Let i := join_bits_ext 7 t sbbffee.
-
-  (* join main parts by octets *)
-  Let m_olen := co - ee - 2.
-  Let e_m := join_octets_ext m_olen e m.
-
-  Lemma m_olen_correct_s :
-    olen m <= m_olen.
-  Admitted.
-
-  Let e_m_olen := co - 1.
-  Let i_e_m := join_octets_ext e_m_olen i e_m.
-
-  Lemma e_m_olen_correct_s :
-    olen e_m <= e_m_olen.
-  Admitted.
-
-  Let co_i_e_m := join_octets_ext co co i_e_m.
-
-  Lemma i_e_m_olen_correct_s :
-    olen i_e_m <= co.
-  Admitted.
-
-  Let id_co_i_e_m := join_octets_ext (co + 1) id co_i_e_m.
-
-  Lemma co_i_e_m_olen_correct_s :
-    olen co_i_e_m <= co + 1.
-  Admitted.
-
-  Definition bits_of_short_bitstring_aux :=
-    id_co_i_e_m.
-
-End Short.
-
-Section Long.
-
-  Variable id co t s bb ff ee eo e m : Z.
-  Hypothesis V : valid_long id co t s bb ff ee eo e m = true.
-  Let b := long id co t s bb ff ee eo e m V.
-
-  (* construct information octet *)
-  Let ffee := join_bits_ext 2 ff ee.
-  Let bbffee := join_bits_ext 4 bb ffee.
-  Let sbbffee := join_bits_ext 6 s bbffee.
-  Let i := join_bits_ext 7 t sbbffee.
-
-  (* join main parts by octets *)
-  Let m_olen := co - eo - 2.
-  Let e_m := join_octets_ext m_olen e m.
-
-  Lemma m_olen_correct_l :
-    olen m <= m_olen.
-  Admitted.
-
-  Let e_m_olen := co - 2.
-  Let eo_e_m := join_octets_ext e_m_olen i e_m.
-
-  Lemma e_m_olen_correct_l :
-    olen e_m <= e_m_olen.
-  Admitted.
-
-  Let eo_e_m_olen := co - 1.
-  Let i_eo_e_m := join_octets_ext eo_e_m_olen i eo_e_m.
-
-  Lemma eo_e_m_olen_correct :
-    olen eo_e_m <= eo_e_m_olen.
-  Admitted.
-
-  Let co_i_eo_e_m := join_octets_ext co co i_eo_e_m.
-
-  Lemma i_e_m_olen_correct_l :
-    olen i_eo_e_m <= co.
-  Admitted.
-
-  Let id_co_i_eo_e_m := join_octets_ext (co + 1) id co_i_eo_e_m.
-
-  Lemma co_i_e_m_olen_correct_l :
-    olen co_i_eo_e_m <= co + 1.
-  Admitted.
-
-  Definition bits_of_long_bitstring_aux :=
-    id_co_i_eo_e_m.
-
-End Long.
-
-Definition bits_of_bitstring (b : BER_bitstring) :=
+(* subject to change *)
+Definition bitstring_nblen (b : BER_bitstring) : nat :=
   match b with
-  | special val => val
-  | short id co t s bb ff ee e m x =>
-      bits_of_short_bitstring_aux id co t s bb ff ee e m
-  | long id co t s bb ff ee eo e m x =>
-      bits_of_long_bitstring_aux id co t s bb ff ee eo e m
+  | special val => nblen (Z.abs val)
+  | short _ co _ _ _ _ ee _ _ _ 
+    => (8 + (8 + (1 + (1 + (2 + (2 + (2 + (z2n (8 * (ee + 1)) + z2n (8 * (co - ee - 2))))))))))
+  | long _ co _ _ _ _ _ eo _ _ _
+    => (8 + (8 + (1 + (1 + (2 + (2 + (2 + (8 +(z2n (8 * eo) + z2n (8 * (co - eo - 2)))))))))))
   end.
+
+(*
+Lemma short_bitstring_nblen_correct {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  (8 + (8 + (1 + (1 + (2 + (2 + (2 + (z2n (8 * (ee + 1)) + z2n (8 * (co - ee - 2))))))))))%nat
+  = bitstring_nblen (short id co t s bb ff ee e m VS).
+Proof. reflexivity. Qed.
+
+Lemma long_bitstring_nblen_correct {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  (8 + (8 + (1 + (1 + (2 + (2 + (2 + (8 +(z2n (8 * eo) + z2n (8 * (co - eo - 2)))))))))))%nat
+  = bitstring_nblen (long id co t s bb ff ee eo e m VL).
+Proof. reflexivity. Qed.
+*)
+
+(*
+Definition b8_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
+  : container 8 := cont 8 v N L.
+
+Definition b2_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 2)%nat)
+  : container 2 := cont 2 v N L.
+
+Definition b1_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat)
+  : container 1 := cont 1 v N L.
+*)
+
+Ltac deVS :=
+  unfold valid_short, real_id_b in *; repeat split_andb; debool; subst.
+
+Ltac deVL :=
+  unfold valid_long, real_id_b in *; repeat split_andb; debool; subst.
+
+
+(** * id *)
+Lemma VS_id_N {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  0 <= id.
+Proof. deVS; lia. Qed.
+
+Lemma VS_id_L {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  (nblen id <= 8)%nat.
+Proof. deVS; unfold nblen; simpl; lia. Qed.
+
+Lemma VL_id_N {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  0 <= id.
+Proof. deVL; lia. Qed.
+
+Lemma VL_id_L {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  (nblen id <= 8)%nat.
+Proof. deVL; unfold nblen; simpl; lia. Qed.
+
+(** * co *)
+Lemma VS_co_N {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  0 <= co.
+Proof. deVS; lia. Qed.
+
+Lemma VS_co_L {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  (nblen co <= 8)%nat.
+Admitted.
+
+Lemma VL_co_N {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  0 <= co.
+Proof. deVL; lia. Qed.
+
+Lemma VL_co_L {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  (nblen co <= 8)%nat.
+Admitted.
+
+(** * t *)
+Lemma VS_t_N {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  0 <= t.
+Proof. deVS; lia. Qed.
+
+Lemma VS_t_L {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  (nblen t <= 1)%nat.
+Admitted.
+
+Lemma VL_t_N {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  0 <= t.
+Proof. deVL; lia. Qed.
+
+Lemma VL_t_L {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  (nblen t <= 1)%nat.
+Admitted.
+
+(** * s *)
+Lemma VS_s_N {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  0 <= s.
+Proof. deVS; lia. Qed.
+
+Lemma VS_s_L {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  (nblen s <= 1)%nat.
+Admitted.
+
+Lemma VL_s_N {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  0 <= s.
+Proof. deVL; lia. Qed.
+
+Lemma VL_s_L {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  (nblen s <= 1)%nat.
+Admitted.
+
+(** * bb *)
+Lemma VS_bb_N {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  0 <= bb.
+Proof. deVS; lia. Qed.
+
+Lemma VS_bb_L {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  (nblen bb <= 2)%nat.
+Admitted.
+
+Lemma VL_bb_N {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  0 <= bb.
+Proof. deVL; lia. Qed.
+
+Lemma VL_bb_L {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  (nblen bb <= 2)%nat.
+Admitted.
+
+(** * ff *)
+Lemma VS_ff_N {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  0 <= ff.
+Proof. deVS; lia. Qed.
+
+Lemma VS_ff_L {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  (nblen ff <= 2)%nat.
+Admitted.
+
+Lemma VL_ff_N {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  0 <= ff.
+Proof. deVL; lia. Qed.
+
+Lemma VL_ff_L {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  (nblen ff <= 2)%nat.
+Admitted.
+
+(** * ee *)
+Lemma VS_ee_N {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  0 <= ee.
+Proof. deVS; lia. Qed.
+
+Lemma VS_ee_L {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  (nblen ee <= 2)%nat.
+Admitted.
+
+Lemma VL_ee_N {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  0 <= ee.
+Proof. deVL; lia. Qed.
+
+Lemma VL_ee_L {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  (nblen ee <= 2)%nat.
+Admitted.
+
+(** * eo *)
+Lemma VL_eo_N {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  0 <= eo.
+Proof. deVL; lia. Qed.
+
+Lemma VL_eo_L {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  (nblen eo <= 8)%nat.
+Admitted.
+
+(** * e *)
+Lemma VS_e_N {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  0 <= e.
+Proof. deVS; lia. Qed.
+
+Lemma VS_e_L {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  (nblen e <= z2n (8*(ee + 1)))%nat.
+Admitted.
+
+Lemma VL_e_N {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  0 <= e.
+Proof. deVL; lia. Qed.
+
+Lemma VL_e_L {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  (nblen e <= z2n (8*eo))%nat.
+Admitted.
+
+(** * m *)
+Lemma VS_m_N {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  0 <= m.
+Proof. deVS; lia. Qed.
+
+Lemma VS_m_L {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  (nblen m <= z2n (8*(co - ee - 2)))%nat.
+Admitted.
+
+Lemma VL_m_N {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  0 <= m.
+Proof. deVL; lia. Qed.
+
+Lemma VL_m_L {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  (nblen m <= z2n (8*(co - eo - 2)))%nat.
+Admitted.
+
+Fact tmpaux1 : 0 <= 0. Proof. reflexivity. Qed.
+Fact tmpaux2 : (nblen 0 <= 17)%nat. Proof. unfold nblen. simpl. lia. Qed.
+
+Fact nblen_cont_len (v : Z) :
+  (nblen v <= nblen v)%nat.
+Proof. reflexivity. Qed.
+
+Definition cont_of_bitstring (b : BER_bitstring) : container (bitstring_nblen b) :=
+  match b with
+  | special val =>
+    let v := Z.abs val in
+    cont (nblen v) v (Z.abs_nonneg val) (nblen_cont_len v)
+  | short id co t s bb ff ee e m VS =>
+      join_cont
+        (cont 8 id (VS_id_N VS) (VS_id_L VS))
+      (join_cont
+        (cont 8 co (VS_co_N VS) (VS_co_L VS))
+      (join_cont
+        (cont 1 t (VS_t_N VS) (VS_t_L VS))
+      (join_cont
+        (cont 1 s (VS_s_N VS) (VS_s_L VS))
+      (join_cont
+        (cont 2 bb (VS_bb_N VS) (VS_bb_L VS))
+      (join_cont
+        (cont 2 ff (VS_ff_N VS) (VS_ff_L VS))
+      (join_cont
+        (cont 2 ee (VS_ee_N VS) (VS_ee_L VS))
+      (join_cont
+        (cont (z2n (8*(ee+1))) e (VS_e_N VS) (VS_e_L VS))
+      (cont (z2n (8*(co - ee - 2))) m (VS_m_N VS) (VS_m_L VS)
+      ))))))))
+  | long id co t s bb ff ee eo e m VL => 
+      join_cont
+        (cont 8 id (VL_id_N VL) (VL_id_L VL))
+      (join_cont
+        (cont 8 co (VL_co_N VL) (VL_co_L VL))
+      (join_cont
+        (cont 1 t (VL_t_N VL) (VL_t_L VL))
+      (join_cont
+        (cont 1 s (VL_s_N VL) (VL_s_L VL))
+      (join_cont
+        (cont 2 bb (VL_bb_N VL) (VL_bb_L VL))
+      (join_cont
+        (cont 2 ff (VL_ff_N VL) (VL_ff_L VL))
+      (join_cont
+        (cont 2 ee (VL_ee_N VL) (VL_ee_L VL))
+      (join_cont
+        (cont 8 eo (VL_eo_N VL) (VL_eo_L VL))
+      (join_cont
+        (cont (z2n (8*eo)) e (VL_e_N VL) (VL_e_L VL))
+      (cont (z2n (8*(co - eo - 2))) m (VL_m_N VL) (VL_m_L VL)
+      )))))))))
+  end.
+
+Definition bits_of_bitstring (b : BER_bitstring) : Z :=
+  Z_of_cont (cont_of_bitstring b).
 
 (*
 Definition bits_of_bitstring (b : BER_bitstring) : Z :=
