@@ -69,67 +69,72 @@ Definition join_cont {l1 l2 : nat} (c1 : container l1) (c2 : container l2)
          (join_nblen N1 N2 L1 L2)
   end.
 
-Definition split_cont {l1 l2: nat} (c : container (l1+l2))
-  : container l1 * container l2.
+Lemma split_div_nneg (l2 : nat) {v : Z} (N: 0<=v):
+  0 <= v / two_power_nat l2.
 Proof.
-  destruct c as [v N B].
-  remember (v mod (two_power_nat l2)) as v2.
-  remember (v / (two_power_nat l2)) as v1.
+  rewrite two_power_nat_equiv.
+  apply Z.div_pos; auto.
+  apply Z.pow_pos_nonneg; lia.
+Qed.
 
-  assert (N1 : 0 <= v1).
-  {
-    subst.
-    clear B.
-    rewrite two_power_nat_equiv.
-    apply Z.div_pos; auto.
-    apply Z.pow_pos_nonneg; lia.
-  }
+Lemma split_mod_nneg(l2 : nat) {v : Z} (N:0<=v):
+  0 <= v mod two_power_nat l2.
+Proof.
+  rewrite two_power_nat_equiv.
+  assert(0 < 2 ^ Z.of_nat l2) by (apply Z.pow_pos_nonneg; lia).
+  apply Z.mod_pos_bound, H.
+Qed.
 
-  assert (N2 : 0 <= v2).
-  {
-    subst.
-    clear N1 B.
-    rewrite two_power_nat_equiv.
-    assert(0 < 2 ^ Z.of_nat l2) by (apply Z.pow_pos_nonneg; lia).
-    apply Z.mod_pos_bound, H.
-  }
-
-  assert (L1 : (nblen v1 <= l1)%nat).
-  {
-    subst.
-    clear N2.
-    unfold nblen in *.
-    apply Nat2Z.inj_le.
-    apply Nat2Z.inj_le in B.
-    rewrite Z2Nat.id in *.
-    -
-      admit.
-    -
-      assert(0<=Z.log2 v) by apply Z.log2_nonneg.
-      lia.
-    -
-      assert(0<=Z.log2 (v / two_power_nat l2)) by apply Z.log2_nonneg.
-      lia.
-  }
-  assert (L2 : (nblen v2 <= l2)%nat).
-  {
-    subst.
-    clear L1 N1.
-    unfold nblen in *.
-    apply Nat2Z.inj_le.
-    apply Nat2Z.inj_le in B.
-    rewrite Z2Nat.id in *.
-    -
-      admit.
-    -
-      assert(0<=Z.log2 v) by apply Z.log2_nonneg.
-      lia.
-    -
-      assert(0<=Z.log2 (v mod two_power_nat l2)) by apply Z.log2_nonneg.
-      lia.
-  }
-  exact (cont l1 v1 N1 L1, cont l2 v2 N2 L2).
+Lemma split_div_nblen {l1 l2 : nat} {v : Z} (N:0<=v)
+      (B: (nblen v <= l1 + l2)%nat) :
+  (nblen (v / two_power_nat l2) <= l1)%nat.
+Proof.
+  unfold nblen in *.
+  apply Nat2Z.inj_le.
+  apply Nat2Z.inj_le in B.
+  rewrite Z2Nat.id in *.
+  -
+    admit.
+  -
+    assert(0<=Z.log2 v) by apply Z.log2_nonneg.
+    lia.
+  -
+    assert(0<=Z.log2 (v / two_power_nat l2)) by apply Z.log2_nonneg.
+    lia.
 Admitted.
+
+Lemma split_mod_nblen {l1 l2 : nat} {v : Z} (N:0<=v)
+      (B: (nblen v <= l1 + l2)%nat):
+  (nblen (v mod two_power_nat l2) <= l2)%nat.
+Proof.
+  unfold nblen in *.
+  apply Nat2Z.inj_le.
+  apply Nat2Z.inj_le in B.
+  rewrite Z2Nat.id in *.
+  -
+    admit.
+  -
+    assert(0<=Z.log2 v) by apply Z.log2_nonneg.
+    lia.
+  -
+    assert(0<=Z.log2 (v mod two_power_nat l2)) by apply Z.log2_nonneg.
+    lia.
+Admitted.
+
+Definition split_cont {l1 l2: nat} (c : container (l1+l2))
+  : container l1 * container l2 :=
+  match c with
+  | cont _ v N B =>
+    ((cont l1
+           (v / (two_power_nat l2))
+           (split_div_nneg l2 N)
+           (split_div_nblen N B)),
+     (cont l2
+           (v mod (two_power_nat l2))
+           (split_mod_nneg l2 N)
+           (split_mod_nblen N B)))
+  end.
+
 
 Lemma split_join_roundtrip {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
   split_cont (join_cont c1 c2) = (c1, c2).
