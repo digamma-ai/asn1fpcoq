@@ -10,12 +10,12 @@ Definition nblen (n : Z) : nat := Z.to_nat (Z.log2 n + 1).
 Inductive container (l : nat) :=
   cont (v : Z) (N : 0 <= v) (L : (nblen v <= l)%nat) : container l.
 
-Definition cast_cont {l1 l2 : nat} (c1: container l1) (E: l1 = l2): container l2 :=
+Definition cast_cont {l1 l2 : nat} (c1 : container l1) (E : l1 = l2) : container l2 :=
   match E in _ = p return container p with
   | eq_refl => c1
   end.
 
-Fact join_nonneg (l2 : nat) {v1 v2 : Z} (N1: 0 <= v1) (N2: 0 <= v2):
+Fact join_nneg (l2 : nat) {v1 v2 : Z} (N1 : 0 <= v1) (N2 : 0 <= v2) :
   0 <= v1 * two_power_nat l2 + v2.
 Proof.
   rewrite two_power_nat_correct.
@@ -34,8 +34,8 @@ Qed.
 
 Fact join_nblen
       {l1 l2 : nat}
-      {v1 v2: Z}
-      (N1: 0 <= v1) (N2: 0 <= v2)
+      {v1 v2 : Z}
+      (N1 : 0 <= v1) (N2 : 0 <= v2)
       (L1 : (nblen v1 <= l1)%nat)
       (L2 : (nblen v2 <= l2)%nat):
   (nblen (v1 * two_power_nat l2 + v2) <= l1 + l2)%nat.
@@ -66,11 +66,11 @@ Definition join_cont {l1 l2 : nat} (c1 : container l1) (c2 : container l2)
   | cont _ v1 N1 L1, cont _ v2 N2 L2 =>
     cont (l1 + l2)
          (v1 * two_power_nat l2 + v2)
-         (join_nonneg l2 N1 N2)
+         (join_nneg l2 N1 N2)
          (join_nblen N1 N2 L1 L2)
   end.
 
-Fact split_div_nneg (l2 : nat) {v : Z} (N: 0<=v):
+Fact split_div_nneg (l2 : nat) {v : Z} (N : 0 <= v):
   0 <= v / two_power_nat l2.
 Proof.
   rewrite two_power_nat_equiv.
@@ -78,7 +78,7 @@ Proof.
   apply Z.pow_pos_nonneg; lia.
 Qed.
 
-Fact split_mod_nneg(l2 : nat) {v : Z} (N:0<=v):
+Fact split_mod_nneg (l2 : nat) {v : Z} (N : 0 <= v) :
   0 <= v mod two_power_nat l2.
 Proof.
   rewrite two_power_nat_equiv.
@@ -86,8 +86,8 @@ Proof.
   apply Z.mod_pos_bound, H.
 Qed.
 
-Fact split_div_nblen {l1 l2 : nat} {v : Z} (N:0<=v)
-      (B: (nblen v <= l1 + l2)%nat) :
+Fact split_div_nblen {l1 l2 : nat} {v : Z} (N : 0 <= v)
+      (B : (nblen v <= l1 + l2)%nat) :
   (nblen (v / two_power_nat l2) <= l1)%nat.
 Proof.
   unfold nblen in *.
@@ -104,8 +104,8 @@ Proof.
     lia.
 Admitted.
 
-Fact split_mod_nblen {l1 l2 : nat} {v : Z} (N:0<=v)
-      (B: (nblen v <= l1 + l2)%nat):
+Fact split_mod_nblen {l1 l2 : nat} {v : Z} (N : 0 <= v)
+      (B : (nblen v <= l1 + l2)%nat) :
   (nblen (v mod two_power_nat l2) <= l2)%nat.
 Proof.
   unfold nblen in *.
@@ -152,8 +152,8 @@ Proof.
       admit.
     }
 
-    generalize (split_div_nneg l2 (join_nonneg l2 N1 N2)).
-    generalize (split_div_nblen (join_nonneg l2 N1 N2) (join_nblen N1 N2 B1 B2)).
+    generalize (split_div_nneg l2 (join_nneg l2 N1 N2)).
+    generalize (split_div_nblen (join_nneg l2 N1 N2) (join_nblen N1 N2 B1 B2)).
     intros N1' B1'.
     remember ((v1 * two_power_nat l2 + v2) / two_power_nat l2) as v1' eqn:Hv.
     rewrite E in Hv.
@@ -163,11 +163,12 @@ Proof.
     assert(E:((v1 * two_power_nat l2 + v2) mod two_power_nat l2) = v2).
     {
       rewrite two_power_nat_equiv.
+      remember (Z.of_nat l2) as zl2.
       admit.
     }
 
-    generalize (split_mod_nneg l2 (join_nonneg l2 N1 N2)).
-    generalize (split_mod_nblen (join_nonneg l2 N1 N2) (join_nblen N1 N2 B1 B2)).
+    generalize (split_mod_nneg l2 (join_nneg l2 N1 N2)).
+    generalize (split_mod_nblen (join_nneg l2 N1 N2) (join_nblen N1 N2 B1 B2)).
     intros N1' B1'.
     remember ((v1 * two_power_nat l2 + v2) mod two_power_nat l2) as v2' eqn:Hv.
     rewrite E in Hv.
