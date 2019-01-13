@@ -9,6 +9,11 @@ Definition nblen (n : Z) : nat := Z.to_nat (Z.log2 n + 1).
 Inductive container (l : nat) :=
   cont (v : Z) (N : 0 <= v) (L : (nblen v <= l)%nat) : container l.
 
+Definition cast_cont {l1 l2 : nat} (c1: container l1) (E: l1 = l2): container l2 :=
+  match E in _ = p return container p with
+  | eq_refl => c1
+  end.
+
 Lemma join_nonneg (l2 : nat) {v1 v2 : Z} (N1: 0 <= v1) (N2: 0 <= v2):
   0 <= v1 * two_power_nat l2 + v2.
 Proof.
@@ -70,11 +75,6 @@ Proof.
   intros.
   destruct c eqn:C.
 Admitted.
-
-Definition cont_cast {l1 l2 : nat} (c1 : container l1) (eq : l1 = l2) : container l2 :=
- match eq in _ = p return container p with
-   | eq_refl => c1
- end.
 
 Lemma split_join_roundtrip {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
   split_cont (join_cont c1 c2) = (c1, c2).
