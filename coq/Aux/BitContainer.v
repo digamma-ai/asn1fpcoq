@@ -4,7 +4,7 @@ Require Import Lia.
 
 Open Scope Z.
 
-Axiom nblen: Z -> nat.
+Definition nblen (n : Z) : nat := Z.to_nat (Z.log2 n + 1).
 
 Inductive container (l : nat) :=
   cont (v : Z) (N : 0 <= v) (L : (nblen v <= l)%nat) : container l.
@@ -12,7 +12,44 @@ Inductive container (l : nat) :=
 Definition join_cont {l1 l2 : nat} (c1 : container l1) (c2 : container l2)
   : container (l1 + l2).
 Proof.
+  destruct c1 as [v1 N1 L1].
+  destruct c2 as [v2 N2 L2].
+  remember (l1 + l2)%nat as l.
+  remember (v1 * (two_power_nat l2) + v2) as v.
+  assert (N : 0 <= v).
+  {
+    subst.
+    rewrite two_power_nat_correct.
+    rewrite Zpower_nat_Z.
+    remember (Z.of_nat l2) as p.
+    remember (2 ^ p) as p2.
+    assert(0 <= p2).
+    {
+      subst.
+      apply Z.pow_nonneg.
+      lia.
+    }
+    apply Z.add_nonneg_nonneg; auto.
+    apply Z.mul_nonneg_nonneg; auto.
+  }
+  assert (L : (nblen v <= l)%nat).
+  {
+    unfold nblen in *.
+    apply Nat2Z.inj_le.
+    rewrite Z2Nat.id.
+    -
+      subst.
+      rewrite two_power_nat_correct in *.
+      rewrite Zpower_nat_Z in *.
+      admit.
+    -
+      remember (Z.log2 v) as x.
+      assert(0<=x). subst;apply Z.log2_nonneg.
+      lia.
+  }
+  exact (cont l v N L).
 Admitted.
+
 
 Definition split_cont {l1 l2: nat} (c : container (l1+l2))
   : container l1 * container l2.
