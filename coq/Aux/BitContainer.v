@@ -72,8 +72,14 @@ Definition join_cont {l1 l2 : nat} (c1 : container l1) (c2 : container l2)
 Definition split_cont {l1 l2: nat} (c : container (l1+l2))
   : container l1 * container l2.
 Proof.
-  intros.
-  destruct c eqn:C.
+  destruct c as [v N B].
+  remember (v mod (two_power_nat l2)) as v2.
+  remember (v / (two_power_nat l2)) as v1.
+  assert (N1 : 0 <= v1) by admit.
+  assert (N2 : 0 <= v2) by admit.
+  assert (L1 : (nblen v1 <= l1)%nat) by admit.
+  assert (L2 : (nblen v2 <= l2)%nat) by admit.
+  exact (cont l1 v1 N1 L1, cont l2 v2 N2 L2).
 Admitted.
 
 Lemma split_join_roundtrip {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
