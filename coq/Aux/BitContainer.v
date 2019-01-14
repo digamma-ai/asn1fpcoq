@@ -3,6 +3,9 @@ Require Import ASN1FP.Aux.StructTactics ASN1FP.Aux.Bits.
 Require Import Coq.Logic.ProofIrrelevance.
 Require Import Lia.
 
+Require Import Coq.ZArith.ZArith.
+Require Import ASN1FP.Aux.Zlib.
+
 Open Scope Z.
 
 Definition nblen (n : Z) : nat := Z.to_nat (Z.log2 n + 1).
@@ -15,11 +18,17 @@ Definition cast_cont {l1 l2 : nat} (c1 : container l1) (E : l1 = l2) : container
   | eq_refl => c1
   end.
 
+Hint Rewrite
+     two_power_nat_correct
+     Zpower_nat_Z
+     two_power_nat_equiv
+     Z2Nat.id
+  : rew_Z_bits.
+
 Fact join_nneg (l2 : nat) {v1 v2 : Z} (N1 : 0 <= v1) (N2 : 0 <= v2) :
   0 <= v1 * two_power_nat l2 + v2.
 Proof.
-  rewrite two_power_nat_correct.
-  rewrite Zpower_nat_Z.
+  autorewrite with rew_Z_bits.
   remember (Z.of_nat l2) as p.
   remember (2 ^ p) as p2.
   assert(0 <= p2).
@@ -28,8 +37,7 @@ Proof.
     apply Z.pow_nonneg.
     lia.
   }
-  apply Z.add_nonneg_nonneg; auto.
-  apply Z.mul_nonneg_nonneg; auto.
+  eauto with zarith.
 Qed.
 
 Fact join_nblen
@@ -73,7 +81,7 @@ Definition join_cont {l1 l2 : nat} (c1 : container l1) (c2 : container l2)
 Fact split_div_nneg (l2 : nat) {v : Z} (N : 0 <= v):
   0 <= v / two_power_nat l2.
 Proof.
-  rewrite two_power_nat_equiv.
+  autorewrite with rew_Z_bits.
   apply Z.div_pos; auto.
   apply Z.pow_pos_nonneg; lia.
 Qed.
@@ -81,7 +89,7 @@ Qed.
 Fact split_mod_nneg (l2 : nat) {v : Z} (N : 0 <= v) :
   0 <= v mod two_power_nat l2.
 Proof.
-  rewrite two_power_nat_equiv.
+  autorewrite with rew_Z_bits.
   assert(0 < 2 ^ Z.of_nat l2) by (apply Z.pow_pos_nonneg; lia).
   apply Z.mod_pos_bound, H.
 Qed.
@@ -146,7 +154,7 @@ Proof.
   -
     assert(E:((v1 * two_power_nat l2 + v2) / two_power_nat l2) = v1).
     {
-      rewrite two_power_nat_equiv.
+      autorewrite with rew_Z_bits.
       rewrite <- Z.shiftl_mul_pow2; try lia.
       rewrite <- Z.shiftr_div_pow2; try lia.
       admit.
@@ -162,7 +170,7 @@ Proof.
   -
     assert(E:((v1 * two_power_nat l2 + v2) mod two_power_nat l2) = v2).
     {
-      rewrite two_power_nat_equiv.
+      autorewrite with rew_Z_bits.
       remember (Z.of_nat l2) as zl2.
       admit.
     }
