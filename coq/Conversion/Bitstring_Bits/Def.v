@@ -31,16 +31,56 @@ Lemma long_bitstring_nblen_correct {id co t s bb ff ee eo e m : Z}
 Proof. reflexivity. Qed.
 *)
 
-(*
-Definition b8_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
-  : container 8 := cont 8 v N L.
+Definition b1_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat)
+  : container 1 := cont 1 v N L.
 
 Definition b2_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 2)%nat)
   : container 2 := cont 2 v N L.
 
-Definition b1_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat)
-  : container 1 := cont 1 v N L.
-*)
+Definition b8_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
+  : container 8 := cont 8 v N L.
+
+
+Definition append_b1_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat)
+           {l : nat} (c : container l)
+  : container (1 + l) := join_cont (b1_cont v N L) c.
+
+Definition append_b2_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 2)%nat)
+           {l : nat} (c : container l)
+  : container (2 + l) := join_cont (b2_cont v N L) c.
+
+Definition append_b8_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
+           {l : nat} (c : container l)
+  : container (8 + l) := join_cont (b8_cont v N L) c.
+  
+
+Definition cut_b1_cont {l : nat} (c : container (1 + l))
+  : container 1 * container l := split_cont c.
+
+Definition cut_b2_cont {l : nat} (c : container (2 + l))
+  : container 2 * container l := split_cont c.
+
+Definition cut_b8_cont {l : nat} (c : container (8 + l))
+  : container 8 * container l := split_cont c.
+
+
+(* these might or might not be useful *)
+Definition cut_append_b1 (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat)
+           {l : nat} (c : container l) :
+  cut_b1_cont (append_b1_cont v N L c) = (b1_cont v N L, c).
+Proof. apply split_join_roundtrip. Qed.
+
+Definition cut_append_b2 (v : Z) (N : 0 <= v) (L : (nblen v <= 2)%nat)
+           {l : nat} (c : container l) :
+  cut_b2_cont (append_b2_cont v N L c) = (b2_cont v N L, c).
+Proof. apply split_join_roundtrip. Qed.
+
+Definition cut_append_b8 (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
+           {l : nat} (c : container l) :
+  cut_b8_cont (append_b8_cont v N L c) = (b8_cont v N L, c).
+Proof. apply split_join_roundtrip. Qed.
+  
+
 
 Ltac deVS :=
   unfold valid_short, real_id_b in *; repeat split_andb; debool; subst.
@@ -263,40 +303,40 @@ Definition cont_of_bitstring (b : BER_bitstring) : container (bitstring_nblen b)
     cont (nblen v) v (Z.abs_nonneg val) (nblen_cont_len v)
   | short id co t s bb ff ee e m VS =>
       join_cont
-        (cont 8 id (VS_id_N VS) (VS_id_L VS))
+        (b8_cont id (VS_id_N VS) (VS_id_L VS))
       (join_cont
-        (cont 8 co (VS_co_N VS) (VS_co_L VS))
+        (b8_cont co (VS_co_N VS) (VS_co_L VS))
       (join_cont
-        (cont 1 t (VS_t_N VS) (VS_t_L VS))
+        (b1_cont t (VS_t_N VS) (VS_t_L VS))
       (join_cont
-        (cont 1 s (VS_s_N VS) (VS_s_L VS))
+        (b1_cont s (VS_s_N VS) (VS_s_L VS))
       (join_cont
-        (cont 2 bb (VS_bb_N VS) (VS_bb_L VS))
+        (b2_cont bb (VS_bb_N VS) (VS_bb_L VS))
       (join_cont
-        (cont 2 ff (VS_ff_N VS) (VS_ff_L VS))
+        (b2_cont ff (VS_ff_N VS) (VS_ff_L VS))
       (join_cont
-        (cont 2 ee (VS_ee_N VS) (VS_ee_L VS))
+        (b2_cont ee (VS_ee_N VS) (VS_ee_L VS))
       (join_cont
         (cont (z2n (8*(ee+1))) e (VS_e_N VS) (VS_e_L VS))
       (cont (z2n (8*(co - ee - 2))) m (VS_m_N VS) (VS_m_L VS)
       ))))))))
   | long id co t s bb ff ee eo e m VL => 
       join_cont
-        (cont 8 id (VL_id_N VL) (VL_id_L VL))
+        (b8_cont id (VL_id_N VL) (VL_id_L VL))
       (join_cont
-        (cont 8 co (VL_co_N VL) (VL_co_L VL))
+        (b8_cont co (VL_co_N VL) (VL_co_L VL))
       (join_cont
-        (cont 1 t (VL_t_N VL) (VL_t_L VL))
+        (b1_cont t (VL_t_N VL) (VL_t_L VL))
       (join_cont
-        (cont 1 s (VL_s_N VL) (VL_s_L VL))
+        (b1_cont s (VL_s_N VL) (VL_s_L VL))
       (join_cont
-        (cont 2 bb (VL_bb_N VL) (VL_bb_L VL))
+        (b2_cont bb (VL_bb_N VL) (VL_bb_L VL))
       (join_cont
-        (cont 2 ff (VL_ff_N VL) (VL_ff_L VL))
+        (b2_cont ff (VL_ff_N VL) (VL_ff_L VL))
       (join_cont
-        (cont 2 ee (VL_ee_N VL) (VL_ee_L VL))
+        (b2_cont ee (VL_ee_N VL) (VL_ee_L VL))
       (join_cont
-        (cont 8 eo (VL_eo_N VL) (VL_eo_L VL))
+        (b8_cont eo (VL_eo_N VL) (VL_eo_L VL))
       (join_cont
         (cont (z2n (8*eo)) e (VL_e_N VL) (VL_e_L VL))
       (cont (z2n (8*(co - eo - 2))) m (VL_m_N VL) (VL_m_L VL)
@@ -306,52 +346,21 @@ Definition cont_of_bitstring (b : BER_bitstring) : container (bitstring_nblen b)
 Definition bits_of_bitstring (b : BER_bitstring) : Z :=
   Z_of_cont (cont_of_bitstring b).
 
-(*
-Definition bits_of_bitstring (b : BER_bitstring) : Z :=
-  match b with
-  | special val =>
-    match classify_BER val with
-    | Some pzero => pzero_b
-    | Some nzero => nzero_b
-    | Some pinf => pinf_b
-    | Some ninf => ninf_b
-    | Some nan => nan_b
-    | None => -1
-    end
 
-  | short id content_olen type sign base scaling exp_olen_b exponent significand _ =>
-    let em_olen := content_olen - 1 in
-    let em_blen := 8*em_olen in
-    join_octets_ext (content_olen + 1) id
-      (join_octets_ext content_olen content_olen
+Definition BER_blen (b : Z) : nat :=
+  let l := nblen b in
+  l + (l mod 8)%nat.
 
-        (join_bits_ext (em_blen + 7) type
-          (join_bits_ext (em_blen + 6) sign
-            (join_bits_ext (em_blen + 4) base
-              (join_bits_ext (em_blen + 2) scaling
+Fact BER_blen_correct (b : Z) :
+  (nblen b <= BER_blen b)%nat.
+Proof. unfold BER_blen; lia. Qed.
 
-                (join_octets_ext em_olen exp_olen_b
-                  (join_octets_ext (em_olen - exp_olen_b - 1) exponent
-                    significand)))))))
-
-
-  | long id content_olen type sign base scaling lexp exp_olen_o exponent significand _ =>
-    let em_olen := content_olen - 2 in
-    let lem_blen := 8*(em_olen+1) in
-    join_octets_ext (content_olen + 1) id
-      (join_octets_ext content_olen content_olen
-
-        (join_bits_ext (lem_blen + 7) type
-          (join_bits_ext (lem_blen + 6) sign
-            (join_bits_ext (lem_blen + 4) base
-              (join_bits_ext (lem_blen + 2) scaling
-                (join_octets_ext (em_olen + 1) lexp
-
-                  (join_octets_ext em_olen exp_olen_o
-                    (join_octets_ext (em_olen - exp_olen_o) exponent
-                      significand))))))))
+Definition cont_of_BER_bits (b : Z) : option (container (BER_blen b)) :=
+  match (Z_gt_le_dec 0 b) with
+  | left _ => None
+  | right N => Some (cont (BER_blen b) b N (BER_blen_correct b))
   end.
-*)
+
 
 Definition bitstring_of_bits (b : Z) : option BER_bitstring :=
   match classify_BER b with
