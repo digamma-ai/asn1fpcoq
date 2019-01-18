@@ -9,33 +9,6 @@ Let z2n := Z.to_nat.
 
 (* subject to change *)
 
-Definition bitstring_info_nblen (b : BER_bitstring) : nat :=
-  match b with
-  | special val => nblen (Z.abs val)
-  | short _ co _ _ _ _ ee _ _ _ 
-    => 24 (*(8 + (8 + (1 + (1 + (2 + (2 + 2))))))*)
-  | long _ co _ _ _ _ _ eo _ _ _
-    => 32 (*(8 + (8 + (1 + (1 + (2 + (2 + (2 + 8)))))))*)
-  end.
-  
-Definition bitstring_content_nblen (b : BER_bitstring) : nat :=
-  match b with
-  | special val => nblen (Z.abs val)
-  | short _ co _ _ _ _ ee _ _ _ 
-    => (z2n (8 * (ee + 1)) + z2n (8 * (co - ee - 2)))
-  | long _ co _ _ _ _ _ eo _ _ _
-    => (z2n (8 * eo) + z2n (8 * (co - eo - 2)))
-  end.
-
-Definition bitstring_nblen (b : BER_bitstring) : nat :=
-  match b with
-  | special val => nblen (Z.abs val)
-  | short _ co _ _ _ _ ee _ _ _ 
-    => bitstring_info_nblen b + bitstring_content_nblen b
-  | long _ co _ _ _ _ _ eo _ _ _
-    => bitstring_info_nblen b + bitstring_content_nblen b
-  end.
-
 (* create containers for commong lengths *)
 Definition b1_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat)
   : container 1 := cont 1 v N L.
@@ -302,13 +275,35 @@ Fact nblen_cont_len (v : Z) :
   (nblen v <= nblen v)%nat.
 Proof. reflexivity. Qed.
 
+Definition bitstring_info_nblen (b : BER_bitstring) : nat :=
+  match b with
+  | special val => nblen (Z.abs val)
+  | _ => 24
+  end.
+  
+Definition bitstring_content_nblen (b : BER_bitstring) : nat :=
+  match b with
+  | special val => nblen (Z.abs val)
+  | short _ co _ _ _ _ ee _ _ _ 
+    => (z2n (8 * (ee + 1)) + z2n (8 * (co - ee - 2)))
+  | long _ co _ _ _ _ _ eo _ _ _
+    => 8 + (z2n (8 * eo) + z2n (8 * (co - eo - 2)))
+  end.
+
+Definition bitstring_nblen (b : BER_bitstring) : nat :=
+  match b with
+  | special val => nblen (Z.abs val)
+  | short _ co _ _ _ _ ee _ _ _ 
+    => bitstring_info_nblen b + bitstring_content_nblen b
+  | long _ co _ _ _ _ _ eo _ _ _
+    => bitstring_info_nblen b + bitstring_content_nblen b
+  end.
+
 Definition info_cont (b : BER_bitstring) : container (bitstring_info_nblen b) :=
   match b with
   | special val => 
     let v := Z.abs val in
     cont (nblen v) v (Z.abs_nonneg val) (nblen_cont_len v)
-
-
   | short id co t s bb ff ee e m VS =>
        append_b8_cont id (VS_id_N VS) (VS_id_L VS)
       (append_b8_cont co (VS_co_N VS) (VS_co_L VS)
@@ -325,9 +320,8 @@ Definition info_cont (b : BER_bitstring) : container (bitstring_info_nblen b) :=
       (append_b1_cont s  (VL_s_N VL)  (VL_s_L VL)
       (append_b2_cont bb (VL_bb_N VL) (VL_bb_L VL)
       (append_b2_cont ff (VL_ff_N VL) (VL_ff_L VL)
-      (append_b2_cont ee (VL_ee_N VL) (VL_ee_L VL)
-      (       b8_cont eo (VL_eo_N VL) (VL_eo_L VL)
-      )))))))
+      (       b2_cont ee (VL_ee_N VL) (VL_ee_L VL)
+      ))))))
   end.
   
 Definition append_info {l : nat} (b : BER_bitstring) (c : container l) :=
@@ -342,6 +336,7 @@ Definition mk_content (b : BER_bitstring) : container (bitstring_content_nblen b
       (join_cont (cont (z2n (8*(ee+1))) e (VS_e_N VS) (VS_e_L VS))
       (cont (z2n (8*(co - ee - 2))) m (VS_m_N VS) (VS_m_L VS)))
   | long id co t s bb ff ee eo e m VL => 
+      append_b8_cont eo (VL_eo_N VL) (VL_eo_L VL)
       (join_cont (cont (z2n (8*eo)) e (VL_e_N VL) (VL_e_L VL))
       (cont (z2n (8*(co - eo - 2))) m (VL_m_N VL) (VL_m_L VL)))
   end.
