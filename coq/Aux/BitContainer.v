@@ -58,6 +58,7 @@ Proof.
     rewrite Z2Nat.id in L2.
     +
       rewrite Z.add_1_r in *.
+      autorewrite with rew_Z_bits in *.
       admit.
     +
       assert(0<=Z.log2 v2) by apply Z.log2_nonneg; lia.
