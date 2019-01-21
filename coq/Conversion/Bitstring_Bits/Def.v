@@ -1,6 +1,6 @@
 Require Import ZArith.
 Require Import ASN1FP.Types.BitstringDef
-               ASN1FP.Aux.Bits ASN1FP.Aux.BitContainer ASN1FP.Aux.Tactics.
+               ASN1FP.Aux.Bits ASN1FP.Aux.BitContainer ASN1FP.Aux.Tactics ASN1FP.Aux.StructTactics.
 Require Import Lia.
 
 Open Scope Z.
@@ -8,16 +8,43 @@ Open Scope Z.
 Let z2n := Z.to_nat.
 
 (* subject to change *)
+Inductive BER_nbs :=
+| short_nbs (id co t s bb ff ee e m : Z) :
+    valid_short id co t s bb ff ee e m = true -> BER_nbs
+| long_nbs (id co t s bb ff ee eo e m : Z) :
+    valid_long id co t s bb ff ee eo e m = true -> BER_nbs.
+
+Inductive BER_bs_aux :=
+| special_aux (val : Z) : BER_bs_aux
+| normal_aux (b : BER_nbs) : BER_bs_aux.
+
+Definition bitstring_of_bsaux (b : BER_bs_aux) : BER_bitstring :=
+  match b with
+  | special_aux val => special val
+  | normal_aux b => match b with
+                   | short_nbs id co t s bb ff ee e m VS => short id co t s bb ff ee e m VS
+                   | long_nbs id co t s bb ff ee eo e m VL => long id co t s bb ff ee eo e m VL
+                   end
+  end.
+
+Definition bsaux_of_bitstring (b : BER_bitstring) : BER_bs_aux :=
+  match b with
+  | special val => special_aux val
+  | short id co t s bb ff ee e m VS => normal_aux (short_nbs id co t s bb ff ee e m VS)
+  | long id co t s bb ff ee eo e m VL => normal_aux (long_nbs id co t s bb ff ee eo e m VL)
+  end.
+
+Definition cont1 := container 1.
+Definition cont2 := container 2.
+Definition cont8 := container 8.
 
 (* create containers for commong lengths *)
-Definition b1_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat)
-  : container 1 := cont 1 v N L.
-
-Definition b2_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 2)%nat)
-  : container 2 := cont 2 v N L.
-
-Definition b8_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
-  : container 8 := cont 8 v N L.
+Definition b1_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat) : cont1
+  := cont 1 v N L.
+Definition b2_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 2)%nat) : cont2
+  := cont 2 v N L.
+Definition b8_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat) : cont8
+  := cont 8 v N L.
 
 (* create and append containers of common lengths *)
 Definition append_b1_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat)
@@ -34,13 +61,13 @@ Definition append_b8_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
   
 (* cut containers of common lengths (from left *)
 Definition cut_b1_cont {l : nat} (c : container (1 + l))
-  : container 1 * container l := split_cont c.
+  : cont1 * container l := split_cont c.
 
 Definition cut_b2_cont {l : nat} (c : container (2 + l))
-  : container 2 * container l := split_cont c.
+  : cont2 * container l := split_cont c.
 
 Definition cut_b8_cont {l : nat} (c : container (8 + l))
-  : container 8 * container l := split_cont c.
+  : cont8 * container l := split_cont c.
 
 
 (* these might or might not be useful *)
@@ -268,92 +295,155 @@ Lemma VL_m_L {id co t s bb ff ee eo e m : Z}
   (nblen m <= z2n (8*(co - eo - 2)))%nat.
 Admitted.
 
-Fact tmpaux1 : 0 <= 0. Proof. reflexivity. Qed.
-Fact tmpaux2 : (nblen 0 <= 17)%nat. Proof. unfold nblen. simpl. lia. Qed.
+Section normal.
 
-Fact nblen_cont_len (v : Z) :
-  (nblen v <= nblen v)%nat.
-Proof. reflexivity. Qed.
+  Let info_nblen := 24%nat.
+    
+  (* joining *)
 
-Definition bitstring_info_nblen (b : BER_bitstring) : nat :=
-  match b with
-  | special val => nblen (Z.abs val)
-  | _ => 24
-  end.
+  Definition content_nblen (b : BER_nbs) : nat :=
+    match b with
+    | short_nbs _ co _ _ _ _ ee _ _ _ 
+      => (z2n (8 * (ee + 1)) + z2n (8 * (co - ee - 2)))
+    | long_nbs _ co _ _ _ _ _ eo _ _ _
+      => 8 + (z2n (8 * eo) + z2n (8 * (co - eo - 2)))
+    end.
   
-Definition bitstring_content_nblen (b : BER_bitstring) : nat :=
-  match b with
-  | special val => nblen (Z.abs val)
-  | short _ co _ _ _ _ ee _ _ _ 
-    => (z2n (8 * (ee + 1)) + z2n (8 * (co - ee - 2)))
-  | long _ co _ _ _ _ _ eo _ _ _
-    => 8 + (z2n (8 * eo) + z2n (8 * (co - eo - 2)))
-  end.
-
-Definition bitstring_nblen (b : BER_bitstring) : nat :=
-  match b with
-  | special val => nblen (Z.abs val)
-  | short _ co _ _ _ _ ee _ _ _ 
-    => bitstring_info_nblen b + bitstring_content_nblen b
-  | long _ co _ _ _ _ _ eo _ _ _
-    => bitstring_info_nblen b + bitstring_content_nblen b
-  end.
-
-Definition info_cont (b : BER_bitstring) : container (bitstring_info_nblen b) :=
-  match b with
-  | special val => 
-    let v := Z.abs val in
-    cont (nblen v) v (Z.abs_nonneg val) (nblen_cont_len v)
-  | short id co t s bb ff ee e m VS =>
-       append_b8_cont id (VS_id_N VS) (VS_id_L VS)
-      (append_b8_cont co (VS_co_N VS) (VS_co_L VS)
-      (append_b1_cont t  (VS_t_N VS)  (VS_t_L VS)
-      (append_b1_cont s  (VS_s_N VS)  (VS_s_L VS)
-      (append_b2_cont bb (VS_bb_N VS) (VS_bb_L VS)
-      (append_b2_cont ff (VS_ff_N VS) (VS_ff_L VS)
-      (       b2_cont ee (VS_ee_N VS) (VS_ee_L VS)
-       ))))))
-  | long id co t s bb ff ee eo e m VL => 
-       append_b8_cont id (VL_id_N VL) (VL_id_L VL)
-      (append_b8_cont co (VL_co_N VL) (VL_co_L VL)
-      (append_b1_cont t  (VL_t_N VL)  (VL_t_L VL)
-      (append_b1_cont s  (VL_s_N VL)  (VL_s_L VL)
-      (append_b2_cont bb (VL_bb_N VL) (VL_bb_L VL)
-      (append_b2_cont ff (VL_ff_N VL) (VL_ff_L VL)
-      (       b2_cont ee (VL_ee_N VL) (VL_ee_L VL)
-      ))))))
-  end.
+  Definition nbs_nblen (b : BER_nbs) : nat :=
+    match b with
+    | short_nbs _ co _ _ _ _ ee _ _ _ 
+      => info_nblen + content_nblen b
+    | long_nbs _ co _ _ _ _ _ eo _ _ _
+      => info_nblen + content_nblen b
+    end.
   
-Definition append_info {l : nat} (b : BER_bitstring) (c : container l) :=
-  join_cont (info_cont b) c.
+  Definition mk_info (b : BER_nbs) : container info_nblen :=
+    match b with
+    | short_nbs id co t s bb ff ee e m VS =>
+         append_b8_cont id (VS_id_N VS) (VS_id_L VS)
+        (append_b8_cont co (VS_co_N VS) (VS_co_L VS)
+        (append_b1_cont t  (VS_t_N VS)  (VS_t_L VS)
+        (append_b1_cont s  (VS_s_N VS)  (VS_s_L VS)
+        (append_b2_cont bb (VS_bb_N VS) (VS_bb_L VS)
+        (append_b2_cont ff (VS_ff_N VS) (VS_ff_L VS)
+        (       b2_cont ee (VS_ee_N VS) (VS_ee_L VS)
+         ))))))
+    | long_nbs id co t s bb ff ee eo e m VL => 
+         append_b8_cont id (VL_id_N VL) (VL_id_L VL)
+        (append_b8_cont co (VL_co_N VL) (VL_co_L VL)
+        (append_b1_cont t  (VL_t_N VL)  (VL_t_L VL)
+        (append_b1_cont s  (VL_s_N VL)  (VL_s_L VL)
+        (append_b2_cont bb (VL_bb_N VL) (VL_bb_L VL)
+        (append_b2_cont ff (VL_ff_N VL) (VL_ff_L VL)
+        (       b2_cont ee (VL_ee_N VL) (VL_ee_L VL)
+        ))))))
+    end.
+    
+  Definition append_info {l : nat} (b : BER_nbs) (c : container l) :=
+    join_cont (mk_info b) c.
+  
+  Definition mk_content (b : BER_nbs) : container (content_nblen b) :=
+    match b with
+    | short_nbs id co t s bb ff ee e m VS =>
+        (join_cont (cont (z2n (8*(ee+1))) e (VS_e_N VS) (VS_e_L VS))
+        (cont (z2n (8*(co - ee - 2))) m (VS_m_N VS) (VS_m_L VS)))
+    | long_nbs id co t s bb ff ee eo e m VL => 
+        append_b8_cont eo (VL_eo_N VL) (VL_eo_L VL)
+        (join_cont (cont (z2n (8*eo)) e (VL_e_N VL) (VL_e_L VL))
+        (cont (z2n (8*(co - eo - 2))) m (VL_m_N VL) (VL_m_L VL)))
+    end.
+  
+  Program Definition cont_of_nbs (b : BER_nbs) : container (nbs_nblen b) :=
+   match b with
+    | short_nbs _ _ _ _ _ _ _ _ _ _ =>
+        append_info b (mk_content b)
+    | long_nbs _ _ _ _ _ _ _ _ _ _ _=> 
+        append_info b (mk_content b)
+    end.
+  
+  Definition bits_of_nbs (b : BER_nbs) : Z :=
+  Z_of_cont (cont_of_nbs b).
 
-Definition mk_content (b : BER_bitstring) : container (bitstring_content_nblen b) :=
-  match b with
-  | special val =>
-    let v := Z.abs val in
-    cont (nblen v) v (Z.abs_nonneg val) (nblen_cont_len v)
-  | short id co t s bb ff ee e m VS =>
-      (join_cont (cont (z2n (8*(ee+1))) e (VS_e_N VS) (VS_e_L VS))
-      (cont (z2n (8*(co - ee - 2))) m (VS_m_N VS) (VS_m_L VS)))
-  | long id co t s bb ff ee eo e m VL => 
-      append_b8_cont eo (VL_eo_N VL) (VL_eo_L VL)
-      (join_cont (cont (z2n (8*eo)) e (VL_e_N VL) (VL_e_L VL))
-      (cont (z2n (8*(co - eo - 2))) m (VL_m_N VL) (VL_m_L VL)))
-  end.
+  (* splitting *)
 
-Program Definition cont_of_bitstring (b : BER_bitstring) : container (bitstring_nblen b) :=
- match b with
-  | special val =>
-    let v := Z.abs val in
-    cont (nblen v) v (Z.abs_nonneg val) (nblen_cont_len v)
-  | short _ _ _ _ _ _ _ _ _ _ =>
-      append_info b (mk_content b)
-  | long _ _ _ _ _ _ _ _ _ _ _=> 
-      append_info b (mk_content b)
-  end.
+  Definition cut_info {l : nat} (c : container (info_nblen + l)) :
+    (container info_nblen * container l) :=
+  split_cont c.
 
-Definition bits_of_bitstring (b : BER_bitstring) : Z :=
-  Z_of_cont (cont_of_bitstring b).
+  Definition split_info (c : container info_nblen) :
+    (cont8 * cont8 * cont1 * cont1 * cont2 * cont2 * cont2) :=
+    let '(id, c) := cut_b8_cont c in
+    let '(co, c) := cut_b8_cont c in
+    let '(t,  c) := cut_b1_cont c in
+    let '(s,  c) := cut_b1_cont c in
+    let '(bb, c) := cut_b2_cont c in
+    let '(ff, ee) := cut_b2_cont c in
+    (id, co, t, s, bb, ff, ee).
+
+  Definition e_blen_of_long_content {l : nat} (c : container (8 + l)) : nat :=
+    z2n (Z_of_cont (fst (cut_b8_cont c))).
+
+  Definition split_me (el ml : nat) (me : container (el + ml)) :=
+    split_cont me.
+
+  (*
+  Definition split_long_content  {l : nat} (c : container (8 + l)) :=
+                         let '(eo, em) := cut_b8_cont c in
+                         let eon := z2n (Z_of_cont eo) in
+                         match (Nat.eq_dec l (eon + (l - eon))) with
+                         | right _ => None
+                         | left H => split_cont (cast_cont em H)
+                         end.
+  *)
+                       
+  Lemma split_mk_info (b : BER_nbs) :
+    match b with
+    | short_nbs id co t s bb ff ee e m VS =>
+      split_info (mk_info b) =
+        (b8_cont id (VS_id_N VS) (VS_id_L VS),
+         b8_cont co (VS_co_N VS) (VS_co_L VS),
+         b1_cont t  (VS_t_N  VS) (VS_t_L  VS),
+         b1_cont s  (VS_s_N  VS) (VS_s_L  VS),
+         b2_cont bb (VS_bb_N VS) (VS_bb_L VS),
+         b2_cont ff (VS_ff_N VS) (VS_ff_L VS),
+         b2_cont ee (VS_ee_N VS) (VS_ee_L VS))
+    | long_nbs id co t s bb ff ee eo e m VL =>
+      split_info (mk_info b) =
+        (b8_cont id (VL_id_N VL) (VL_id_L VL),
+         b8_cont co (VL_co_N VL) (VL_co_L VL),
+         b1_cont t  (VL_t_N  VL) (VL_t_L  VL),
+         b1_cont s  (VL_s_N  VL) (VL_s_L  VL),
+         b2_cont bb (VL_bb_N VL) (VL_bb_L VL),
+         b2_cont ff (VL_ff_N VL) (VL_ff_L VL),
+         b2_cont ee (VL_ee_N VL) (VL_ee_L VL))
+    end.
+  Proof.
+    unfold split_info, mk_info.
+    repeat break_match;
+    rewrite cut_append_b8 in Heqp; tuple_inversion.
+    rewrite cut_append_b8 in Heqp0; tuple_inversion.
+    rewrite cut_append_b1 in Heqp1; tuple_inversion.
+    rewrite cut_append_b1 in Heqp2; tuple_inversion.
+    rewrite cut_append_b2 in Heqp3; tuple_inversion.
+    rewrite cut_append_b2 in Heqp4; tuple_inversion.
+    reflexivity.
+    rewrite cut_append_b8 in Heqp0; tuple_inversion.
+    rewrite cut_append_b1 in Heqp1; tuple_inversion.
+    rewrite cut_append_b1 in Heqp2; tuple_inversion.
+    rewrite cut_append_b2 in Heqp3; tuple_inversion.
+    rewrite cut_append_b2 in Heqp4; tuple_inversion.
+    reflexivity.
+  Qed.
+
+  (*
+  Lemma split_mk_content (b : BER_nbs) :
+  *)
+
+End normal.
+
+Section special.
+  
+End special.
 
 Definition BER_blen (b : Z) : nat :=
   let l := nblen b in
@@ -369,6 +459,12 @@ Definition cont_of_BER_bits (b : Z) : option (container (BER_blen b)) :=
   | right N => Some (cont (BER_blen b) b N (BER_blen_correct b))
   end.
 
+(*
+Lemma cut_append_info {l : nat} (b : BER_bitstring) (c : container l) :
+    cut_info (append_info b c) = (mk_info b, c).
+
+Definition cut_id {l : nat} (c : container (8 + l)) :=
+*)
 
 Definition bitstring_of_bits (b : Z) : option BER_bitstring :=
   match classify_BER b with
@@ -400,3 +496,6 @@ Definition bitstring_of_bits (b : Z) : option BER_bitstring :=
           | left V => Some (short id co t s bb ff ee exp signif V)
         end
     end.
+
+Definition bits_of_bitstring (b : BER_bitstring) : Z.
+Admitted.
