@@ -5,34 +5,7 @@ Require Import Lia.
 
 Open Scope Z.
 
-Let z2n := Z.to_nat.
-
-(* subject to change *)
-Inductive BER_nbs :=
-| short_nbs (id co t s bb ff ee e m : Z) :
-    valid_short id co t s bb ff ee e m = true -> BER_nbs
-| long_nbs (id co t s bb ff ee eo e m : Z) :
-    valid_long id co t s bb ff ee eo e m = true -> BER_nbs.
-
-Inductive BER_bs_aux :=
-| special_aux (val : Z) : BER_bs_aux
-| normal_aux (b : BER_nbs) : BER_bs_aux.
-
-Definition bitstring_of_bsaux (b : BER_bs_aux) : BER_bitstring :=
-  match b with
-  | special_aux val => special val
-  | normal_aux b => match b with
-                   | short_nbs id co t s bb ff ee e m VS => short id co t s bb ff ee e m VS
-                   | long_nbs id co t s bb ff ee eo e m VL => long id co t s bb ff ee eo e m VL
-                   end
-  end.
-
-Definition bsaux_of_bitstring (b : BER_bitstring) : BER_bs_aux :=
-  match b with
-  | special val => special_aux val
-  | short id co t s bb ff ee e m VS => normal_aux (short_nbs id co t s bb ff ee e m VS)
-  | long id co t s bb ff ee eo e m VL => normal_aux (long_nbs id co t s bb ff ee eo e m VL)
-  end.
+(* TODO: restructure *)
 
 Definition cont1 := container 1.
 Definition cont2 := container 2.
@@ -69,7 +42,6 @@ Definition cut_b2_cont {l : nat} (c : container (2 + l))
 Definition cut_b8_cont {l : nat} (c : container (8 + l))
   : cont8 * container l := split_cont c.
 
-
 (* these might or might not be useful *)
 Definition cut_append_b1 (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat)
            {l : nat} (c : container l) :
@@ -85,215 +57,242 @@ Definition cut_append_b8 (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
            {l : nat} (c : container l) :
   cut_b8_cont (append_b8_cont v N L c) = (b8_cont v N L, c).
 Proof. apply split_join_roundtrip. Qed.
+
+Section outer_sec.
+
+  Let z2n := Z.to_nat.
+  Let c2z {l : nat} (c : container l) := Z_of_cont c.
+  Let c2n {l : nat} (c : container l) := z2n (c2z c).
+
+  Inductive BER_nbs :=
+  | short_nbs
+      (id co : cont8)
+      (t s : cont1) (bb ff ee : cont2)
+      (e : container (8*((c2n ee) + 1))) (m : container (8*((c2n co) - (c2n ee) - 2)))
+      (VS1 : c2z id = real_id_b) (VS2 : c2z t = 1) (VS3 : c2z ee <= 2) (VS4 : 1 <= c2z m)
+  | long_nbs
+      (id co : cont8)
+      (t s : cont1) (bb ff ee : cont2)
+      (eo : cont8)
+      (e : container (8*(c2n eo))) (m : container (8*((c2n co) - (c2n eo) - 2)))
+      (VL1 : c2z id = real_id_b) (VL2 : c2z t = 1) (VL3 : c2z ee = 3) (VL4 : 1 <= c2z m).
   
+  Inductive BER_bs_aux :=
+  | special_aux (val : Z) : BER_bs_aux
+  | normal_aux (b : BER_nbs) : BER_bs_aux.
 
-
-Ltac deVS :=
-  unfold valid_short, real_id_b in *; repeat split_andb; debool; subst.
-
-Ltac deVL :=
-  unfold valid_long, real_id_b in *; repeat split_andb; debool; subst.
-
-
-(** * id *)
-Lemma VS_id_N {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  0 <= id.
-Proof. deVS; lia. Qed.
-
-Lemma VS_id_L {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  (nblen id <= 8)%nat.
-Proof. deVS; unfold nblen; simpl; lia. Qed.
-
-Lemma VL_id_N {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  0 <= id.
-Proof. deVL; lia. Qed.
-
-Lemma VL_id_L {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  (nblen id <= 8)%nat.
-Proof. deVL; unfold nblen; simpl; lia. Qed.
-
-(** * co *)
-Lemma VS_co_N {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  0 <= co.
-Proof. deVS; lia. Qed.
-
-Lemma VS_co_L {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  (nblen co <= 8)%nat.
-Admitted.
-
-Lemma VL_co_N {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  0 <= co.
-Proof. deVL; lia. Qed.
-
-Lemma VL_co_L {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  (nblen co <= 8)%nat.
-Admitted.
-
-(** * t *)
-Lemma VS_t_N {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  0 <= t.
-Proof. deVS; lia. Qed.
-
-Lemma VS_t_L {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  (nblen t <= 1)%nat.
-Admitted.
-
-Lemma VL_t_N {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  0 <= t.
-Proof. deVL; lia. Qed.
-
-Lemma VL_t_L {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  (nblen t <= 1)%nat.
-Admitted.
-
-(** * s *)
-Lemma VS_s_N {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  0 <= s.
-Proof. deVS; lia. Qed.
-
-Lemma VS_s_L {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  (nblen s <= 1)%nat.
-Admitted.
-
-Lemma VL_s_N {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  0 <= s.
-Proof. deVL; lia. Qed.
-
-Lemma VL_s_L {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  (nblen s <= 1)%nat.
-Admitted.
-
-(** * bb *)
-Lemma VS_bb_N {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  0 <= bb.
-Proof. deVS; lia. Qed.
-
-Lemma VS_bb_L {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  (nblen bb <= 2)%nat.
-Admitted.
-
-Lemma VL_bb_N {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  0 <= bb.
-Proof. deVL; lia. Qed.
-
-Lemma VL_bb_L {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  (nblen bb <= 2)%nat.
-Admitted.
-
-(** * ff *)
-Lemma VS_ff_N {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  0 <= ff.
-Proof. deVS; lia. Qed.
-
-Lemma VS_ff_L {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  (nblen ff <= 2)%nat.
-Admitted.
-
-Lemma VL_ff_N {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  0 <= ff.
-Proof. deVL; lia. Qed.
-
-Lemma VL_ff_L {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  (nblen ff <= 2)%nat.
-Admitted.
-
-(** * ee *)
-Lemma VS_ee_N {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  0 <= ee.
-Proof. deVS; lia. Qed.
-
-Lemma VS_ee_L {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  (nblen ee <= 2)%nat.
-Admitted.
-
-Lemma VL_ee_N {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  0 <= ee.
-Proof. deVL; lia. Qed.
-
-Lemma VL_ee_L {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  (nblen ee <= 2)%nat.
-Admitted.
-
-(** * eo *)
-Lemma VL_eo_N {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  0 <= eo.
-Proof. deVL; lia. Qed.
-
-Lemma VL_eo_L {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  (nblen eo <= 8)%nat.
-Admitted.
-
-(** * e *)
-Lemma VS_e_N {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  0 <= e.
-Proof. deVS; lia. Qed.
-
-Lemma VS_e_L {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  (nblen e <= z2n (8*(ee + 1)))%nat.
-Admitted.
-
-Lemma VL_e_N {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  0 <= e.
-Proof. deVL; lia. Qed.
-
-Lemma VL_e_L {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  (nblen e <= z2n (8*eo))%nat.
-Admitted.
-
-(** * m *)
-Lemma VS_m_N {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  0 <= m.
-Proof. deVS; lia. Qed.
-
-Lemma VS_m_L {id co t s bb ff ee e m : Z}
-      (VS : valid_short id co t s bb ff ee e m = true) :
-  (nblen m <= z2n (8*(co - ee - 2)))%nat.
-Admitted.
-
-Lemma VL_m_N {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  0 <= m.
-Proof. deVL; lia. Qed.
-
-Lemma VL_m_L {id co t s bb ff ee eo e m : Z}
-      (VL : valid_long id co t s bb ff ee eo e m = true) :
-  (nblen m <= z2n (8*(co - eo - 2)))%nat.
-Admitted.
+  Definition bitstring_of_bsaux (b : BER_bs_aux) : BER_bitstring.
+  Admitted.
+  
+  Definition bsaux_of_bitstring (b : BER_bitstring) : BER_bs_aux.
+  Admitted.
+  
+  Ltac deVS :=
+    unfold valid_short, real_id_b in *; repeat split_andb; debool; subst.
+  
+  Ltac deVL :=
+    unfold valid_long, real_id_b in *; repeat split_andb; debool; subst.
+  
+  
+  (** * id *)
+  Lemma VS_id_N {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    0 <= id.
+  Proof. deVS; lia. Qed.
+  
+  Lemma VS_id_L {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    (nblen id <= 8)%nat.
+  Proof. deVS; unfold nblen; simpl; lia. Qed.
+  
+  Lemma VL_id_N {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    0 <= id.
+  Proof. deVL; lia. Qed.
+  
+  Lemma VL_id_L {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    (nblen id <= 8)%nat.
+  Proof. deVL; unfold nblen; simpl; lia. Qed.
+  
+  (** * co *)
+  Lemma VS_co_N {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    0 <= co.
+  Proof. deVS; lia. Qed.
+  
+  Lemma VS_co_L {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    (nblen co <= 8)%nat.
+  Admitted.
+  
+  Lemma VL_co_N {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    0 <= co.
+  Proof. deVL; lia. Qed.
+  
+  Lemma VL_co_L {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    (nblen co <= 8)%nat.
+  Admitted.
+  
+  (** * t *)
+  Lemma VS_t_N {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    0 <= t.
+  Proof. deVS; lia. Qed.
+  
+  Lemma VS_t_L {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    (nblen t <= 1)%nat.
+  Admitted.
+  
+  Lemma VL_t_N {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    0 <= t.
+  Proof. deVL; lia. Qed.
+  
+  Lemma VL_t_L {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    (nblen t <= 1)%nat.
+  Admitted.
+  
+  (** * s *)
+  Lemma VS_s_N {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    0 <= s.
+  Proof. deVS; lia. Qed.
+  
+  Lemma VS_s_L {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    (nblen s <= 1)%nat.
+  Admitted.
+  
+  Lemma VL_s_N {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    0 <= s.
+  Proof. deVL; lia. Qed.
+  
+  Lemma VL_s_L {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    (nblen s <= 1)%nat.
+  Admitted.
+  
+  (** * bb *)
+  Lemma VS_bb_N {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    0 <= bb.
+  Proof. deVS; lia. Qed.
+  
+  Lemma VS_bb_L {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    (nblen bb <= 2)%nat.
+  Admitted.
+  
+  Lemma VL_bb_N {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    0 <= bb.
+  Proof. deVL; lia. Qed.
+  
+  Lemma VL_bb_L {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    (nblen bb <= 2)%nat.
+  Admitted.
+  
+  (** * ff *)
+  Lemma VS_ff_N {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    0 <= ff.
+  Proof. deVS; lia. Qed.
+  
+  Lemma VS_ff_L {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    (nblen ff <= 2)%nat.
+  Admitted.
+  
+  Lemma VL_ff_N {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    0 <= ff.
+  Proof. deVL; lia. Qed.
+  
+  Lemma VL_ff_L {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    (nblen ff <= 2)%nat.
+  Admitted.
+  
+  (** * ee *)
+  Lemma VS_ee_N {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    0 <= ee.
+  Proof. deVS; lia. Qed.
+  
+  Lemma VS_ee_L {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    (nblen ee <= 2)%nat.
+  Admitted.
+  
+  Lemma VL_ee_N {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    0 <= ee.
+  Proof. deVL; lia. Qed.
+  
+  Lemma VL_ee_L {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    (nblen ee <= 2)%nat.
+  Admitted.
+  
+  (** * eo *)
+  Lemma VL_eo_N {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    0 <= eo.
+  Proof. deVL; lia. Qed.
+  
+  Lemma VL_eo_L {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    (nblen eo <= 8)%nat.
+  Admitted.
+  
+  (** * e *)
+  Lemma VS_e_N {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    0 <= e.
+  Proof. deVS; lia. Qed.
+  
+  Lemma VS_e_L {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    (nblen e <= z2n (8*(ee + 1)))%nat.
+  Admitted.
+  
+  Lemma VL_e_N {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    0 <= e.
+  Proof. deVL; lia. Qed.
+  
+  Lemma VL_e_L {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    (nblen e <= z2n (8*eo))%nat.
+  Admitted.
+  
+  (** * m *)
+  Lemma VS_m_N {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    0 <= m.
+  Proof. deVS; lia. Qed.
+  
+  Lemma VS_m_L {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    (nblen m <= z2n (8*(co - ee - 2)))%nat.
+  Admitted.
+  
+  Lemma VL_m_N {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    0 <= m.
+  Proof. deVL; lia. Qed.
+  
+  Lemma VL_m_L {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    (nblen m <= z2n (8*(co - eo - 2)))%nat.
+  Admitted.
 
 Section normal.
 
@@ -301,6 +300,7 @@ Section normal.
     
   (* joining *)
 
+  (*
   Definition content_nblen (b : BER_nbs) : nat :=
     match b with
     | short_nbs _ co _ _ _ _ ee _ _ _ 
@@ -316,59 +316,27 @@ Section normal.
     | long_nbs _ co _ _ _ _ _ eo _ _ _
       => info_nblen + content_nblen b
     end.
+*)
   
   Definition mk_info (b : BER_nbs) : container info_nblen :=
     match b with
-    | short_nbs id co t s bb ff ee e m VS =>
-         append_b8_cont id (VS_id_N VS) (VS_id_L VS)
-        (append_b8_cont co (VS_co_N VS) (VS_co_L VS)
-        (append_b1_cont t  (VS_t_N VS)  (VS_t_L VS)
-        (append_b1_cont s  (VS_s_N VS)  (VS_s_L VS)
-        (append_b2_cont bb (VS_bb_N VS) (VS_bb_L VS)
-        (append_b2_cont ff (VS_ff_N VS) (VS_ff_L VS)
-        (       b2_cont ee (VS_ee_N VS) (VS_ee_L VS)
-         ))))))
-    | long_nbs id co t s bb ff ee eo e m VL => 
-         append_b8_cont id (VL_id_N VL) (VL_id_L VL)
-        (append_b8_cont co (VL_co_N VL) (VL_co_L VL)
-        (append_b1_cont t  (VL_t_N VL)  (VL_t_L VL)
-        (append_b1_cont s  (VL_s_N VL)  (VL_s_L VL)
-        (append_b2_cont bb (VL_bb_N VL) (VL_bb_L VL)
-        (append_b2_cont ff (VL_ff_N VL) (VL_ff_L VL)
-        (       b2_cont ee (VL_ee_N VL) (VL_ee_L VL)
-        ))))))
+    | short_nbs id co t s bb ff ee e m _ _ _ _ =>
+         join_cont id
+        (join_cont co
+        (join_cont t
+        (join_cont s
+        (join_cont bb
+        (join_cont ff ee
+         )))))
+    | long_nbs id co t s bb ff ee eo e m _ _ _ _ =>
+         join_cont id
+        (join_cont co
+        (join_cont t
+        (join_cont s
+        (join_cont bb
+        (join_cont ff ee
+         )))))
     end.
-    
-  Definition append_info {l : nat} (b : BER_nbs) (c : container l) :=
-    join_cont (mk_info b) c.
-  
-  Definition mk_content (b : BER_nbs) : container (content_nblen b) :=
-    match b with
-    | short_nbs id co t s bb ff ee e m VS =>
-        (join_cont (cont (z2n (8*(ee+1))) e (VS_e_N VS) (VS_e_L VS))
-        (cont (z2n (8*(co - ee - 2))) m (VS_m_N VS) (VS_m_L VS)))
-    | long_nbs id co t s bb ff ee eo e m VL => 
-        append_b8_cont eo (VL_eo_N VL) (VL_eo_L VL)
-        (join_cont (cont (z2n (8*eo)) e (VL_e_N VL) (VL_e_L VL))
-        (cont (z2n (8*(co - eo - 2))) m (VL_m_N VL) (VL_m_L VL)))
-    end.
-  
-  Program Definition cont_of_nbs (b : BER_nbs) : container (nbs_nblen b) :=
-   match b with
-    | short_nbs _ _ _ _ _ _ _ _ _ _ =>
-        append_info b (mk_content b)
-    | long_nbs _ _ _ _ _ _ _ _ _ _ _=> 
-        append_info b (mk_content b)
-    end.
-  
-  Definition bits_of_nbs (b : BER_nbs) : Z :=
-  Z_of_cont (cont_of_nbs b).
-
-  (* splitting *)
-
-  Definition cut_info {l : nat} (c : container (info_nblen + l)) :
-    (container info_nblen * container l) :=
-  split_cont c.
 
   Definition split_info (c : container info_nblen) :
     (cont8 * cont8 * cont1 * cont1 * cont2 * cont2 * cont2) :=
@@ -380,69 +348,90 @@ Section normal.
     let '(ff, ee) := cut_b2_cont c in
     (id, co, t, s, bb, ff, ee).
 
-  Definition e_blen_of_long_content {l : nat} (c : container (8 + l)) : nat :=
-    z2n (Z_of_cont (fst (cut_b8_cont c))).
-
-  Definition split_me (el ml : nat) (me : container (el + ml)) :=
-    split_cont me.
-
-  (*
-  Definition split_long_content  {l : nat} (c : container (8 + l)) :=
-                         let '(eo, em) := cut_b8_cont c in
-                         let eon := z2n (Z_of_cont eo) in
-                         match (Nat.eq_dec l (eon + (l - eon))) with
-                         | right _ => None
-                         | left H => split_cont (cast_cont em H)
-                         end.
-  *)
-                       
   Lemma split_mk_info (b : BER_nbs) :
     match b with
-    | short_nbs id co t s bb ff ee e m VS =>
-      split_info (mk_info b) =
-        (b8_cont id (VS_id_N VS) (VS_id_L VS),
-         b8_cont co (VS_co_N VS) (VS_co_L VS),
-         b1_cont t  (VS_t_N  VS) (VS_t_L  VS),
-         b1_cont s  (VS_s_N  VS) (VS_s_L  VS),
-         b2_cont bb (VS_bb_N VS) (VS_bb_L VS),
-         b2_cont ff (VS_ff_N VS) (VS_ff_L VS),
-         b2_cont ee (VS_ee_N VS) (VS_ee_L VS))
-    | long_nbs id co t s bb ff ee eo e m VL =>
-      split_info (mk_info b) =
-        (b8_cont id (VL_id_N VL) (VL_id_L VL),
-         b8_cont co (VL_co_N VL) (VL_co_L VL),
-         b1_cont t  (VL_t_N  VL) (VL_t_L  VL),
-         b1_cont s  (VL_s_N  VL) (VL_s_L  VL),
-         b2_cont bb (VL_bb_N VL) (VL_bb_L VL),
-         b2_cont ff (VL_ff_N VL) (VL_ff_L VL),
-         b2_cont ee (VL_ee_N VL) (VL_ee_L VL))
+    | short_nbs id co t s bb ff ee e m _ _ _ _ =>
+      split_info (mk_info b) = (id, co, t, s, bb, ff, ee)
+    | long_nbs id co t s bb ff ee eo e m _ _ _ _ =>
+      split_info (mk_info b) = (id, co, t, s, bb, ff, ee)
     end.
   Proof.
-    unfold split_info, mk_info.
-    repeat break_match;
-    rewrite cut_append_b8 in Heqp; tuple_inversion.
-    rewrite cut_append_b8 in Heqp0; tuple_inversion.
-    rewrite cut_append_b1 in Heqp1; tuple_inversion.
-    rewrite cut_append_b1 in Heqp2; tuple_inversion.
-    rewrite cut_append_b2 in Heqp3; tuple_inversion.
-    rewrite cut_append_b2 in Heqp4; tuple_inversion.
+    unfold split_info, mk_info, cut_b1_cont, cut_b2_cont, cut_b8_cont.
+    repeat break_match.
+    rewrite split_join_roundtrip in Heqp; tuple_inversion.
+    rewrite split_join_roundtrip in Heqp0; tuple_inversion.
+    rewrite split_join_roundtrip in Heqp1; tuple_inversion.
+    rewrite split_join_roundtrip in Heqp2; tuple_inversion.
+    rewrite split_join_roundtrip in Heqp3; tuple_inversion.
+    rewrite split_join_roundtrip in Heqp4; tuple_inversion.
     reflexivity.
-    rewrite cut_append_b8 in Heqp0; tuple_inversion.
-    rewrite cut_append_b1 in Heqp1; tuple_inversion.
-    rewrite cut_append_b1 in Heqp2; tuple_inversion.
-    rewrite cut_append_b2 in Heqp3; tuple_inversion.
-    rewrite cut_append_b2 in Heqp4; tuple_inversion.
+    rewrite split_join_roundtrip in Heqp; tuple_inversion.
+    rewrite split_join_roundtrip in Heqp0; tuple_inversion.
+    rewrite split_join_roundtrip in Heqp1; tuple_inversion.
+    rewrite split_join_roundtrip in Heqp2; tuple_inversion.
+    rewrite split_join_roundtrip in Heqp3; tuple_inversion.
+    rewrite split_join_roundtrip in Heqp4; tuple_inversion.
     reflexivity.
   Qed.
+  
+  Definition cut_info {l : nat} (c : container (info_nblen + l)) :
+    (container info_nblen * container l) :=
+  split_cont c.
+    
+  Definition append_info {l : nat} (b : BER_nbs) (c : container l) :=
+    join_cont (mk_info b) c.
 
-  (*
-  Lemma split_mk_content (b : BER_nbs) :
-  *)
+  Definition content_nblen (b : BER_nbs) : nat :=
+    match b with
+    | short_nbs id co t s bb ff ee e m _ _ _ _ => 8*(c2n co - 1)
+    | long_nbs id co t s bb ff ee eo e m _ _ _ _ => 8*(c2n co - 1)
+    end.
+
+  Definition nbs_nblen (b : BER_nbs) : nat :=
+    match b with
+    | short_nbs id co t s bb ff ee e m _ _ _ _ => 8*(c2n co + 2)
+    | long_nbs id co t s bb ff ee eo e m _ _ _ _ => 8*(c2n co + 2)
+    end.
+
+  Program Definition mk_content (b : BER_nbs) : container (content_nblen b) :=
+    match b with
+    | short_nbs id co t s bb ff ee e m _ _ _ _ =>
+      join_cont e m
+    | long_nbs id co t s bb ff ee eo e m _ _ _ _ =>
+      join_cont eo (join_cont e m)
+    end.
+
+  Next Obligation.
+  Admitted.
+  Next Obligation.
+  Admitted.
+
+
+  (* splitting *)
+
+  Definition e_blen_of_long_cont {l : nat} (c : container (8 + l)) : nat :=
+    z2n (Z_of_cont (fst (cut_b8_cont c))).
+
+  Definition split_long_cont  {l : nat} (c : container (8 + l))
+    : option (container 8 *
+              container (e_blen_of_long_cont c) *
+              container (l - e_blen_of_long_cont c))
+    :=
+      let eo := fst (cut_b8_cont c) in
+      let em := snd (cut_b8_cont c) in
+      let eon := z2n (Z_of_cont eo) in
+      match (Nat.eq_dec l (eon + (l - eon))) with
+      | right _ => None
+      | left H =>
+      let '(e, m) := split_cont (cast_cont em H) in
+        Some (eo, e, m)
+      end.
 
 End normal.
 
 Section special.
   
+
 End special.
 
 Definition BER_blen (b : Z) : nat :=
@@ -499,3 +488,5 @@ Definition bitstring_of_bits (b : Z) : option BER_bitstring :=
 
 Definition bits_of_bitstring (b : BER_bitstring) : Z.
 Admitted.
+
+End outer_sec.
