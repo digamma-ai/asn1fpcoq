@@ -67,54 +67,6 @@ Section NormalBitStrings.
   Definition c2z {l : nat} (c : container l) := Z_of_cont c.
   Definition c2n {l : nat} (c : container l) := z2n (c2z c).
 
-  Inductive BER_nbs :=
-  | short_nbs
-      (id co : cont8)
-      (t s : cont1) (bb ff ee : cont2)
-      (e : container (8*((c2n ee) + 1))) (m : container (8*((c2n co) - (c2n ee) - 2)))
-      (VS1 : c2z id = real_id_b) (VS2 : c2z t = 1) (VS3 : c2z ee <= 2) (VS4 : 1 <= c2z m)
-  | long_nbs
-      (id co : cont8)
-      (t s : cont1) (bb ff ee : cont2)
-      (eo : cont8)
-      (e : container (8*(c2n eo))) (m : container (8*((c2n co) - (c2n eo) - 2)))
-      (VL1 : c2z id = real_id_b) (VL2 : c2z t = 1) (VL3 : c2z ee = 3) (VL4 : 1 <= c2z m).
-  
-  Inductive BER_bs_aux :=
-  | special_aux (val : Z) : BER_bs_aux
-  | normal_aux (b : BER_nbs) : BER_bs_aux.
-
-  Definition valid_short_nbs {l1 l2 l3 l4 l5 l6 l7 l8 l9 : nat}
-             (id : container l1)
-             (co : container l2)
-             (t  : container l3)
-             (s  : container l4)
-             (bb : container l5)
-             (ff : container l6)
-             (ee : container l7)
-             (e  : container l8)
-             (m  : container l9) : bool.
-  Admitted.
-
-  Definition valid_long_nbs {l1 l2 l3 l4 l5 l6 l7 l8 l9 l10 : nat}
-             (id : container l1)
-             (co : container l2)
-             (t  : container l3)
-             (s  : container l4)
-             (bb : container l5)
-             (ff : container l6)
-             (ee : container l7)
-             (eo : container l8)
-             (e  : container l9)
-             (m  : container l10) : bool.
-  Admitted.
-
-  Definition bitstring_of_bsaux (b : BER_bs_aux) : BER_bitstring.
-  Admitted.
-  
-  Definition bsaux_of_bitstring (b : BER_bitstring) : BER_bs_aux.
-  Admitted.
-  
   Ltac deVS :=
     unfold valid_short, real_id_b in *; repeat split_andb; debool; subst.
   
@@ -322,6 +274,29 @@ Section NormalBitStrings.
     (nblen m <= z2n (8*(co - eo - 2)))%nat.
   Admitted.
 
+  Inductive BER_nbs :=
+  | short_nbs
+      (id co : cont8)
+      (t s : cont1) (bb ff ee : cont2)
+      (e : container (8*((c2n ee) + 1))) (m : container (8*((c2n co) - (c2n ee) - 2)))
+      (VS1 : c2z id = real_id_b) (VS2 : c2z t = 1) (VS3 : c2z ee <= 2) (VS4 : 1 <= c2z m)
+  | long_nbs
+      (id co : cont8)
+      (t s : cont1) (bb ff ee : cont2)
+      (eo : cont8)
+      (e : container (8*(c2n eo))) (m : container (8*((c2n co) - (c2n eo) - 2)))
+      (VL1 : c2z id = real_id_b) (VL2 : c2z t = 1) (VL3 : c2z ee = 3) (VL4 : 1 <= c2z m).
+  
+  Inductive BER_bs_aux :=
+  | special_aux (val : Z) : BER_bs_aux
+  | normal_aux (b : BER_nbs) : BER_bs_aux.
+
+  Definition bitstring_of_bsaux (b : BER_bs_aux) : BER_bitstring.
+  Admitted.
+  
+  Definition bsaux_of_bitstring (b : BER_bitstring) : BER_bs_aux.
+  Admitted.
+
 End NormalBitStrings.
 
 
@@ -470,31 +445,133 @@ Section Split.
         Some (eo, e, m)
       end.
 
-  (**********************************************************************************)
-  (* Definition cont_len_split {l : nat} (c : container l) (l1 : nat) :=            *)
-  (*   match (cut_cont c info_nblen) with                                           *)
-  (*   | None => None                                                               *)
-  (*   | Some c =>                                                                  *)
-  (*     let '(id, co, t, s, bb, ff, ee, content) := split_cut_info c in            *)
-  (*     if (c2n ee =? 3)%nat                                                       *)
-  (*     then match (cut_cont content 8) with                                       *)
-  (*          | None => None                                                        *)
-  (*          | Some content =>                                                     *)
-  (*            match (split_long_cont content) with                                *)
-  (*            | None => None                                                      *)
-  (*            | Some (eo, e, m) =>                                                *)
-  (*              match (valid_long_nbs_sb id, co, t, s, bb, ff, ee, eo, e, m) with *)
-  (*                |                                                               *)
-  (*            end                                                                 *)
-  (*          end                                                                   *)
-  (*     else match (cut_cont content (c2n ee + 1)) with                            *)
-  (*          | None => None                                                        *)
-  (*          | Some c =>                                                           *)
-  (*            let '(e, m) := split_cont c in                                      *)
-  (*            (id, co, t, s, bb, ff, ee, e, m)                                    *)
-  (*          end                                                                   *)
-  (*   end.                                                                         *)
-  (**********************************************************************************)
+  Definition check_short_elen {l : nat} (ee : cont2) (e : container l) :=
+    match Nat.eq_dec l (8 * (c2n ee + 1)) with
+    | right _ => None
+    | left E => Some (cast_cont e E)
+    end.
+
+  Definition check_long_elen {l : nat} (eo : cont8) (e : container l) :=
+    match Nat.eq_dec l (8 * (c2n eo)) with
+    | right _ => None
+    | left E => Some (cast_cont e E)
+    end.
+
+  Definition check_short_mlen {l : nat} (co : cont8) (ee : cont2) (m : container l) :=
+    match Nat.eq_dec l (8 * (c2n co - c2n ee - 2)) with
+    | right _ => None
+    | left M => Some (cast_cont m M)
+    end.
+
+  Definition check_long_mlen {l : nat} (co : cont8) (eo : cont8) (m : container l) :=
+    match Nat.eq_dec l (8 * (c2n co - c2n eo - 2)) with
+    | right _ => None
+    | left M => Some (cast_cont m M)
+    end.
+
+  Definition check_valid_short
+             {l : nat} (id : cont8) (t : cont1) (ee : cont2) (m : container l) :=
+    match Z.eq_dec (c2z id) real_id_b with
+    | right _ => None
+    | left VS1 =>
+      match Z.eq_dec (c2z t) 1 with
+      | right _ => None
+      | left VS2 =>
+        match Z_le_dec (c2z ee) 2 with
+        | right _ => None
+        | left VS3 =>
+          match Z_le_dec 1 (c2z m) with
+          | right _ => None
+          | left VS4 =>
+            Some (VS1, VS2, VS3, VS4)
+          end
+        end
+      end
+    end.
+
+  Definition check_valid_long
+             {l : nat} (id : cont8) (t : cont1) (eo : cont2) (m : container l) :=
+    match Z.eq_dec (c2z id) real_id_b with
+    | right _ => None
+    | left VS1 =>
+      match Z.eq_dec (c2z t) 1 with
+      | right _ => None
+      | left VS2 =>
+        match Z.eq_dec (c2z eo) 3 with
+        | right _ => None
+        | left VS3 =>
+          match Z_le_dec 1 (c2z m) with
+          | right _ => None
+          | left VS4 =>
+            Some (VS1, VS2, VS3, VS4)
+          end
+        end
+      end
+    end.
+
+  Definition construct_short_nbs
+             { l1 l2 : nat }
+             (id co : cont8)
+             (t s : cont1) (bb ff ee : cont2)
+             (e : container l1) (m : container l2)
+    : option BER_nbs :=
+    match (check_short_elen ee e) with
+    | None => None
+    | Some e =>
+      match (check_short_mlen co ee m) with
+      | None => None
+      | Some m =>
+        match (check_valid_short id t ee m) with
+        | None => None
+        | Some (VS1, VS2, VS3, VS4) =>
+        Some (short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4)
+        end
+      end
+    end.
+
+  Definition construct_long_nbs
+             { l1 l2 : nat }
+             (id co : cont8)
+             (t s : cont1) (bb ff ee : cont2)
+             (eo : cont8)
+             (e : container l1) (m : container l2)
+    : option BER_nbs :=
+    match (check_long_elen eo e) with
+    | None => None
+    | Some e =>
+      match (check_long_mlen co eo m) with
+      | None => None
+      | Some m =>
+        match (check_valid_long id t ee m) with
+        | None => None
+        | Some (VS1, VS2, VS3, VS4) =>
+        Some (long_nbs id co t s bb ff ee eo e m VS1 VS2 VS3 VS4)
+        end
+      end
+    end.
+
+  Definition cont_len_split {l : nat} (c : container l) (l1 : nat) :=
+    match (cut_cont c info_nblen) with
+    | None => None
+    | Some c =>
+      let '(id, co, t, s, bb, ff, ee, content) := split_cut_info c in
+      if (c2n ee =? 3)%nat
+      then match (cut_cont content 8) with
+           | None => None
+           | Some content =>
+             match (split_long_cont content) with
+             | None => None
+             | Some (eo, e, m) =>
+                 construct_long_nbs id co t s bb ff ee eo e m
+               end
+             end
+      else match (cut_cont content (c2n ee + 1)) with
+           | None => None
+           | Some c =>
+             let '(e, m) := split_cont c in
+               construct_short_nbs id co t s bb ff ee e m
+           end
+    end.
 
   Lemma split_mk_info (b : BER_nbs) :
     match b with
