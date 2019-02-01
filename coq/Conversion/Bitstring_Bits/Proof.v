@@ -6,6 +6,7 @@ Require Import ASN1FP.Types.BitstringDef
 Definition Some_ize {A B : Type} : (A -> B) -> (A -> option B)
   := Basics.compose Some.
 
+(*
 Theorem bitsrting_bits_roundtrip (b : BER_bitstring) :
   roundtrip_option
       BER_bitstring Z BER_bitstring
@@ -14,3 +15,4 @@ Theorem bitsrting_bits_roundtrip (b : BER_bitstring) :
       BER_bitstring_eqb
       b.
 Admitted.
+*)

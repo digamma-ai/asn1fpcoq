@@ -240,7 +240,8 @@ Section NormalBitStrings.
   
   Lemma VS_e_L {id co t s bb ff ee e m : Z}
         (VS : valid_short id co t s bb ff ee e m = true) :
-    (nblen e <= z2n (8*(ee + 1)))%nat.
+    let eec := (b2_cont ee (VS_ee_N VS) (VS_ee_L VS)) in
+    (nblen e <= 8* (c2n eec + 1))%nat.
   Admitted.
   
   Lemma VL_e_N {id co t s bb ff ee eo e m : Z}
@@ -250,7 +251,8 @@ Section NormalBitStrings.
   
   Lemma VL_e_L {id co t s bb ff ee eo e m : Z}
         (VL : valid_long id co t s bb ff ee eo e m = true) :
-    (nblen e <= z2n (8*eo))%nat.
+    let eoc := (b8_cont eo (VL_eo_N VL) (VL_eo_L VL)) in
+    (nblen e <= 8 * c2n eoc)%nat.
   Admitted.
   
   (** * m *)
@@ -261,7 +263,9 @@ Section NormalBitStrings.
   
   Lemma VS_m_L {id co t s bb ff ee e m : Z}
         (VS : valid_short id co t s bb ff ee e m = true) :
-    (nblen m <= z2n (8*(co - ee - 2)))%nat.
+    let coc := (b8_cont co (VS_co_N VS) (VS_co_L VS)) in
+    let eec := (b2_cont ee (VS_ee_N VS) (VS_ee_L VS)) in
+    (nblen m <= 8 * (c2n coc - c2n eec - 2))%nat.
   Admitted.
   
   Lemma VL_m_N {id co t s bb ff ee eo e m : Z}
@@ -271,32 +275,165 @@ Section NormalBitStrings.
   
   Lemma VL_m_L {id co t s bb ff ee eo e m : Z}
         (VL : valid_long id co t s bb ff ee eo e m = true) :
-    (nblen m <= z2n (8*(co - eo - 2)))%nat.
+    let coc := (b8_cont co (VL_co_N VL) (VL_co_L VL)) in
+    let eoc := (b8_cont eo (VL_eo_N VL) (VL_eo_L VL)) in
+    (nblen m <= 8* (c2n coc - c2n eoc - 2))%nat.
+  Admitted.
+
+  Lemma valid_short_VS1 {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    c2z (b8_cont id (VS_id_N VS) (VS_id_L VS)) = real_id_b.
+  Admitted.
+
+  Lemma valid_short_VS2 {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    c2z (b1_cont t (VS_t_N VS) (VS_t_L VS)) = 1.
+  Admitted.
+
+  Lemma valid_short_VS3 {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    c2z (b2_cont ee (VS_ee_N VS) (VS_ee_L VS)) <= 2.
+  Admitted.
+
+  Lemma valid_short_VS4 {id co t s bb ff ee e m : Z}
+        (VS : valid_short id co t s bb ff ee e m = true) :
+    let coc := (b8_cont co (VS_co_N VS) (VS_co_L VS)) in
+    let eec := (b2_cont ee (VS_ee_N VS) (VS_ee_L VS)) in
+    1 <= c2z (cont (8 * (c2n coc - c2n eec - 2)) m (VS_m_N VS) (VS_m_L VS)).
+  Admitted.
+
+  Lemma valid_long_VL1 {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    c2z (b8_cont id (VL_id_N VL) (VL_id_L VL)) = real_id_b.
+  Admitted.
+
+  Lemma valid_long_VL2 {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    c2z (b1_cont t (VL_t_N VL) (VL_t_L VL)) = 1.
+  Admitted.
+
+  Lemma valid_long_VL3 {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    c2z (b2_cont ee (VL_ee_N VL) (VL_ee_L VL)) = 3.
+  Admitted.
+
+  Lemma valid_long_VL4 {id co t s bb ff ee eo e m : Z}
+        (VL : valid_long id co t s bb ff ee eo e m = true) :
+    let coc := (b8_cont co (VL_co_N VL) (VL_co_L VL)) in
+    let eoc := (b8_cont eo (VL_eo_N VL) (VL_eo_L VL)) in
+    1 <= c2z (cont (8 * (c2n coc - c2n eoc - 2)) m (VL_m_N VL) (VL_m_L VL)).
   Admitted.
 
   Inductive BER_nbs :=
   | short_nbs
       (id co : cont8)
       (t s : cont1) (bb ff ee : cont2)
-      (e : container (8*((c2n ee) + 1))) (m : container (8*((c2n co) - (c2n ee) - 2)))
+      (e : container (8 * (c2n ee + 1))) (m : container (8*((c2n co) - (c2n ee) - 2)))
       (VS1 : c2z id = real_id_b) (VS2 : c2z t = 1) (VS3 : c2z ee <= 2) (VS4 : 1 <= c2z m)
   | long_nbs
       (id co : cont8)
       (t s : cont1) (bb ff ee : cont2)
-      (eo : cont8)
-      (e : container (8*(c2n eo))) (m : container (8*((c2n co) - (c2n eo) - 2)))
+      
+(eo : cont8)
+      (e : container (8*(c2n eo))) (m : container (8 * ((c2n co) - (c2n eo) - 2)))
       (VL1 : c2z id = real_id_b) (VL2 : c2z t = 1) (VL3 : c2z ee = 3) (VL4 : 1 <= c2z m).
   
   Inductive BER_bs_aux :=
   | special_aux (val : Z) : BER_bs_aux
   | normal_aux (b : BER_nbs) : BER_bs_aux.
 
-  Definition bitstring_of_bsaux (b : BER_bs_aux) : BER_bitstring.
-  Admitted.
-  
-  Definition bsaux_of_bitstring (b : BER_bitstring) : BER_bs_aux.
+  Definition bsaux_of_bitstring (b : BER_bitstring) : BER_bs_aux :=
+    match b with
+    | special val => special_aux val
+    | short id co t s bb ff ee e m VS =>
+      let coc := (b8_cont co (VS_co_N VS) (VS_co_L VS)) in
+      let eec := (b2_cont ee (VS_ee_N VS) (VS_ee_L VS)) in
+      normal_aux (short_nbs
+        (b8_cont id (VS_id_N VS) (VS_id_L VS))
+        coc
+        (b1_cont t  (VS_t_N  VS) (VS_t_L  VS))
+        (b1_cont s  (VS_s_N  VS) (VS_s_L  VS))
+        (b2_cont bb (VS_bb_N VS) (VS_bb_L VS))
+        (b2_cont ff (VS_ff_N VS) (VS_ff_L VS))
+        eec
+        (cont (8 * (c2n eec + 1)) e (VS_e_N VS) (VS_e_L VS))
+        (cont (8 * ((c2n coc) - (c2n eec) - 2)) m (VS_m_N VS) (VS_m_L VS))
+        (valid_short_VS1 VS)
+        (valid_short_VS2 VS)
+        (valid_short_VS3 VS)
+        (valid_short_VS4 VS))
+    | long id co t s bb ff ee eo e m VL =>
+      let coc := (b8_cont co (VL_co_N VL) (VL_co_L VL)) in
+      let eoc := (b8_cont eo (VL_eo_N VL) (VL_eo_L VL)) in
+      normal_aux (long_nbs
+        (b8_cont id (VL_id_N VL) (VL_id_L VL))
+        coc
+        (b1_cont t  (VL_t_N  VL) (VL_t_L  VL))
+        (b1_cont s  (VL_s_N  VL) (VL_s_L  VL))
+        (b2_cont bb (VL_bb_N VL) (VL_bb_L VL))
+        (b2_cont ff (VL_ff_N VL) (VL_ff_L VL))
+        (b2_cont ee (VL_ee_N VL) (VL_ee_L VL))
+        eoc
+        (cont (8 * (c2n eoc)) e (VL_e_N VL) (VL_e_L VL))
+        (cont (8 * ((c2n coc) - (c2n eoc) - 2)) m (VL_m_N VL) (VL_m_L VL))
+        (valid_long_VL1 VL)
+        (valid_long_VL2 VL)
+        (valid_long_VL3 VL)
+        (valid_long_VL4 VL))
+    end.
+
+  Lemma nbs_valid (b : BER_nbs) :
+    match b with
+    | short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4 =>
+      valid_short (c2z id) (c2z co)
+                  (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee)
+                  (c2z e) (c2z m) = true
+    | long_nbs id co t s bb ff ee eo e m VL1 VL2 VL3 VL4 =>
+      valid_long (c2z id) (c2z co)
+                 (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee) (c2z eo)
+                 (c2z e) (c2z m) = true
+    end.
   Admitted.
 
+  Lemma short_nbs_valid
+      (id co : cont8)
+      (t s : cont1) (bb ff ee : cont2)
+      (e : container (8 * (c2n ee + 1))) (m : container (8*((c2n co) - (c2n ee) - 2)))
+      (VS1 : c2z id = real_id_b) (VS2 : c2z t = 1) (VS3 : c2z ee <= 2) (VS4 : 1 <= c2z m) :
+      valid_short (c2z id) (c2z co)
+                  (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee)
+                  (c2z e) (c2z m) = true.
+  Admitted.
+
+  Lemma long_nbs_valid
+      (id co : cont8)
+      (t s : cont1) (bb ff ee : cont2)
+      (eo : cont8)
+      (e : container (8*(c2n eo))) (m : container (8 * ((c2n co) - (c2n eo) - 2)))
+      (VL1 : c2z id = real_id_b) (VL2 : c2z t = 1) (VL3 : c2z ee = 3) (VL4 : 1 <= c2z m) :
+      valid_long  (c2z id) (c2z co)
+                  (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee) (c2z eo)
+                  (c2z e) (c2z m) = true.
+  Admitted.
+
+  Definition bitstring_of_bsaux (b : BER_bs_aux) : BER_bitstring :=
+    match b with
+    | special_aux val => special val
+    | normal_aux b =>
+      match b with
+      | short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4 =>
+        short (c2z id) (c2z co)
+              (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee)
+              (c2z e) (c2z m)
+              (short_nbs_valid id co t s bb ff ee e m VS1 VS2 VS3 VS4)
+      | long_nbs id co t s bb ff ee eo e m VL1 VL2 VL3 VL4 =>
+        long  (c2z id) (c2z co)
+              (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee) (c2z eo)
+              (c2z e) (c2z m)
+              (long_nbs_valid id co t s bb ff ee eo e m VL1 VL2 VL3 VL4)
+      end
+    end.
+    
 End NormalBitStrings.
 
 
@@ -335,16 +472,16 @@ Section Lengths.
   Lemma nbs_nblen_correct (b : BER_nbs) :
     (info_nblen + content_nblen b)%nat = nbs_nblen b.
   Proof.
-    unfold info_nblen.
+
     destruct b.
     - (* short *)
-      unfold content_nblen, nbs_nblen.
+      unfold content_nblen, nbs_nblen, info_nblen.
       remember (c2n co) as x.
       replace 24%nat with (8 * 3)%nat by trivial.
       rewrite <- Nat.mul_add_distr_l.
       admit.
     - (* long *)
-      unfold content_nblen, nbs_nblen.
+      unfold content_nblen, nbs_nblen, info_nblen.
       remember (c2n co) as x.
       replace 24%nat with (8 * 3)%nat by trivial.
       rewrite <- Nat.mul_add_distr_l.
@@ -356,7 +493,6 @@ End Lengths.
 
 Section Join.
 
-    
   Definition mk_info (b : BER_nbs) : container info_nblen :=
     match b with
     | short_nbs id co t s bb ff ee e m _ _ _ _ =>
@@ -651,6 +787,3 @@ Definition bitstring_of_bits (b : Z) : option BER_bitstring :=
           | left V => Some (short id co t s bb ff ee exp signif V)
         end
     end.
-
-Definition bits_of_bitstring (b : BER_bitstring) : Z.
-Admitted.
