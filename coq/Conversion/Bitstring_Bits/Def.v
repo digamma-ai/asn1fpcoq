@@ -333,8 +333,7 @@ Section NormalBitStrings.
   | long_nbs
       (id co : cont8)
       (t s : cont1) (bb ff ee : cont2)
-      
-(eo : cont8)
+      (eo : cont8)
       (e : container (8*(c2n eo))) (m : container (8 * ((c2n co) - (c2n eo) - 2)))
       (VL1 : c2z id = real_id_b) (VL2 : c2z t = 1) (VL3 : c2z ee = 3) (VL4 : 1 <= c2z m).
   
@@ -472,7 +471,6 @@ Section Lengths.
   Lemma nbs_nblen_correct (b : BER_nbs) :
     (info_nblen + content_nblen b)%nat = nbs_nblen b.
   Proof.
-
     destruct b.
     - (* short *)
       unfold content_nblen, nbs_nblen, info_nblen.
@@ -605,46 +603,6 @@ Section Split.
     | left M => Some (cast_cont m M)
     end.
 
-  Definition check_valid_short
-             {l : nat} (id : cont8) (t : cont1) (ee : cont2) (m : container l) :=
-    match Z.eq_dec (c2z id) real_id_b with
-    | right _ => None
-    | left VS1 =>
-      match Z.eq_dec (c2z t) 1 with
-      | right _ => None
-      | left VS2 =>
-        match Z_le_dec (c2z ee) 2 with
-        | right _ => None
-        | left VS3 =>
-          match Z_le_dec 1 (c2z m) with
-          | right _ => None
-          | left VS4 =>
-            Some (VS1, VS2, VS3, VS4)
-          end
-        end
-      end
-    end.
-
-  Definition check_valid_long
-             {l : nat} (id : cont8) (t : cont1) (eo : cont2) (m : container l) :=
-    match Z.eq_dec (c2z id) real_id_b with
-    | right _ => None
-    | left VS1 =>
-      match Z.eq_dec (c2z t) 1 with
-      | right _ => None
-      | left VS2 =>
-        match Z.eq_dec (c2z eo) 3 with
-        | right _ => None
-        | left VS3 =>
-          match Z_le_dec 1 (c2z m) with
-          | right _ => None
-          | left VS4 =>
-            Some (VS1, VS2, VS3, VS4)
-          end
-        end
-      end
-    end.
-
   Definition construct_short_nbs
              { l1 l2 : nat }
              (id co : cont8)
@@ -657,10 +615,22 @@ Section Split.
       match (check_short_mlen co ee m) with
       | None => None
       | Some m =>
-        match (check_valid_short id t ee m) with
-        | None => None
-        | Some (VS1, VS2, VS3, VS4) =>
-        Some (short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4)
+        match Z.eq_dec (c2z id) real_id_b with
+        | right _ => None
+        | left VS1 =>
+          match Z.eq_dec (c2z t) 1 with
+          | right _ => None
+          | left VS2 =>
+            match Z_le_dec (c2z ee) 2 with
+            | right _ => None
+            | left VS3 =>
+              match Z_le_dec 1 (c2z m) with
+              | right _ => None
+              | left VS4 =>
+                Some (short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4)
+              end
+            end
+          end
         end
       end
     end.
@@ -678,15 +648,27 @@ Section Split.
       match (check_long_mlen co eo m) with
       | None => None
       | Some m =>
-        match (check_valid_long id t ee m) with
-        | None => None
-        | Some (VS1, VS2, VS3, VS4) =>
-        Some (long_nbs id co t s bb ff ee eo e m VS1 VS2 VS3 VS4)
+        match Z.eq_dec (c2z id) real_id_b with
+        | right _ => None
+        | left VL1 =>
+          match Z.eq_dec (c2z t) 1 with
+          | right _ => None
+          | left VL2 =>
+            match Z.eq_dec (c2z ee) 3 with
+            | right _ => None
+            | left VL3 =>
+              match Z_le_dec 1 (c2z m) with
+              | right _ => None
+              | left VL4 =>
+                 Some (long_nbs id co t s bb ff ee eo e m VL1 VL2 VL3 VL4)
+              end
+            end
+          end
         end
       end
     end.
 
-  Definition cont_len_split {l : nat} (c : container l) (l1 : nat) :=
+  Definition nbs_of_cont {l : nat} (c : container l) :=
     match (cut_cont c info_nblen) with
     | None => None
     | Some c =>
@@ -737,12 +719,6 @@ Section Split.
 
 End Split.
 
-
-Section special.
-
-End special.
-
-
 Definition BER_blen (b : Z) : nat :=
   let l := nblen b in
   l + (l mod 8)%nat.
@@ -757,33 +733,55 @@ Definition cont_of_BER_bits (b : Z) : option (container (BER_blen b)) :=
   | right N => Some (cont (BER_blen b) b N (BER_blen_correct b))
   end.
 
+Definition cont_of_Z_abs (n : Z) : container (nblen (Z.abs n)) :=
+  let na := Z.abs n in
+  cont (nblen na) na (Z.abs_nonneg n) (Nat.le_refl (nblen na)).
+  
+Definition bsaux_nblen (b : BER_bs_aux) :=
+  match b with
+  | special_aux val => nblen (Z.abs val)
+  | normal_aux b => nbs_nblen b
+  end.
+ 
+Definition cont_of_bsaux (b : BER_bs_aux) : container (bsaux_nblen b) :=
+  match b with
+  | special_aux val => cont_of_Z_abs val
+  | normal_aux b => cont_of_nbs b
+  end.
+
+Definition Z_of_bsaux (b : BER_bs_aux) :=
+  c2z (cont_of_bsaux b).
+
+Definition bits_of_bitstring (b : BER_bitstring) : Z :=
+  Z_of_bsaux (bsaux_of_bitstring b).
+
+Definition mk_special_bsaux (b : Z) :=
+  if b =? pzero_b
+  then Some (special_aux b)
+  else if b =? nzero_b
+       then Some (special_aux b)
+       else if b =? pinf_b
+            then Some (special_aux b)
+            else if b =? ninf_b
+                 then Some (special_aux b)
+                 else if b =? nan_b
+                      then Some (special_aux b)
+                           else None.
+
+Definition bsaux_of_bits (b : Z) : option BER_bs_aux :=
+  if b <=? 0
+  then None
+  else match (mk_special_bsaux b) with
+       | Some b => Some b
+       | None =>
+         match (nbs_of_cont (cont_of_Z_abs b)) with
+         | None => None
+         | Some b => Some (normal_aux b)
+         end
+       end.
+
 Definition bitstring_of_bits (b : Z) : option BER_bitstring :=
-  match classify_BER b with
-    | Some pzero => Some (special pzero_b)
-    | Some nzero => Some (special nzero_b)
-    | Some pinf => Some (special pinf_b)
-    | Some ninf => Some (special ninf_b)
-    | Some nan => Some (special nan_b)
-    | None =>
-      let '(id, co_content) := split_octets_by_fst 1 b in
-      let '(co, content) := split_octets_by_fst 1 co_content in
-      let '(tsbbffee, l_exp_signif) := split_octets_by_fst 1 content in
-      let '(t, sbbffee) := split_bits_by_snd 7 tsbbffee in
-      let '(s, bbffee) := split_bits_by_snd 6 sbbffee in
-      let '(bb, ffee) := split_bits_by_snd 4 bbffee in
-      let '(ff, ee) := split_bits_by_snd 2 ffee in
-      if (2 <? ee)
-      then
-        let '(e_olen, exp_signif) := split_octets_by_fst 1 l_exp_signif in
-        let '(exp, signif) := split_octets_by_snd (co - e_olen - 2) exp_signif in
-        match valid_long_sumbool id co t s bb ff ee e_olen exp signif with
-          | right _ => None
-          | left V => Some (long id co t s bb ff ee e_olen exp signif V)
-        end
-      else
-        let '(exp, signif) := split_octets_by_snd (co - ee - 2) l_exp_signif in
-        match valid_short_sumbool id co t s bb ff ee exp signif with
-          | right _ => None
-          | left V => Some (short id co t s bb ff ee exp signif V)
-        end
-    end.
+  match bsaux_of_bits b with
+  | None => None
+  | Some b => Some (bitstring_of_bsaux b)
+  end.

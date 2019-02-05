@@ -14,7 +14,6 @@ Import MonadNotation. Local Open Scope monad_scope.
 
 Open Scope Z.
 
-(*
 (* TODO: radix, scaling *)
 (* extraction-ready functions for the most common IEEE formats *)
 Section B32.
@@ -54,4 +53,3 @@ Section B64.
     normalize_b64_abstract m e.
 
 End B64.
-*)
