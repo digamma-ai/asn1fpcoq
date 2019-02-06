@@ -45,6 +45,7 @@ let positive_numbers_suite n =
         let v = Random.float Float.max_finite_value in
         string_of_float v >:: test_no_scl_radix2 v)
 
+(*
 let negative_normal_numbers_suite n =
   "Negative Numbers">:::
     List.map (List.range 0 n) ~f:(fun _ ->
@@ -56,15 +57,14 @@ let negative_subnormal_numbers_suite n =
     List.map (List.range 0 n) ~f:(fun _ ->
         let v = Random.float Float.min_positive_subnormal_value in
         string_of_float v >:: test_no_scl_radix2 v)
+*)
 
 let _ =
   run_test_tt_main
     ("All tests" >:::[
        normal_numbers_suite ;
-       negative_normal_numbers_suite 100 ;
-       negative_subnormal_numbers_suite 100 ;
-       positive_numbers_suite 100 ;
-       special_values_suite])
+       (*positive_numbers_suite 100;*)
+       (*special_values_suite*)])
 
 (*
 let n34 = normalize_float32 (big_int_of_int 3) (big_int_of_int 4) ;;
