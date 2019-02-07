@@ -470,8 +470,7 @@ Section Base2.
           (* structural errors *)
           * unfold float_eqb_nan_t, Bcompare.
             repeat break_match; (repeat try some_inv);
-              try compare_nrefl; try reflexivity.
-          * inv_make_BER_finite.
+              try compare_nrefl; try reflexivity; try inversion Heqc.
           * inv_make_BER_finite.
           * inv_make_BER_finite.
           * (* arithmetic_roundtrip comes in play *)
