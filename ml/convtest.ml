@@ -21,7 +21,11 @@ let roundtrip radix scaled f =
      | Some _ -> mf
 
 let test_no_scl_radix2 v _ =
-  assert_equal ~cmp:opt_float_eqb_nan_t (roundtrip (big_int_of_int 2) false v) (Some v)
+  assert_equal ~cmp:opt_float_eqb_nan_t
+    ~printer:(fun so -> match so with
+                        | None -> "None"
+                        | Some s -> string_of_float s)
+    (Some v) (roundtrip (big_int_of_int 2) false v)
 
 let normal_numbers_suite =
   "Normal Numbers">:::
@@ -47,5 +51,5 @@ let _ =
   run_test_tt_main
     ("All tests" >:::[
        (*normal_numbers_suite;*)
-       (*positive_numbers_suite 100;*)
+       positive_numbers_suite 100;
        (*special_values_suite*)])
