@@ -20,11 +20,8 @@ let roundtrip radix scaled f =
      | None -> None
      | Some _ -> mf
 
-let r2 = big_int_of_int 2
-
-let float_option_printer f =
 let test_no_scl_radix2 v _ =
-  assert_equal ~cmp:opt_float_eqb_nan_t (roundtrip r2 false v) (Some v)
+  assert_equal ~cmp:opt_float_eqb_nan_t (roundtrip (big_int_of_int 2) false v) (Some v)
 
 let normal_numbers_suite =
   "Normal Numbers">:::
@@ -49,25 +46,6 @@ let positive_numbers_suite n =
 let _ =
   run_test_tt_main
     ("All tests" >:::[
-       normal_numbers_suite ;
+       (*normal_numbers_suite;*)
        (*positive_numbers_suite 100;*)
        (*special_values_suite*)])
-  *)
-
-let string_option_printer (os : string option) : string =
-  match os with
-  | None -> "None"
-  | Some s -> if s = "" then "empty_string" else s
-
-let _ =
-  print_string (string_option_printer (ocaml_float64_to_BER_exact r2 false 96.0))
-
-let ber_cont_of_ocaml_float64 f =
-  match (ocaml_float64_to_BER_exact r2 false f) with
-  | None -> None
-  | Some f' -> Def0.cont_of_BER_bits (OcamlFPBER.big_int_of_bits f')
-
-let _ =
-  print_string (string_option_printer (string_of_cont
-                                         (cont_of_BER_bits
-                                            (ocaml_float64_to_BER_exact r2 false 96.0))))
