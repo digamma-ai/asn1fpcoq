@@ -22,6 +22,7 @@ let roundtrip radix scaled f =
 
 let r2 = big_int_of_int 2
 
+let float_option_printer f =
 let test_no_scl_radix2 v _ =
   assert_equal ~cmp:opt_float_eqb_nan_t (roundtrip r2 false v) (Some v)
 
@@ -45,26 +46,13 @@ let positive_numbers_suite n =
         let v = Random.float Float.max_finite_value in
         string_of_float v >:: test_no_scl_radix2 v)
 
-(*
-let negative_normal_numbers_suite n =
-  "Negative Numbers">:::
-    List.map (List.range 0 n) ~f:(fun _ ->
-        let v = Random.float Float.min_positive_normal_value in
-        string_of_float v >:: test_no_scl_radix2 v)
-
-let negative_subnormal_numbers_suite n =
-  "Negative Numbers">:::
-    List.map (List.range 0 n) ~f:(fun _ ->
-        let v = Random.float Float.min_positive_subnormal_value in
-        string_of_float v >:: test_no_scl_radix2 v)
-*)
-
 let _ =
   run_test_tt_main
     ("All tests" >:::[
        normal_numbers_suite ;
        (*positive_numbers_suite 100;*)
        (*special_values_suite*)])
+  *)
 
 let string_option_printer (os : string option) : string =
   match os with
@@ -79,5 +67,7 @@ let ber_cont_of_ocaml_float64 f =
   | None -> None
   | Some f' -> Def0.cont_of_BER_bits (OcamlFPBER.big_int_of_bits f')
 
-Printf.printf "(%ld, %ld)" (int32_of_big_int (fst n34)) (int32_of_big_int (snd n34))
- *)
+let _ =
+  print_string (string_option_printer (string_of_cont
+                                         (cont_of_BER_bits
+                                            (ocaml_float64_to_BER_exact r2 false 96.0))))

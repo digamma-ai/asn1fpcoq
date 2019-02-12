@@ -3,6 +3,8 @@ open Core
 open String
 open Big_int
 
+open BitContainer
+
 let string_of_big_int_bit (x : big_int) : string =
   if eq_big_int x zero_big_int
   then "0"
@@ -18,6 +20,8 @@ let rec bits_of_big_int bi =
   let (q,r) = quomod_big_int bi base in
   let t = string_of_big_int_bit r in
   String.concat [(if eq_big_int q zero_big_int then "" else bits_of_big_int q); t]
+
+let string_of_cont (c : container) : string = bits_of_big_int c
 
   (*
 let rec bytes_of_big_int bi =
