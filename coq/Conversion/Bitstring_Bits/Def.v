@@ -695,7 +695,7 @@ Definition nbs_of_cont {l : nat} (c : container l) :=
                construct_long_nbs id co t s bb ff ee eo e m
              end
            end
-    else match (cut_cont content (c2n ee + 1)) with
+    else match (cut_cont content (8 * (c2n ee + 1))) with
          | None => None
          | Some c =>
            let '(e, m) := split_cont c in
