@@ -66,8 +66,18 @@ let _ =
        (*positive_numbers_suite 100;*)
        (*special_values_suite*)])
 
-(*
-let n34 = normalize_float32 (big_int_of_int 3) (big_int_of_int 4) ;;
+let string_option_printer (os : string option) : string =
+  match os with
+  | None -> "None"
+  | Some s -> if s = "" then "empty_string" else s
+
+let _ =
+  print_string (string_option_printer (ocaml_float64_to_BER_exact r2 false 96.0))
+
+let ber_cont_of_ocaml_float64 f =
+  match (ocaml_float64_to_BER_exact r2 false f) with
+  | None -> None
+  | Some f' -> Def0.cont_of_BER_bits (OcamlFPBER.big_int_of_bits f')
 
 Printf.printf "(%ld, %ld)" (int32_of_big_int (fst n34)) (int32_of_big_int (snd n34))
  *)
