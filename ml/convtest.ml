@@ -30,7 +30,7 @@ let test_no_scl_radix2 v _ =
 let normal_numbers_suite =
   "Normal Numbers">:::
     List.map
-      [3.1415; (-3.1415); 3E12]
+      [3.1415; (-3.1415); 3E12; 96.0]
       ~f:(fun v -> string_of_float v >:: test_no_scl_radix2 v)
 
 let special_values_suite =
@@ -50,6 +50,6 @@ let positive_numbers_suite n =
 let _ =
   run_test_tt_main
     ("All tests" >:::[
-       (*normal_numbers_suite;*)
-       positive_numbers_suite 100;
+       normal_numbers_suite;
+       (*positive_numbers_suite 100;*)
        (*special_values_suite*)])
