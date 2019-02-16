@@ -51,5 +51,5 @@ let _ =
   run_test_tt_main
     ("All tests" >:::[
        normal_numbers_suite;
-       (*positive_numbers_suite 100;*)
-       (*special_values_suite*)])
+       positive_numbers_suite 1000;
+       special_values_suite])

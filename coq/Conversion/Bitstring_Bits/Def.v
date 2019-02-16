@@ -747,9 +747,13 @@ Definition bsaux_of_bits (b : Z) : option BER_bs_aux :=
   else match (mk_special_bsaux b) with
        | Some b => Some b
        | None =>
-         match (nbs_of_cont (cont_of_Z_abs b)) with
+         match cont_of_BER_bits b with
          | None => None
-         | Some b => Some (normal_aux b)
+         | Some c =>
+           match (nbs_of_cont c) with
+           | None => None
+           | Some b => Some (normal_aux b)
+           end
          end
        end.
 
