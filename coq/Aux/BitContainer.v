@@ -184,29 +184,3 @@ Proof.
     subst v2'.
     f_equal; apply proof_irrelevance.
 Admitted.
-
-
-
-
-
-
-
-(* not sure about this stuff. Review later. Vadim *)
-
-Definition cont_of_Z := cont.
-
-Definition Z_of_cont {l : nat} (c : container l) :=
-  match c with cont _ v _ _ => v end.
-
-Lemma blen_Z_of_cont {l : nat} (c : container l) :
-  (nblen (Z_of_cont c) <= l)%nat.
-Proof. destruct c; auto. Qed.
-
-Lemma nonneg_Z_of_cont {l : nat} (c : container l) :
-  0 <= Z_of_cont c.
-Proof. destruct c; auto. Qed.
-
-Definition cont_Z_roundtrip {l : nat} (c : container l) :=
-  match c with
-  | cont _ v N L => cont_of_Z l (Z_of_cont c) (nonneg_Z_of_cont c) (blen_Z_of_cont c)
-  end.

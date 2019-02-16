@@ -20,15 +20,17 @@ let roundtrip radix scaled f =
      | None -> None
      | Some _ -> mf
 
-let r2 = big_int_of_int 2
-
 let test_no_scl_radix2 v _ =
-  assert_equal ~cmp:opt_float_eqb_nan_t (roundtrip r2 false v) (Some v)
+  assert_equal ~cmp:opt_float_eqb_nan_t
+    ~printer:(fun so -> match so with
+                        | None -> "None"
+                        | Some s -> string_of_float s)
+    (Some v) (roundtrip (big_int_of_int 2) false v)
 
 let normal_numbers_suite =
   "Normal Numbers">:::
     List.map
-      [3.1415; (-3.1415); 3E12]
+      [3.1415; (-3.1415); 3E12; 96.0]
       ~f:(fun v -> string_of_float v >:: test_no_scl_radix2 v)
 
 let special_values_suite =
@@ -45,29 +47,9 @@ let positive_numbers_suite n =
         let v = Random.float Float.max_finite_value in
         string_of_float v >:: test_no_scl_radix2 v)
 
-let negative_normal_numbers_suite n =
-  "Negative Numbers">:::
-    List.map (List.range 0 n) ~f:(fun _ ->
-        let v = Random.float Float.min_positive_normal_value in
-        string_of_float v >:: test_no_scl_radix2 v)
-
-let negative_subnormal_numbers_suite n =
-  "Negative Numbers">:::
-    List.map (List.range 0 n) ~f:(fun _ ->
-        let v = Random.float Float.min_positive_subnormal_value in
-        string_of_float v >:: test_no_scl_radix2 v)
-
 let _ =
   run_test_tt_main
     ("All tests" >:::[
-       normal_numbers_suite ;
-       negative_normal_numbers_suite 100 ;
-       negative_subnormal_numbers_suite 100 ;
-       positive_numbers_suite 100 ;
+       normal_numbers_suite;
+       positive_numbers_suite 1000;
        special_values_suite])
-
-(*
-let n34 = normalize_float32 (big_int_of_int 3) (big_int_of_int 4) ;;
-
-Printf.printf "(%ld, %ld)" (int32_of_big_int (fst n34)) (int32_of_big_int (snd n34))
- *)
