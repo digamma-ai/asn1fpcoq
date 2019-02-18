@@ -4,12 +4,14 @@
  (release
   (flags (:standard -O3 -w -39-33-20-50))))
 
-; (executables
-;   (names convtest)
-;   (libraries extracted core num oUnit)
-;   (modes byte))
+(executables
+  (names convtest)
+  (libraries extracted core num oUnit asn1fp)
+  (modules (:standard \ ocamlFPBER))
+  (modes byte))
 
 (library
     (name asn1fp)
     (libraries extracted core num oUnit)
+    (modules (:standard \ convtest))
     (modes byte))

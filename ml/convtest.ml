@@ -1,4 +1,4 @@
-open OcamlFPBER
+open Asn1fp
 open OUnit2
 open Big_int
 open Core
