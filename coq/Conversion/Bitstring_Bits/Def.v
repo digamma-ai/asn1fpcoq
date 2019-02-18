@@ -197,7 +197,18 @@ Proof. split_valid; lia. Qed.
 Lemma VS_s_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   (nblen s <= 1)%nat.
-Admitted.
+Proof.
+  destruct (Z.eq_dec s 0).
+  - subst; auto.
+  - split_valid; assert (0 < s) by lia.
+    replace 1%nat with (Z.to_nat (1%Z)) by trivial.
+    assert (P : s < 2) by lia;
+      replace 2 with (2^1) in P by trivial;
+      apply Z.log2_lt_pow2 in P; [|lia].
+    apply Z2Nat.inj_le; [ | try lia | try lia].
+    assert (0 <= Z.log2 s) by apply Z.log2_nonneg.
+    lia.
+Qed.
 
 Lemma VL_s_N {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
@@ -207,7 +218,19 @@ Proof. split_valid; lia. Qed.
 Lemma VL_s_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   (nblen s <= 1)%nat.
-Admitted.
+Proof.
+  destruct (Z.eq_dec s 0).
+  - subst; auto.
+  - split_valid; assert (0 < s) by lia.
+    replace 1%nat with (Z.to_nat (1%Z)) by trivial.
+    assert (P : s < 2) by lia;
+      replace 2 with (2^1) in P by trivial;
+      apply Z.log2_lt_pow2 in P; [|lia].
+    apply Z2Nat.inj_le; [ | try lia | try lia].
+    assert (0 <= Z.log2 s) by apply Z.log2_nonneg.
+    lia.
+Qed.
+
 
 (** * bb *)
 Lemma VS_bb_N {id co t s bb ff ee e m : Z}
