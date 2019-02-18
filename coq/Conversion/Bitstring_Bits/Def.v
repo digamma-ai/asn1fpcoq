@@ -8,6 +8,7 @@ Open Scope Z.
 (** * common lengths *)
 
 Definition cont1 := container 1.
+
 Definition cont2 := container 2.
 Definition cont8 := container 8.
 
@@ -92,44 +93,43 @@ Inductive BER_bs_aux :=
 
 (** * bitstring -> nbs lemmas *)
 
-Ltac deVS :=
-  unfold valid_short, real_id_b in *; repeat split_andb; debool; subst.
-
-Ltac deVL :=
-  unfold valid_long, real_id_b in *; repeat split_andb; debool; subst.
+Ltac split_valid :=
+  unfold valid_short in *;
+  unfold valid_long in *;
+  unfold real_id_b in *; repeat split_andb; debool; subst.
 
 (** * id *)
 Lemma VS_id_N {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   0 <= id.
-Proof. deVS; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VS_id_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   (nblen id <= 8)%nat.
-Proof. deVS; unfold nblen; simpl; lia. Qed.
+Proof. split_valid; unfold nblen; simpl; lia. Qed.
 
 Lemma VL_id_N {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   0 <= id.
-Proof. deVL; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VL_id_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   (nblen id <= 8)%nat.
-Proof. deVL; unfold nblen; simpl; lia. Qed.
+Proof. split_valid; unfold nblen; simpl; lia. Qed.
 
 (** * co *)
 Lemma VS_co_N {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   0 <= co.
-Proof. deVS; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VS_co_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   (nblen co <= 8)%nat.
 Proof.
-  deVS. unfold nblen.
+  split_valid. unfold nblen.
   replace 8%nat with (Z.to_nat (8%Z)).
   apply Z2Nat.inj_le.
   assert (0 <= Z.log2 co) by apply Z.log2_nonneg.
@@ -147,7 +147,7 @@ Qed.
 Lemma VL_co_N {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   0 <= co.
-Proof. deVL; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VL_co_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
@@ -158,7 +158,7 @@ Admitted.
 Lemma VS_t_N {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   0 <= t.
-Proof. deVS; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VS_t_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
@@ -168,7 +168,7 @@ Admitted.
 Lemma VL_t_N {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   0 <= t.
-Proof. deVL; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VL_t_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
@@ -179,7 +179,7 @@ Admitted.
 Lemma VS_s_N {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   0 <= s.
-Proof. deVS; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VS_s_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
@@ -189,7 +189,7 @@ Admitted.
 Lemma VL_s_N {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   0 <= s.
-Proof. deVL; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VL_s_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
@@ -200,7 +200,7 @@ Admitted.
 Lemma VS_bb_N {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   0 <= bb.
-Proof. deVS; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VS_bb_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
@@ -210,7 +210,7 @@ Admitted.
 Lemma VL_bb_N {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   0 <= bb.
-Proof. deVL; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VL_bb_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
@@ -221,7 +221,7 @@ Admitted.
 Lemma VS_ff_N {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   0 <= ff.
-Proof. deVS; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VS_ff_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
@@ -231,7 +231,7 @@ Admitted.
 Lemma VL_ff_N {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   0 <= ff.
-Proof. deVL; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VL_ff_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
@@ -242,7 +242,7 @@ Admitted.
 Lemma VS_ee_N {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   0 <= ee.
-Proof. deVS; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VS_ee_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
@@ -252,7 +252,7 @@ Admitted.
 Lemma VL_ee_N {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   0 <= ee.
-Proof. deVL; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VL_ee_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
@@ -263,7 +263,7 @@ Admitted.
 Lemma VL_eo_N {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   0 <= eo.
-Proof. deVL; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VL_eo_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
@@ -274,7 +274,7 @@ Admitted.
 Lemma VS_e_N {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   0 <= e.
-Proof. deVS; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VS_e_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
@@ -285,7 +285,7 @@ Admitted.
 Lemma VL_e_N {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   0 <= e.
-Proof. deVL; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VL_e_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
@@ -297,7 +297,7 @@ Admitted.
 Lemma VS_m_N {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   0 <= m.
-Proof. deVS; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VS_m_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
@@ -309,7 +309,7 @@ Admitted.
 Lemma VL_m_N {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   0 <= m.
-Proof. deVL; lia. Qed.
+Proof. split_valid; lia. Qed.
 
 Lemma VL_m_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
