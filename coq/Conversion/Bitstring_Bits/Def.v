@@ -129,19 +129,14 @@ Lemma VS_co_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   (nblen co <= 8)%nat.
 Proof.
-  split_valid. unfold nblen.
-  replace 8%nat with (Z.to_nat (8%Z)).
-  apply Z2Nat.inj_le.
+  split_valid.
+  replace 8%nat with (Z.to_nat (8%Z)) by trivial.
+  assert (co < 128) by lia;
+    replace 128 with (2^7) in H by trivial;
+    apply Z.log2_lt_pow2 in H; [|lia].
+  apply Z2Nat.inj_le; [ | try lia | try lia].
   assert (0 <= Z.log2 co) by apply Z.log2_nonneg.
   lia.
-  lia.
-  assert (co < 128) by lia.
-  replace 128 with (2^7) in H.
-  apply Z.log2_lt_pow2 in H.
-  lia.
-  lia.
-  trivial.
-  trivial.
 Qed.
 
 Lemma VL_co_N {id co t s bb ff ee eo e m : Z}
