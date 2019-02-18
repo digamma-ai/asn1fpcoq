@@ -359,7 +359,24 @@ Proof. split_valid; lia. Qed.
 Lemma VL_eo_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   (nblen eo <= 8)%nat.
-Admitted.
+Proof.
+  split_valid.
+  replace 8%nat with (Z.to_nat (8%Z)) by trivial.
+  assert (0 <= olen m).
+  { 
+    unfold olen, olen_of_blen, blen.
+    apply Z.div_pos; [| lia].
+    generalize (Z.log2_nonneg m); lia.
+  }
+  assert (eo <= co) by lia.
+  assert (co < 128) by lia.
+  assert (P : eo < 128) by lia;
+    replace 128 with (2^7) in P by trivial;
+    apply Z.log2_lt_pow2 in P; [|lia].
+  apply Z2Nat.inj_le; [ | try lia | try lia].
+  assert (0 <= Z.log2 eo) by apply Z.log2_nonneg.
+  lia.
+Qed.
 
 (** * e *)
 Lemma VS_e_N {id co t s bb ff ee e m : Z}
