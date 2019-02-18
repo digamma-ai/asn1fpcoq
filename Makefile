@@ -30,6 +30,7 @@ TSTAMP = $(EXTRACTDIR)/.timestamp
 all: .depend
 	$(MAKE) coq
 	$(MAKE) extracted
+	$(MAKE) $(LIB)
 	$(MAKE) $(EXE)
 
 coq: $(VOFILES)
@@ -55,6 +56,12 @@ install-dep:
 
 config Makefile.coq: _CoqProject Makefile
 	coq_makefile -f _CoqProject $(VFILES) -o Makefile.coq
+
+LIB=ml/_build/default/asn1fp.cma
+
+$(LIB): extracted 
+	@echo "Compiling $(LIB)"
+	(cd ml; dune build --profile dev asn1fp.cma)
 
 EXE=ml/_build/default/convtest.exe
 
