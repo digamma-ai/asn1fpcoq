@@ -388,7 +388,30 @@ Lemma VS_e_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   let eec := (b2_cont ee (VS_ee_N VS) (VS_ee_L VS)) in
   (nblen e <= 8* (c2n eec + 1))%nat.
-Admitted.
+Proof.
+  assert (H := VS).
+  intros eec.
+  replace (c2n eec) with (Z.to_nat ee).
+  split_valid.
+  - unfold nblen.
+    replace (8 * (Z.to_nat ee + 1))%nat with (Z.to_nat (8 * (ee + 1))).
+    + apply Z2Nat.inj_le; [ | lia |].
+      assert (0 <= Z.log2 e) by apply Z.log2_nonneg.
+      lia.
+      unfold olen, olen_of_blen, blen in H3.
+      remember (Z.log2 e + 1) as el.
+      apply (Zmult_le_compat_l _ _ 8) in H3; [| lia].
+      assert (0 < 8) by lia.
+      generalize (Zdiv_pinf_ge el 8 H); intros.
+      replace (8 - 1) with 7 in H0 by trivial.
+      lia.
+    + replace 8%nat with (Z.to_nat 8%Z) by reflexivity;
+        replace 1%nat with (Z.to_nat 1%Z) by reflexivity.
+      rewrite <- Z2Nat.inj_add, <- Z2Nat.inj_mul; lia.
+  - subst eec.
+    unfold c2n, c2z, z2n, Z_of_cont, b2_cont.
+    reflexivity.
+Qed.
 
 Lemma VL_e_N {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
@@ -399,7 +422,29 @@ Lemma VL_e_L {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   let eoc := (b8_cont eo (VL_eo_N VL) (VL_eo_L VL)) in
   (nblen e <= 8 * c2n eoc)%nat.
-Admitted.
+Proof.
+  assert (H := VL).
+  intros eoc.
+  replace (c2n eoc) with (Z.to_nat eo).
+  split_valid.
+  - unfold nblen.
+    replace (8 * (Z.to_nat eo))%nat with (Z.to_nat (8 * eo)).
+    + apply Z2Nat.inj_le; [ | lia |].
+      assert (0 <= Z.log2 e) by apply Z.log2_nonneg.
+      lia.
+      unfold olen, olen_of_blen, blen in H3.
+      remember (Z.log2 e + 1) as el.
+      apply (Zmult_le_compat_l _ _ 8) in H3; [| lia].
+      assert (0 < 8) by lia.
+      generalize (Zdiv_pinf_ge el 8 H); intros.
+      replace (8 - 1) with 7 in H0 by trivial.
+      lia.
+    + replace 8%nat with (Z.to_nat 8%Z) by reflexivity.
+      rewrite <- Z2Nat.inj_mul; lia.
+  - subst eoc.
+    unfold c2n, c2z, z2n, Z_of_cont, b2_cont.
+    reflexivity.
+Qed.
 
 (** * m *)
 Lemma VS_m_N {id co t s bb ff ee e m : Z}
