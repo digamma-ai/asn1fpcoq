@@ -12,10 +12,10 @@ let opt_float_eqb_nan_t o1 o2 =
   | _, _ -> false
 
 let roundtrip radix scaled f =
-  match ocaml_float64_to_BER_exact radix scaled f with
+  match OcamlFPBER.ocaml_float64_to_BER_exact radix scaled f with
   | None -> None
   | Some a ->
-     let mf = ocaml_BER_to_float64_exact a in
+     let mf = OcamlFPBER.ocaml_BER_to_float64_exact a in
      match mf with
      | None -> None
      | Some _ -> mf

@@ -72,16 +72,8 @@ let ocaml_float64_to_BER_exact (radix:big_int) (scaled:bool) (f:float): string o
   | None -> None
   | Some bbi -> Some (bits_of_big_int bbi)
 
-let ocaml_float64_to_BER (f: float): string option = 
-  ocaml_float64_to_BER_exact r2 false f
-
 let ocaml_BER_to_float64_exact (ab:string): float option =
   let ai = big_int_of_bits ab in
   match coq_BER_to_float64_exact ai with
   | None -> None
   | Some fbi -> Some (float_of_big_int fbi)
-
-let () =
-  Callback.register "ocaml_double_to_ber" ocaml_float64_to_BER;
-  Callback.register "ocaml_ber_to_double" ocaml_BER_to_float64_exact;
-;;

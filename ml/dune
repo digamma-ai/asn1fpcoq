@@ -7,7 +7,7 @@
 (executables
   (names convtest)
   (libraries extracted core num oUnit asn1fp)
-  (modules (:standard \ ocamlFPBER))
+  (modules (:standard \ ocamlFPBER ocamlWrappers))
   (modes byte))
 
 (library
