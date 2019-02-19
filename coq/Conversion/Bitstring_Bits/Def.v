@@ -589,6 +589,52 @@ Qed.
 
 (** * nbs -> bitstring lemmas *)
 
+Lemma c2z_nneg {l : nat} (c : container l) :
+  0 <= c2z c.
+Proof. destruct c. simpl. apply N. Qed.
+
+Lemma c12z_le_1 (c : cont1) :
+  c2z c <= 1.
+Proof.
+  destruct c; simpl.
+  unfold nblen in L.
+  replace 1%nat with (Z.to_nat 1) in L by trivial.
+  generalize (Z.log2_nonneg v); intros.
+  apply Z2Nat.inj_le in L; try lia.
+  assert (L1 : Z.log2 v < 1) by lia; clear L.
+  replace 1 with (Z.log2 2) in L1 by trivial.
+  apply Z.log2_lt_cancel in L1.
+  lia.
+Qed.
+
+Lemma c22z_le_3 (c : cont2) :
+  c2z c <= 3.
+Proof.
+  destruct c; simpl.
+  unfold nblen in L.
+  replace 2%nat with (Z.to_nat 2) in L by trivial.
+  generalize (Z.log2_nonneg v); intros.
+  apply Z2Nat.inj_le in L; try lia.
+  assert (L1 : Z.log2 v < 2) by lia; clear L.
+  replace  2 with (Z.log2 4) in L1 by trivial.
+  apply Z.log2_lt_cancel in L1.
+  lia.
+Qed.
+
+Lemma c82z_le_255 (c : cont8) :
+  c2z c <= 255.
+Proof.
+  destruct c; simpl.
+  unfold nblen in L.
+  replace 8%nat with (Z.to_nat 8) in L by trivial.
+  generalize (Z.log2_nonneg v); intros.
+  apply Z2Nat.inj_le in L; try lia.
+  assert (L1 : Z.log2 v < 8) by lia; clear L.
+  replace 8 with (Z.log2 256) in L1 by trivial.
+  apply Z.log2_lt_cancel in L1.
+  lia.
+Qed.
+  
 Lemma short_nbs_valid
     (id co : cont8)
     (t s : cont1) (bb ff ee : cont2)
@@ -597,7 +643,15 @@ Lemma short_nbs_valid
     valid_short (c2z id) (c2z co)
                 (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee)
                 (c2z e) (c2z m) = true.
+Proof.
+  unfold valid_short.
+  split_andb_goal; debool;
+    try auto; try apply cont_nneg;
+      try apply c12z_le_1; try apply c22z_le_3; try apply c82z_le_255.
 Admitted.
+
+
+  
 
 Lemma long_nbs_valid
     (id co : cont8)
