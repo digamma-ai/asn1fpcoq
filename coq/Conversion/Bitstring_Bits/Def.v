@@ -494,7 +494,29 @@ Lemma VL_m_L {id co t s bb ff ee eo e m : Z}
   let coc := (b8_cont co (VL_co_N VL) (VL_co_L VL)) in
   let eoc := (b8_cont eo (VL_eo_N VL) (VL_eo_L VL)) in
   (nblen m <= 8* (c2n coc - c2n eoc - 2))%nat.
-Admitted.
+Proof.
+  intros coc eoc.
+  replace (c2n coc) with (Z.to_nat co) by uncont.
+  replace (c2n eoc) with (Z.to_nat eo) by uncont.
+  clear coc eoc.
+  split_valid.
+  unfold nblen.
+  unfold olen, olen_of_blen, blen in H14.
+  remember (Z.log2 m + 1) as lm.
+  assert (P : 8 * ((lm + 7) / 8) <= 8 * (co - eo - 2)) by lia; clear H14.
+  assert (T1 : 0 < 8) by lia.
+  generalize (Zdiv_pinf_ge lm 8 T1); intros P1; replace (8 - 1) with 7 in P1 by trivial.
+  assert (P2 : lm <= 8 * (co - eo - 2)) by lia.
+  generalize (Z.log2_nonneg m); intros P3.
+  replace (8 * (Z.to_nat co - Z.to_nat eo - 2))%nat with (Z.to_nat (8 * (co - eo - 2))).
+  - apply Z2Nat.inj_le; lia.
+  - replace 8%nat with (Z.to_nat 8) by trivial.
+    replace 2%nat with (Z.to_nat 2) by trivial.
+    rewrite <- Z2Nat.inj_sub by lia.
+    rewrite <- Z2Nat.inj_sub by lia.
+    rewrite <- Z2Nat.inj_mul; [ reflexivity | lia | ].
+    lia.
+Qed.
 
 Lemma valid_short_VS1 {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
