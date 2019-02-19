@@ -78,12 +78,14 @@ Inductive BER_nbs :=
     (t s : cont1) (bb ff ee : cont2)
     (e : container (8 * (c2n ee + 1))) (m : container (8*((c2n co) - (c2n ee) - 2)))
     (VS1 : c2z id = real_id_b) (VS2 : c2z t = 1) (VS3 : c2z ee <= 2) (VS4 : 1 <= c2z m)
+    (VS5 : c2z co <= 127)
 | long_nbs
     (id co : cont8)
     (t s : cont1) (bb ff ee : cont2)
     (eo : cont8)
     (e : container (8*(c2n eo))) (m : container (8 * ((c2n co) - (c2n eo) - 2)))
-    (VL1 : c2z id = real_id_b) (VL2 : c2z t = 1) (VL3 : c2z ee = 3) (VL4 : 1 <= c2z m).
+    (VL1 : c2z id = real_id_b) (VL2 : c2z t = 1) (VL3 : c2z ee = 3) (VL4 : 1 <= c2z m)
+    (VL5 : c2z co <= 127).
 
 Inductive BER_bs_aux :=
 | special_aux (val : Z) : BER_bs_aux
@@ -552,6 +554,11 @@ Proof.
   split_valid. simpl; lia.
 Qed.
 
+Lemma valid_short_VS5 {id co t s bb ff ee e m : Z}
+      (VS : valid_short id co t s bb ff ee e m = true) :
+  c2z (b8_cont co (VS_co_N VS) (VS_co_L VS)) <= 127.
+Admitted.
+
 Lemma valid_long_VL1 {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   c2z (b8_cont id (VL_id_N VL) (VL_id_L VL)) = real_id_b.
@@ -585,6 +592,11 @@ Proof.
   assert (H := VL).
   split_valid. simpl; lia.
 Qed.
+
+Lemma valid_long_VL5 {id co t s bb ff ee eo e m : Z}
+      (VL : valid_long id co t s bb ff ee eo e m = true) :
+  c2z (b8_cont co (VL_co_N VL) (VL_co_L VL)) <= 127.
+Admitted.
 
 
 (** * nbs -> bitstring lemmas *)
@@ -639,26 +651,37 @@ Lemma short_nbs_valid
     (id co : cont8)
     (t s : cont1) (bb ff ee : cont2)
     (e : container (8 * (c2n ee + 1))) (m : container (8*((c2n co) - (c2n ee) - 2)))
-    (VS1 : c2z id = real_id_b) (VS2 : c2z t = 1) (VS3 : c2z ee <= 2) (VS4 : 1 <= c2z m) :
+    (VS1 : c2z id = real_id_b) (VS2 : c2z t = 1) (VS3 : c2z ee <= 2) (VS4 : 1 <= c2z m)
+    (VS5 : c2z co <= 127) :
     valid_short (c2z id) (c2z co)
                 (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee)
                 (c2z e) (c2z m) = true.
 Proof.
   unfold valid_short.
   split_andb_goal; debool;
-    try auto; try apply cont_nneg;
-      try apply c12z_le_1; try apply c22z_le_3; try apply c82z_le_255.
+    try auto; try apply c2z_nneg;
+      try apply c12z_le_1; try apply c22z_le_3; try apply c82z_le_255;
+        clear VS1 VS2 id t s bb ff.
+  - clear VS3 VS4 e.
+    destruct m.
+    (* nblen >= 1   -|L|->   co >= ee + 2 *)
+    admit.
+  - destruct m, ee, co;
+      rename v into m, v0 into ee, v1 into co; simpl.
+    admit.
+  - destruct m, ee, co;
+      rename v into m, v0 into ee, v1 into co; simpl.
+    uncont.
+    admit.
 Admitted.
-
-
-  
 
 Lemma long_nbs_valid
     (id co : cont8)
     (t s : cont1) (bb ff ee : cont2)
     (eo : cont8)
     (e : container (8*(c2n eo))) (m : container (8 * ((c2n co) - (c2n eo) - 2)))
-    (VL1 : c2z id = real_id_b) (VL2 : c2z t = 1) (VL3 : c2z ee = 3) (VL4 : 1 <= c2z m) :
+    (VL1 : c2z id = real_id_b) (VL2 : c2z t = 1) (VL3 : c2z ee = 3) (VL4 : 1 <= c2z m)
+    (VL5 : c2z co <= 127) :
     valid_long  (c2z id) (c2z co)
                 (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee) (c2z eo)
                 (c2z e) (c2z m) = true.
@@ -688,7 +711,8 @@ Definition bsaux_of_bitstring (b : BER_bitstring) : BER_bs_aux :=
       (valid_short_VS1 VS)
       (valid_short_VS2 VS)
       (valid_short_VS3 VS)
-      (valid_short_VS4 VS))
+      (valid_short_VS4 VS)
+      (valid_short_VS5 VS))
   | long id co t s bb ff ee eo e m VL =>
     let coc := (b8_cont co (VL_co_N VL) (VL_co_L VL)) in
     let eoc := (b8_cont eo (VL_eo_N VL) (VL_eo_L VL)) in
@@ -706,7 +730,8 @@ Definition bsaux_of_bitstring (b : BER_bitstring) : BER_bs_aux :=
       (valid_long_VL1 VL)
       (valid_long_VL2 VL)
       (valid_long_VL3 VL)
-      (valid_long_VL4 VL))
+      (valid_long_VL4 VL)
+      (valid_long_VL5 VL))
   end.
 
 Definition bitstring_of_bsaux (b : BER_bs_aux) : BER_bitstring :=
@@ -714,16 +739,16 @@ Definition bitstring_of_bsaux (b : BER_bs_aux) : BER_bitstring :=
   | special_aux val => special val
   | normal_aux b =>
     match b with
-    | short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4 =>
+    | short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4 VS5 =>
       short (c2z id) (c2z co)
             (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee)
             (c2z e) (c2z m)
-            (short_nbs_valid id co t s bb ff ee e m VS1 VS2 VS3 VS4)
-    | long_nbs id co t s bb ff ee eo e m VL1 VL2 VL3 VL4 =>
+            (short_nbs_valid id co t s bb ff ee e m VS1 VS2 VS3 VS4 VS5)
+    | long_nbs id co t s bb ff ee eo e m VL1 VL2 VL3 VL4 VL5 =>
       long  (c2z id) (c2z co)
             (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee) (c2z eo)
             (c2z e) (c2z m)
-            (long_nbs_valid id co t s bb ff ee eo e m VL1 VL2 VL3 VL4)
+            (long_nbs_valid id co t s bb ff ee eo e m VL1 VL2 VL3 VL4 VL5)
     end
   end.
 
@@ -734,14 +759,14 @@ Definition info_nblen := 24%nat.
 
 Definition nbs_nblen (b : BER_nbs) : nat :=
   match b with
-  | short_nbs id co t s bb ff ee e m _ _ _ _ => 8 * (c2n co + 2)
-  | long_nbs id co t s bb ff ee eo e m _ _ _ _ => 8 * (c2n co + 2)
+  | short_nbs id co t s bb ff ee e m _ _ _ _ _ => 8 * (c2n co + 2)
+  | long_nbs id co t s bb ff ee eo e m _ _ _ _ _ => 8 * (c2n co + 2)
   end.
 
 Definition content_nblen (b : BER_nbs) : nat :=
   match b with
-  | short_nbs id co t s bb ff ee e m _ _ _ _ => 8 * (c2n co - 1)
-  | long_nbs id co t s bb ff ee eo e m _ _ _ _ => 8 * (c2n co - 1)
+  | short_nbs id co t s bb ff ee e m _ _ _ _ _ => 8 * (c2n co - 1)
+  | long_nbs id co t s bb ff ee eo e m _ _ _ _ _ => 8 * (c2n co - 1)
   end.
 
 Lemma short_nblen_correct {l1 l2 : nat} (co : container l1) (ee : container l2) :
@@ -798,7 +823,7 @@ Definition bsaux_nblen (b : BER_bs_aux) :=
 
 Definition mk_info (b : BER_nbs) : container info_nblen :=
   match b with
-  | short_nbs id co t s bb ff ee e m _ _ _ _ =>
+  | short_nbs id co t s bb ff ee e m _ _ _ _ _ =>
        join_cont id
       (join_cont co
       (join_cont t
@@ -806,7 +831,7 @@ Definition mk_info (b : BER_nbs) : container info_nblen :=
       (join_cont bb
       (join_cont ff ee
        )))))
-  | long_nbs id co t s bb ff ee eo e m _ _ _ _ =>
+  | long_nbs id co t s bb ff ee eo e m _ _ _ _ _ =>
        join_cont id
       (join_cont co
       (join_cont t
@@ -821,9 +846,9 @@ Definition append_info {l : nat} (b : BER_nbs) (c : container l) :=
 
 Definition mk_content (b : BER_nbs) : container (content_nblen b) :=
   match b with
-  | short_nbs id co t s bb ff ee e m _ _ _ _ =>
+  | short_nbs id co t s bb ff ee e m _ _ _ _ _ =>
     cast_cont (join_cont e m) (short_nblen_correct co ee)
-  | long_nbs id co t s bb ff ee eo e m _ _ _ _ =>
+  | long_nbs id co t s bb ff ee eo e m _ _ _ _ _ =>
     cast_cont (join_cont eo (join_cont e m)) (long_nblen_correct co eo)
   end.
 
@@ -930,7 +955,11 @@ Definition construct_short_nbs
             match Z_le_dec 1 (c2z m) with
             | right _ => None
             | left VS4 =>
-              Some (short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4)
+              match Z_le_dec (c2z co) 127 with
+              | right _ => None
+              | left VS5 =>
+              Some (short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4 VS5)
+              end
             end
           end
         end
@@ -963,7 +992,11 @@ Definition construct_long_nbs
             match Z_le_dec 1 (c2z m) with
             | right _ => None
             | left VL4 =>
-               Some (long_nbs id co t s bb ff ee eo e m VL1 VL2 VL3 VL4)
+              match Z_le_dec (c2z co) 127 with
+              | right _ => None
+              | left VL5 =>
+               Some (long_nbs id co t s bb ff ee eo e m VL1 VL2 VL3 VL4 VL5)
+              end
             end
           end
         end
@@ -1060,9 +1093,9 @@ Definition bitstring_of_bits (b : Z) : option BER_bitstring :=
 
 Lemma split_mk_info (b : BER_nbs) :
   match b with
-  | short_nbs id co t s bb ff ee e m _ _ _ _ =>
+  | short_nbs id co t s bb ff ee e m _ _ _ _ _ =>
     split_info (mk_info b) = (id, co, t, s, bb, ff, ee)
-  | long_nbs id co t s bb ff ee eo e m _ _ _ _ =>
+  | long_nbs id co t s bb ff ee eo e m _ _ _ _ _ =>
     split_info (mk_info b) = (id, co, t, s, bb, ff, ee)
   end.
 Proof.
