@@ -523,80 +523,56 @@ Qed.
 Lemma valid_short_VS1 {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   c2z (b8_cont id (VS_id_N VS) (VS_id_L VS)) = real_id_b.
-Proof.
-  assert (H := VS).
-  split_valid. reflexivity.
-Qed.
+Proof. simpl. split_valid. auto. Qed.
 
 Lemma valid_short_VS2 {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   c2z (b1_cont t (VS_t_N VS) (VS_t_L VS)) = 1.
-Proof.
-  assert (H := VS).
-  split_valid. reflexivity.
-Qed.
+Proof. simpl. split_valid. auto. Qed.
 
 Lemma valid_short_VS3 {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   c2z (b2_cont ee (VS_ee_N VS) (VS_ee_L VS)) <= 2.
-Proof.
-  assert (H := VS).
-  split_valid. simpl; lia.
-Qed.
+Proof. simpl. split_valid. auto. Qed.
 
 Lemma valid_short_VS4 {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   let coc := (b8_cont co (VS_co_N VS) (VS_co_L VS)) in
   let eec := (b2_cont ee (VS_ee_N VS) (VS_ee_L VS)) in
   1 <= c2z (cont (8 * (c2n coc - c2n eec - 2)) m (VS_m_N VS) (VS_m_L VS)).
-Proof.
-  assert (H := VS).
-  split_valid. simpl; lia.
-Qed.
+Proof. simpl. split_valid. auto. Qed.
 
 Lemma valid_short_VS5 {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
   c2z (b8_cont co (VS_co_N VS) (VS_co_L VS)) <= 127.
-Admitted.
+Proof. simpl. split_valid. auto. Qed.
 
 Lemma valid_long_VL1 {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   c2z (b8_cont id (VL_id_N VL) (VL_id_L VL)) = real_id_b.
-Proof.
-  assert (H := VL).
-  split_valid. reflexivity.
-Qed.
+Proof. simpl. split_valid. auto. Qed.
 
 Lemma valid_long_VL2 {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   c2z (b1_cont t (VL_t_N VL) (VL_t_L VL)) = 1.
-Proof.
-  assert (H := VL).
-  split_valid. reflexivity.
-Qed.
+Proof. simpl. split_valid. auto. Qed.
 
 Lemma valid_long_VL3 {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   c2z (b2_cont ee (VL_ee_N VL) (VL_ee_L VL)) = 3.
-Proof.
-  assert (H := VL).
-  split_valid. reflexivity.
-Qed.
+Proof. simpl. split_valid. auto. Qed.
 
 Lemma valid_long_VL4 {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   let coc := (b8_cont co (VL_co_N VL) (VL_co_L VL)) in
   let eoc := (b8_cont eo (VL_eo_N VL) (VL_eo_L VL)) in
   1 <= c2z (cont (8 * (c2n coc - c2n eoc - 2)) m (VL_m_N VL) (VL_m_L VL)).
-Proof.
-  assert (H := VL).
-  split_valid. simpl; lia.
-Qed.
+Proof. simpl. split_valid. auto. Qed.
 
 Lemma valid_long_VL5 {id co t s bb ff ee eo e m : Z}
       (VL : valid_long id co t s bb ff ee eo e m = true) :
   c2z (b8_cont co (VL_co_N VL) (VL_co_L VL)) <= 127.
-Admitted.
+Proof. simpl. split_valid. auto. Qed.
 
 
 (** * nbs -> bitstring lemmas *)
