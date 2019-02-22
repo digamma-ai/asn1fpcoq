@@ -632,6 +632,15 @@ Proof.
   destruct a; try inversion H.
   destruct b; simpl in H0; lia.
 Qed.
+
+Lemma nblen_positive (x : Z) :
+  (0 < nblen x)%nat.
+Proof.
+  unfold nblen.
+  generalize (Z.log2_nonneg x); intros.
+  replace 0%nat with (Z.to_nat 0) by trivial.
+  apply Z2Nat.inj_lt; lia.
+Qed.
   
 Lemma short_nbs_valid
     (id co : cont8)
@@ -778,6 +787,26 @@ Proof.
   rewrite <- Nat.mul_add_distr_l.
 Admitted.
 
+Definition nbs_co (b : BER_nbs) : nat :=
+  match b with
+  | short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4 VS5 =>
+    c2n co
+  | long_nbs id co t s bb ff ee eo e m VL1 VL2 VL3 VL4 VL5 =>
+    c2n co
+  end.
+
+Lemma nbs_co_positive (b : BER_nbs) :
+  (1 <= nbs_co b)%nat.
+Proof.
+  destruct b; simpl;
+    remember (c2n co) as x.
+  destruct m.
+  generalize (Z.log2_nonneg v); intros; assert (Z.log2_. unfold nblen in L.
+  apply (Z2Nat_pos_inj_le).
+
+
+  
+    
 Lemma nbs_nblen_correct (b : BER_nbs) :
   (info_nblen + content_nblen b)%nat = nbs_nblen b.
 Proof.
