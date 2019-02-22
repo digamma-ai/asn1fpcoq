@@ -628,8 +628,8 @@ Proof.
   apply Z2Nat.inj_lt; lia.
 Qed.
   
-Lemma Z2Nat_pos (x : Z) :
-  (0 < Z.to_nat x)%nat ->
+Lemma Z2Nat_pos_iff (x : Z) :
+  (0 < Z.to_nat x)%nat <->
   0 < x.
 Proof. destruct x; simpl; lia. Qed.
 
@@ -642,8 +642,8 @@ Proof.
   apply Nat.lt_0_mul in H.
   destruct H.
   - destruct H as [H1 H2];
-      apply Z2Nat_pos in H1;
-        apply Z2Nat_pos in H2.
+      apply Z2Nat_pos_iff in H1;
+        apply Z2Nat_pos_iff in H2.
     auto.
   - unfold Z.to_nat in H; destruct H; inversion H.
 Qed.
@@ -681,15 +681,39 @@ Proof.
   unfold valid_short.
   destruct co, ee, e, m; rename v into co, v0 into ee, v1 into e, v2 into m.
   uncont.
-  assert (C: 0 < co) by (apply Z2Nat_pos; lia); clear COP.
+  assert (C: 0 < co) by (apply Z2Nat_pos_iff; lia); clear COP.
   split_andb_goal; debool.
   all: try auto; try apply c2z_nneg; try apply c12z_le_1; try apply c22z_le_3.
   all: clear id N1 N2 VS1 VS2 t s bb ff N L0 L.
+  all: unfold nblen, olen, olen_of_blen, blen in *.
   - clear L1 e. lia.
   - clear L1 e VS3 VS4 VS5.
-    unfold nblen, olen, olen_of_blen, blen in *.
+    generalize (Z.log2_nonneg m); intros;
+      remember (Z.log2 m + 1) as mb; assert (M : 0 < mb) by lia;
+        clear H Heqmb m.
+    replace 8%nat with (Z.to_nat 8) in L2 by trivial.
+    replace 2%nat with (Z.to_nat 2) in L2 by trivial.
+    repeat rewrite <- Z2Nat.inj_sub in L2 by lia.
+    copy_apply Z2Nat_pos_iff M.
+    assert (P : (0 < Z.to_nat 8 * Z.to_nat (co - ee - 2))%nat) by lia.
+    apply Z2Nat_mul_pos in P; destruct P as [P1 P2].
+    rewrite <- Z2Nat.inj_mul in L2 by lia.
+    apply Z2Nat.inj_le in L2; try lia.
+    clear P1 P2 C H.
     admit.
   - clear L2 VS3 VS4 m VS5 C co.
+    generalize (Z.log2_nonneg e); intros;
+      remember (Z.log2 e + 1) as eb; assert (M : 0 < eb) by lia;
+        clear H Heqeb e.
+    replace 8%nat with (Z.to_nat 8) in L1 by trivial.
+    replace 1%nat with (Z.to_nat 1) in L1 by trivial.
+    rewrite <- Z2Nat.inj_add in L1 by lia.
+    copy_apply Z2Nat_pos_iff M.
+    assert (P : (0 < Z.to_nat 8 * Z.to_nat (ee + 1))%nat) by lia.
+    apply Z2Nat_mul_pos in P; destruct P as [P1 P2].
+    rewrite <- Z2Nat.inj_mul in L1 by lia.
+    apply Z2Nat.inj_le in L1; try lia.
+    clear P1 P2 H.
     admit.
 Admitted.
 
