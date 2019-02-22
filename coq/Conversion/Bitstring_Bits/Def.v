@@ -504,12 +504,12 @@ Proof.
   split_valid.
   unfold nblen.
   unfold olen, olen_of_blen, blen in H14.
+  generalize (Z.log2_nonneg m); intros P3.
   remember (Z.log2 m + 1) as lm.
   assert (P : 8 * ((lm + 7) / 8) <= 8 * (co - eo - 2)) by lia; clear H14.
   assert (T1 : 0 < 8) by lia.
   generalize (Zdiv_pinf_ge lm 8 T1); intros P1; replace (8 - 1) with 7 in P1 by trivial.
   assert (P2 : lm <= 8 * (co - eo - 2)) by lia.
-  generalize (Z.log2_nonneg m); intros P3.
   replace (8 * (Z.to_nat co - Z.to_nat eo - 2))%nat with (Z.to_nat (8 * (co - eo - 2))).
   - apply Z2Nat.inj_le; lia.
   - replace 8%nat with (Z.to_nat 8) by trivial.
@@ -623,6 +623,16 @@ Proof.
   lia.
 Qed.
   
+Lemma Z2Nat_pos_inj_le (a b : Z) :
+  0 < a ->
+  (Z.to_nat a <= Z.to_nat b)%nat ->
+  a <= b.
+Proof.
+  intros.
+  destruct a; try inversion H.
+  destruct b; simpl in H0; lia.
+Qed.
+  
 Lemma short_nbs_valid
     (id co : cont8)
     (t s : cont1) (bb ff ee : cont2)
@@ -636,19 +646,26 @@ Proof.
   unfold valid_short.
   split_andb_goal; debool;
     try auto; try apply c2z_nneg;
-      try apply c12z_le_1; try apply c22z_le_3; try apply c82z_le_255;
-        clear VS1 VS2 id t s bb ff.
+      try apply c12z_le_1; try apply c22z_le_3; try apply c82z_le_255.
+  all: clear VS1 VS2 id t s bb ff.
+  all: destruct m, ee, co; rename v into m, v0 into ee, v1 into co.
+  all: uncont; simpl.
+  replace (8 * (Z.to_nat co - Z.to_nat ee - 2))%nat
+     with (Z.to_nat (8 * (co - ee - 2))) in L.
+    generalize (Z.log2_nonneg m); intros.
   - clear VS3 VS4 e.
-    destruct m.
-    (* nblen >= 1   -|L|->   co >= ee + 2 *)
-    admit.
-  - destruct m, ee, co;
-      rename v into m, v0 into ee, v1 into co; simpl.
-    admit.
-  - destruct m, ee, co;
-      rename v into m, v0 into ee, v1 into co; simpl.
-    uncont.
-    admit.
+    unfold nblen in L.
+    apply Z2Nat.inj_le in L; try lia.
+    clear N1 L1 N0 L0 N VS5 H0.
+    remember (8 * (co - ee - 2)) as z; clear Heqz;
+      remember (Z.log2 m + 1) as p; assert (P : 0 < p) by lia; clear Heqp H m.
+    generalize (Z2Nat_pos_inj_le p z P L); lia.
+  - replace 8%nat with (Z.to_nat 8) by trivial.
+    replace 2%nat with (Z.to_nat 2) by trivial.
+    rewrite <- Z2Nat.inj_sub by lia.
+    rewrite <- Z2Nat.inj_sub by lia.
+    rewrite <- Z2Nat.inj_mul.
+    admit. admit. admit.
 Admitted.
 
 Lemma long_nbs_valid
