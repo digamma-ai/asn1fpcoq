@@ -608,20 +608,6 @@ Proof.
   apply Z.log2_lt_cancel in L1.
   lia.
 Qed.
-
-Lemma c82z_le_255 (c : cont8) :
-  c2z c <= 255.
-Proof.
-  destruct c; simpl.
-  unfold nblen in L.
-  replace 8%nat with (Z.to_nat 8) in L by trivial.
-  generalize (Z.log2_nonneg v); intros.
-  apply Z2Nat.inj_le in L; try lia.
-  assert (L1 : Z.log2 v < 8) by lia; clear L.
-  replace 8 with (Z.log2 256) in L1 by trivial.
-  apply Z.log2_lt_cancel in L1.
-  lia.
-Qed.
   
 Lemma Z2Nat_pos_inj_le (a b : Z) :
   0 < a ->
@@ -690,31 +676,21 @@ Lemma short_nbs_valid
                 (c2z e) (c2z m) = true.
 Proof.
   generalize (nbs_co_positive
-                (short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4 VS5));
-    intros COP; simpl in COP.
+                (short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4 VS5)).
+  intros COP; simpl in COP.
   unfold valid_short.
-  destruct m, ee, co; rename v into m, v0 into ee, v1 into co.
-  uncont; simpl.
-  assert (0 < co) by (apply Z2Nat_pos; lia).
-  split_andb_goal; debool;
-    try auto; try apply c2z_nneg;
-      try apply c12z_le_1; try apply c22z_le_3; try apply c82z_le_255.
-  - lia.
-  - unfold olen, olen_of_blen, blen.
-    replace 8%nat with (Z.to_nat 8) in L by trivial.
-    replace 2%nat with (Z.to_nat 2) in L by trivial.
-    repeat rewrite <- Z2Nat.inj_sub in L by lia.
-    rewrite <- Z2Nat.inj_mul in L; try lia.
-    + admit.
-    + assert (L3 : (0 < Z.to_nat 8 * Z.to_nat (co - ee - 2))%nat) by lia.
-      apply Z2Nat_mul_pos in L3; destruct L3 as [T L3]; clear T.
-      lia.
-  - destruct e; rename v into e.
-    unfold nblen in L2.
-    unfold olen, olen_of_blen, blen.
-    apply Z.mul_le_mono_pos_l with (p := 8); [lia|].
-    Check Zdiv_pinf_ge.
-
+  destruct co, ee, e, m; rename v into co, v0 into ee, v1 into e, v2 into m.
+  uncont.
+  assert (C: 0 < co) by (apply Z2Nat_pos; lia); clear COP.
+  split_andb_goal; debool.
+  all: try auto; try apply c2z_nneg; try apply c12z_le_1; try apply c22z_le_3.
+  all: clear id N1 N2 VS1 VS2 t s bb ff N L0 L.
+  - clear L1 e. lia.
+  - clear L1 e VS3 VS4 VS5.
+    unfold nblen, olen, olen_of_blen, blen in *.
+    admit.
+  - clear L2 VS3 VS4 m VS5 C co.
+    admit.
 Admitted.
 
 Lemma long_nbs_valid
