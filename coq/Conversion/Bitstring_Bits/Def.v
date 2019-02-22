@@ -642,6 +642,43 @@ Proof.
   apply Z2Nat.inj_lt; lia.
 Qed.
   
+Lemma Z2Nat_pos (x : Z) :
+  (0 < Z.to_nat x)%nat ->
+  0 < x.
+Proof. destruct x; simpl; lia. Qed.
+
+Lemma Z2Nat_mul_pos (x y : Z) :
+  (0 < Z.to_nat x * Z.to_nat y)%nat ->
+  0 < x /\ 0 < y.
+Proof.
+  intros.
+  Search (0 < _ * _)%nat.
+  apply Nat.lt_0_mul in H.
+  destruct H.
+  - destruct H as [H1 H2];
+      apply Z2Nat_pos in H1;
+        apply Z2Nat_pos in H2.
+    auto.
+  - unfold Z.to_nat in H; destruct H; inversion H.
+Qed.
+
+Definition nbs_co (b : BER_nbs) : nat :=
+  match b with
+  | short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4 VS5 =>
+    c2n co
+  | long_nbs id co t s bb ff ee eo e m VL1 VL2 VL3 VL4 VL5 =>
+    c2n co
+  end.
+
+Lemma nbs_co_positive (b : BER_nbs) :
+  (1 <= nbs_co b)%nat.
+Proof.
+  destruct b; simpl.
+  all: destruct m, ee, co; rename v into m, v0 into ee, v1 into co; uncont.
+  all: generalize (nblen_positive m); intros NBL.
+  all: assert (COP : (0 < Z.to_nat co)%nat) by lia; lia.
+Qed.
+
 Lemma short_nbs_valid
     (id co : cont8)
     (t s : cont1) (bb ff ee : cont2)
@@ -652,29 +689,32 @@ Lemma short_nbs_valid
                 (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee)
                 (c2z e) (c2z m) = true.
 Proof.
+  generalize (nbs_co_positive
+                (short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4 VS5));
+    intros COP; simpl in COP.
   unfold valid_short.
+  destruct m, ee, co; rename v into m, v0 into ee, v1 into co.
+  uncont; simpl.
+  assert (0 < co) by (apply Z2Nat_pos; lia).
   split_andb_goal; debool;
     try auto; try apply c2z_nneg;
       try apply c12z_le_1; try apply c22z_le_3; try apply c82z_le_255.
-  all: clear VS1 VS2 id t s bb ff.
-  all: destruct m, ee, co; rename v into m, v0 into ee, v1 into co.
-  all: uncont; simpl.
-  replace (8 * (Z.to_nat co - Z.to_nat ee - 2))%nat
-     with (Z.to_nat (8 * (co - ee - 2))) in L.
-    generalize (Z.log2_nonneg m); intros.
-  - clear VS3 VS4 e.
-    unfold nblen in L.
-    apply Z2Nat.inj_le in L; try lia.
-    clear N1 L1 N0 L0 N VS5 H0.
-    remember (8 * (co - ee - 2)) as z; clear Heqz;
-      remember (Z.log2 m + 1) as p; assert (P : 0 < p) by lia; clear Heqp H m.
-    generalize (Z2Nat_pos_inj_le p z P L); lia.
-  - replace 8%nat with (Z.to_nat 8) by trivial.
-    replace 2%nat with (Z.to_nat 2) by trivial.
-    rewrite <- Z2Nat.inj_sub by lia.
-    rewrite <- Z2Nat.inj_sub by lia.
-    rewrite <- Z2Nat.inj_mul.
-    admit. admit. admit.
+  - lia.
+  - unfold olen, olen_of_blen, blen.
+    replace 8%nat with (Z.to_nat 8) in L by trivial.
+    replace 2%nat with (Z.to_nat 2) in L by trivial.
+    repeat rewrite <- Z2Nat.inj_sub in L by lia.
+    rewrite <- Z2Nat.inj_mul in L; try lia.
+    + admit.
+    + assert (L3 : (0 < Z.to_nat 8 * Z.to_nat (co - ee - 2))%nat) by lia.
+      apply Z2Nat_mul_pos in L3; destruct L3 as [T L3]; clear T.
+      lia.
+  - destruct e; rename v into e.
+    unfold nblen in L2.
+    unfold olen, olen_of_blen, blen.
+    apply Z.mul_le_mono_pos_l with (p := 8); [lia|].
+    Check Zdiv_pinf_ge.
+
 Admitted.
 
 Lemma long_nbs_valid
@@ -787,22 +827,6 @@ Proof.
   rewrite <- Nat.mul_add_distr_l.
 Admitted.
 
-Definition nbs_co (b : BER_nbs) : nat :=
-  match b with
-  | short_nbs id co t s bb ff ee e m VS1 VS2 VS3 VS4 VS5 =>
-    c2n co
-  | long_nbs id co t s bb ff ee eo e m VL1 VL2 VL3 VL4 VL5 =>
-    c2n co
-  end.
-
-Lemma nbs_co_positive (b : BER_nbs) :
-  (1 <= nbs_co b)%nat.
-Proof.
-  destruct b; simpl;
-    remember (c2n co) as x.
-  destruct m.
-  generalize (Z.log2_nonneg v); intros; assert (Z.log2_. unfold nblen in L.
-  apply (Z2Nat_pos_inj_le).
 
 
   
