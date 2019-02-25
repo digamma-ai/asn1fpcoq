@@ -744,9 +744,66 @@ Lemma long_nbs_valid
     valid_long  (c2z id) (c2z co)
                 (c2z t) (c2z s) (c2z bb) (c2z ff) (c2z ee) (c2z eo)
                 (c2z e) (c2z m) = true.
-Admitted.
-
-
+Proof.
+  generalize (nbs_co_positive
+                (long_nbs id co t s bb ff ee eo e m VL1 VL2 VL3 VL4 VL5)).
+  intros COP; simpl in COP.
+  unfold valid_long.
+  destruct co, ee, eo, e, m; rename v into co, v0 into ee, v1 into eo, v2 into e, v3 into m.
+  uncont.
+  assert (C: 0 < co) by (apply Z2Nat_pos_iff; lia); clear COP.
+  split_andb_goal; debool.
+  all: try auto; try apply c2z_nneg; try apply c12z_le_1; try apply c22z_le_3.
+  all: clear id N2 VL1 VL2 t s bb ff N L0 L.
+  all: unfold nblen, olen, olen_of_blen, blen in *.
+  - clear L1 L2 e. lia.
+  - clear L1 L2 e VL3 VL4 VL5.
+    generalize (Z.log2_nonneg m); intros;
+      remember (Z.log2 m + 1) as mb; assert (M : 0 < mb) by lia;
+        clear H Heqmb m N3.
+    replace 8%nat with (Z.to_nat 8) in L3 by trivial.
+    replace 2%nat with (Z.to_nat 2) in L3 by trivial.
+    repeat rewrite <- Z2Nat.inj_sub in L3 by lia.
+    copy_apply Z2Nat_pos_iff M.
+    assert (P : (0 < Z.to_nat 8 * Z.to_nat (co - eo - 2))%nat) by lia.
+    apply Z2Nat_mul_pos in P; destruct P as [P1 P2].
+    rewrite <- Z2Nat.inj_mul in L3 by lia.
+    apply Z2Nat.inj_le in L3; try lia.
+    clear P1 P2 C H.
+    apply Z.le_add_le_sub_r, Z.le_add_le_sub_r.
+    replace (co - 2 - eo) with (co - eo - 2) by lia.
+    remember (co - ee - 2) as mo.
+    apply Z_div_pinf_le_upper_bound; auto.
+    - clear L1 VL3 VL4 N3 L3 m VL5 C co N0 ee.
+      generalize (Z.log2_nonneg e); intros;
+        remember (Z.log2 e + 1) as eb; assert (M : 0 < eb) by lia;
+          clear H Heqeb e.
+      replace 8%nat with (Z.to_nat 8) in L2 by trivial.
+      copy_apply Z2Nat_pos_iff M.
+      assert (P : (0 < Z.to_nat 8 * Z.to_nat eo)%nat) by lia.
+      apply Z2Nat_mul_pos in P; destruct P as [P1 P2].
+      rewrite <- Z2Nat.inj_mul in L2 by lia.
+      apply Z2Nat.inj_le in L2; lia.
+    - clear L2 VL3 VL4 N3 L3 m VL5 C co N0 ee e.
+      replace 8%nat with (Z.to_nat 8) in L1 by trivial.
+      generalize (Z.log2_nonneg eo); intros;
+        apply Z2Nat.inj_le in L1; try lia; clear H.
+      assert (Z.log2 eo < 8) by lia; clear L1.
+      replace 8 with (Z.log2 256) in H by trivial.
+      apply Z.log2_lt_cancel in H.
+      lia.
+    - clear L1 VL3 VL4 N3 L3 m VL5 C co N0 ee.
+      generalize (Z.log2_nonneg e); intros;
+        remember (Z.log2 e + 1) as eb; assert (M : 0 < eb) by lia;
+          clear H Heqeb e.
+      replace 8%nat with (Z.to_nat 8) in L2 by trivial.
+      copy_apply Z2Nat_pos_iff M.
+      assert (P : (0 < Z.to_nat 8 * Z.to_nat eo)%nat) by lia.
+      apply Z2Nat_mul_pos in P; destruct P as [P1 P2].
+      rewrite <- Z2Nat.inj_mul in L2 by lia.
+      apply Z2Nat.inj_le in L2; try lia.
+      apply Z_div_pinf_le_upper_bound; auto.
+Qed.
 
 
 (** * BER_bitstring <-> BER_bs_aux *)
