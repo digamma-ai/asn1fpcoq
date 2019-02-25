@@ -665,6 +665,19 @@ Proof.
   all: assert (COP : (0 < Z.to_nat co)%nat) by lia; lia.
 Qed.
 
+Lemma Z_div_pinf_le_upper_bound (x y : Z) :
+  x <= 8 * y ->
+  (x + 7) / 8 <= y.
+Proof.
+  intros.
+  assert (x - 1 < 8 * y) by lia; clear H.
+  replace x with ((x - 1) + 1) by lia.
+  remember (x - 1) as x'; clear Heqx'.
+  replace (x' + 1 + 7) with (x' + 1 * 8) by lia.
+  rewrite Z.div_add by lia.
+  apply Z.div_lt_upper_bound in H0; lia.
+Qed.
+  
 Lemma short_nbs_valid
     (id co : cont8)
     (t s : cont1) (bb ff ee : cont2)
@@ -700,7 +713,10 @@ Proof.
     rewrite <- Z2Nat.inj_mul in L2 by lia.
     apply Z2Nat.inj_le in L2; try lia.
     clear P1 P2 C H.
-    admit.
+    apply Z.le_add_le_sub_r, Z.le_add_le_sub_r.
+    replace (co - 2 - ee) with (co - ee - 2) by lia.
+    remember (co - ee - 2) as mo; clear Heqmo N0 co ee M.
+    apply Z_div_pinf_le_upper_bound; auto.
   - clear L2 VS3 VS4 m VS5 C co.
     generalize (Z.log2_nonneg e); intros;
       remember (Z.log2 e + 1) as eb; assert (M : 0 < eb) by lia;
@@ -714,8 +730,9 @@ Proof.
     rewrite <- Z2Nat.inj_mul in L1 by lia.
     apply Z2Nat.inj_le in L1; try lia.
     clear P1 P2 H.
-    admit.
-Admitted.
+    apply Z_div_pinf_le_upper_bound; auto.
+Qed.
+
 
 Lemma long_nbs_valid
     (id co : cont8)
