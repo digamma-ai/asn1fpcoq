@@ -152,8 +152,7 @@ Proof.
   destruct c2 as [v2 N2 B2].
   simpl.
   f_equal.
-  -
-    assert(E:((v1 * two_power_nat l2 + v2) / two_power_nat l2) = v1).
+  - assert(E:((v1 * two_power_nat l2 + v2) / two_power_nat l2) = v1).
     {
       autorewrite with rew_Z_bits.
       rewrite <- Z.shiftl_mul_pow2; try lia.
@@ -184,3 +183,6 @@ Proof.
     subst v2'.
     f_equal; apply proof_irrelevance.
 Admitted.
+
+Definition Z_of_cont {l : nat} (c : container l) :=
+  match c with cont _ v _ _ => v end.

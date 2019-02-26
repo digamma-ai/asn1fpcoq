@@ -58,15 +58,10 @@ Definition cut_append_b8 (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
 cut_b8_cont (append_b8_cont v N L c) = (b8_cont v N L, c).
 Proof. apply split_join_roundtrip. Qed.
 
-(* TODO : move this to containers *)
-Definition Z_of_cont {l : nat} (c : container l) :=
-  match c with cont _ v _ _ => v end.
-
 (* common operations *)
 Definition z2n := Z.to_nat.
 Definition c2z {l : nat} (c : container l) := Z_of_cont c.
 Definition c2n {l : nat} (c : container l) := z2n (c2z c).
-
 
 
 (** * container tuples *)
@@ -638,7 +633,6 @@ Lemma Z2Nat_mul_pos (x y : Z) :
   0 < x /\ 0 < y.
 Proof.
   intros.
-  Search (0 < _ * _)%nat.
   apply Nat.lt_0_mul in H.
   destruct H.
   - destruct H as [H1 H2];
