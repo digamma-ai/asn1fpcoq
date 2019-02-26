@@ -899,28 +899,14 @@ Proof.
   lia.
 Qed.
 
-
-
-
-  
-    
 Lemma nbs_nblen_correct (b : BER_nbs) :
   (info_nblen + content_nblen b)%nat = nbs_nblen b.
 Proof.
-  destruct b.
-  - (* short *)
-    unfold content_nblen, nbs_nblen, info_nblen.
-    remember (c2n co) as x.
-    replace 24%nat with (8 * 3)%nat by trivial.
-    rewrite <- Nat.mul_add_distr_l.
-    admit.
-  - (* long *)
-    unfold content_nblen, nbs_nblen, info_nblen.
-    remember (c2n co) as x.
-    replace 24%nat with (8 * 3)%nat by trivial.
-    rewrite <- Nat.mul_add_distr_l.
-    admit.
-Admitted.
+  generalize (nbs_co_positive b).
+  destruct b;
+    unfold nbs_co, content_nblen, nbs_nblen, info_nblen;
+    lia.
+Qed.
 
 Definition BER_nblen (b : Z) : nat :=
   let l := nblen b in
