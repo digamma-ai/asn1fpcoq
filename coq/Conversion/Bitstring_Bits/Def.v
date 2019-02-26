@@ -879,21 +879,26 @@ Definition content_nblen (b : BER_nbs) : nat :=
   | long_nbs id co t s bb ff ee eo e m _ _ _ _ _ => 8 * (c2n co - 1)
   end.
 
-Lemma short_nblen_correct {l1 l2 : nat} (co : container l1) (ee : container l2) :
+Lemma short_nblen_correct {l1 l2 : nat} (co : container l1) (ee : container l2)
+  (m : container (8 * (c2n co - c2n ee - 2))) :
     (8 * (c2n ee + 1) + 8 * (c2n co - c2n ee - 2))%nat = (8 * (c2n co - 1))%nat.
 Proof.
-  remember (c2n co) as x; remember (c2n ee) as y.
-  rewrite <- Nat.mul_add_distr_l.
-  replace (y + 1 + (x - y - 2))%nat with (x - 1)%nat.
-  reflexivity.
-Admitted.
+  destruct co, ee, m; rename v into co, v0 into ee, v1 into m.
+  uncont; clear L L0 N N0 l1 l2.
+  generalize (nblen_positive m); intros.
+  lia.
+Qed.
 
-Lemma long_nblen_correct {l1 l2 : nat} (co : container l1) (eo : container l2) :
+Lemma long_nblen_correct {l1 l2 : nat} (co : container l1) (eo : container l2)
+  (m : container (8 * (c2n co - c2n eo - 2))) :
     (8 + (8 * c2n eo + 8 * (c2n co - c2n eo - 2)))%nat = (8 * (c2n co - 1))%nat.
 Proof.
-  remember (c2n co) as x; remember (c2n eo) as y.
-  rewrite <- Nat.mul_add_distr_l.
-Admitted.
+  destruct co, eo, m; rename v into co, v0 into eo, v1 into m.
+  uncont; clear L L0 N N0 l1 l2.
+  generalize (nblen_positive m); intros.
+  lia.
+Qed.
+
 
 
 
@@ -961,9 +966,9 @@ Definition append_info {l : nat} (b : BER_nbs) (c : container l) :=
 Definition mk_content (b : BER_nbs) : container (content_nblen b) :=
   match b with
   | short_nbs id co t s bb ff ee e m _ _ _ _ _ =>
-    cast_cont (join_cont e m) (short_nblen_correct co ee)
+    cast_cont (join_cont e m) (short_nblen_correct co ee m)
   | long_nbs id co t s bb ff ee eo e m _ _ _ _ _ =>
-    cast_cont (join_cont eo (join_cont e m)) (long_nblen_correct co eo)
+    cast_cont (join_cont eo (join_cont e m)) (long_nblen_correct co eo m)
   end.
 
 Definition cont_of_nbs (b : BER_nbs) : container (nbs_nblen b) :=
