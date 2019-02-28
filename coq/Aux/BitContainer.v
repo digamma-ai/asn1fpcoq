@@ -40,6 +40,33 @@ Proof.
   eauto with zarith.
 Qed.
 
+Lemma Zmul_lt_trans (x y a b : Z) :
+  x <= y ->
+  a < x * b ->
+  0 <= b ->
+  a < y * b.
+Proof.
+  intros XY A B.
+  replace y with (x + (y - x)) by lia.
+  assert (0 <= y - x) by lia.
+  remember (y - x) as c; clear Heqc XY y.
+  rewrite Z.mul_add_distr_r.
+  generalize (Z.mul_nonneg_nonneg c b H B).
+  lia.
+Qed.
+
+Lemma Zpow2_positive (x : Z) :
+  0 <= x ->
+  1 <= 2 ^ x.
+Proof.
+  intros X.
+  replace 1 with (2 ^ 0).
+  apply Z.log2_le_pow2.
+  apply Z.pow_pos_nonneg.
+  all: try lia.
+  apply Z.log2_nonneg.
+Qed.
+
 Fact join_nblen
       {l1 l2 : nat}
       {v1 v2 : Z}
@@ -57,9 +84,45 @@ Proof.
     rewrite Z2Nat.id in L1.
     rewrite Z2Nat.id in L2.
     +
-      rewrite Z.add_1_r in *.
-      autorewrite with rew_Z_bits in *.
-      admit.
+      assert (Z.log2 (v1 * two_power_nat l2 + v2) < Z.of_nat (l1 + l2)); [|lia].
+      generalize (Nat2Z.is_nonneg l1); intros P1.
+      generalize (Nat2Z.is_nonneg l2); intros P2.
+      rewrite Nat2Z.inj_add, two_power_nat_equiv.
+      remember (Z.of_nat l1) as z1.
+      remember (Z.of_nat l2) as z2.
+      clear Heqz1 Heqz2 l1 l2.
+      assert (Q1 : Z.log2 v1 < z1) by lia; clear L1.
+      assert (Q2 : Z.log2 v2 < z2) by lia; clear L2.
+      assert (Z1 : 1 <= 2 ^ z1) by (apply Zpow2_positive; auto).
+      assert (Z2 : 1 <= 2 ^ z2) by (apply Zpow2_positive; auto).
+      destruct (Z.eq_dec v1 0); [subst; simpl; lia|].
+      assert (W1 : 0 < v1) by lia; clear N1 n.
+      apply Z.log2_lt_pow2 in Q1; auto.
+      assert (T : 0 < v1 * 2 ^ z2 + v2).
+      {
+        remember (2 ^ z2) as p2.
+        assert (0 < v1 * p2) by (apply Z.mul_pos_pos; lia).
+        lia.
+      }
+      destruct (Z.eq_dec v2 0).
+      assert (v1 * 2 ^ z2 + v2 < 2 ^ (z1 + z2)).
+      rewrite Z.pow_add_r by auto.
+      apply Z.mul_lt_mono_pos_r with (p := 2 ^ z2) in Q1; try lia.
+      apply Z.log2_lt_pow2 in H; try apply T.
+      clear T.
+      apply H.
+      assert (W2 : 0 < v2) by lia; clear N2 n.
+
+      apply Z.log2_lt_pow2 in Q2.
+      apply Z.log2_lt_pow2; [apply T|].
+      rewrite Z.pow_add_r by auto.
+      remember (2 ^ z1) as p1; remember (2 ^ z2) as p2;
+        clear Heqp1 Heqp2 P1 P2 z1 z2.
+      assert (V1 : v1 <= p1 - 1) by lia;
+        assert (V2 : v2 <= p2 - 1) by lia;
+        clear Q1 Q2.
+      apply Z.mul_le_mono_nonneg_r with (p := p2) in V1; lia.
+      apply W2.
     +
       assert(0<=Z.log2 v2) by apply Z.log2_nonneg; lia.
     +
@@ -67,7 +130,8 @@ Proof.
   -
     assert(0<=(Z.log2 (v1 * two_power_nat l2 + v2))) by apply Z.log2_nonneg.
     lia.
-Admitted.
+Qed.
+
 
 Definition join_cont {l1 l2 : nat} (c1 : container l1) (c2 : container l2)
   : container (l1 + l2) :=
