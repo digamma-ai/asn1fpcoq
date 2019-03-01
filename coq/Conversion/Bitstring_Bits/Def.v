@@ -399,7 +399,8 @@ Proof.
       remember (Z.log2 e + 1) as el.
       apply (Zmult_le_compat_l _ _ 8) in H3; [| lia].
       assert (0 < 8) by lia.
-      generalize (Zdiv_pinf_ge el 8 H); intros.
+      assert (T : 0 <= el). { subst el. generalize (Z.log2_nonneg e). lia. }
+      generalize (Zdiv_pinf_ge el 8 T H); intros.
       replace (8 - 1) with 7 in H0 by trivial.
       lia.
     + replace 8%nat with (Z.to_nat 8%Z) by reflexivity;
@@ -433,7 +434,8 @@ Proof.
       remember (Z.log2 e + 1) as el.
       apply (Zmult_le_compat_l _ _ 8) in H3; [| lia].
       assert (0 < 8) by lia.
-      generalize (Zdiv_pinf_ge el 8 H); intros.
+      assert (T : 0 <= el). { subst el. generalize (Z.log2_nonneg e). lia. }
+      generalize (Zdiv_pinf_ge el 8 T H); intros.
       replace (8 - 1) with 7 in H0 by trivial.
       lia.
     + replace 8%nat with (Z.to_nat 8%Z) by reflexivity.
@@ -468,7 +470,8 @@ Proof.
   remember (Z.log2 m + 1) as lm.
   assert (P : 8 * ((lm + 7) / 8) <= 8 * (co - ee - 2)) by lia; clear H13.
   assert (T1 : 0 < 8) by lia.
-  generalize (Zdiv_pinf_ge lm 8 T1); intros P1; replace (8 - 1) with 7 in P1 by trivial.
+  assert (T : 0 <= lm). { subst lm. generalize (Z.log2_nonneg m). lia. }
+  generalize (Zdiv_pinf_ge lm 8 T T1); intros P1; replace (8 - 1) with 7 in P1 by trivial.
   assert (P2 : lm <= 8 * (co - ee - 2)) by lia.
   generalize (Z.log2_nonneg m); intros P3.
   replace (8 * (Z.to_nat co - Z.to_nat ee - 2))%nat with (Z.to_nat (8 * (co - ee - 2))).
@@ -503,7 +506,8 @@ Proof.
   remember (Z.log2 m + 1) as lm.
   assert (P : 8 * ((lm + 7) / 8) <= 8 * (co - eo - 2)) by lia; clear H14.
   assert (T1 : 0 < 8) by lia.
-  generalize (Zdiv_pinf_ge lm 8 T1); intros P1; replace (8 - 1) with 7 in P1 by trivial.
+  assert (T : 0 <= lm). { subst lm. generalize (Z.log2_nonneg m). lia. }
+  generalize (Zdiv_pinf_ge lm 8 T T1); intros P1; replace (8 - 1) with 7 in P1 by trivial.
   assert (P2 : lm <= 8 * (co - eo - 2)) by lia.
   replace (8 * (Z.to_nat co - Z.to_nat eo - 2))%nat with (Z.to_nat (8 * (co - eo - 2))).
   - apply Z2Nat.inj_le; lia.

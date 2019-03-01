@@ -292,29 +292,53 @@ Section Split_concat.
   Qed.
     
   Lemma Zdiv_pinf_ge (a b : Z) :
+    0 <= a ->
     0 < b ->
     a <= b * ((a + (b - 1)) / b).
   Proof.
-    intros.
-    rewrite (Z_div_mod_eq a b).
-    destruct (a mod b) eqn:H1.
+    intros A B.
+    generalize A.
+    apply Z_lt_induction with (x := a); auto.
+    intros a' IND A'.
+    rewrite (Z_div_mod_eq a' b) by lia.
+    destruct (a' mod b) eqn:H1.
     - (* b | a *)
       rewrite Z.add_0_r.
-      replace (b * (a / b) + (b - 1)) with ((b - 1) + (a / b) * b) by lia.
+      replace (b * (a' / b) + (b - 1)) with ((b - 1) + (a' / b) * b) by lia.
       rewrite Z_div_plus by lia.
       rewrite Z.mul_add_distr_l.
       rewrite (Z.div_small (b - 1) b) by lia.
       lia.
+
     - remember (Z.pos p) as k; assert (0 < k) by lia; clear Heqk p.
-      replace (b * (a / b) + k + (b - 1)) with (k + (b - 1) + (a / b) * b) by lia.
+      replace (b * (a' / b) + k + (b - 1)) with (k + (b - 1) + (a' / b) * b) by lia.
       rewrite Z_div_plus by lia.
       rewrite Z.mul_add_distr_l.
-      (* k < a, so strong induction would help *)
-      assert (k <= (b * ((k + (b - 1)) / b))) by admit.
+      assert (k <= (b * ((k + (b - 1)) / b))).
+      {
+        specialize (IND k).
+        assert (k <= a') by (subst k; apply (Zmod_le a' b); auto).
+        destruct (Z.eq_dec a' k).
+        + (* k = a' *)
+          subst a'.
+          clear A' IND H0.
+          generalize (Z.mod_pos_bound k b B);
+            intros T; destruct T as [T1 P]; clear T1;
+              rewrite -> H1 in P.
+          assert (P1 : b <= k + (b - 1)) by lia.
+          apply Z.div_le_mono with (c := b) in P1; [| apply B].
+          rewrite Z.div_same in P1 by lia.
+          apply Z.mul_le_mono_pos_l with (p := b) in P1; [|lia].
+          lia.
+        + assert (0 <= k < a') by lia.
+          apply IND in H2.
+          apply H2.
+          lia.
+      }
       lia.
     - exfalso.
-      generalize (Z_mod_lt a b); lia.
-  Admitted.
+      generalize (Z_mod_lt a' b); lia.
+  Qed.
     
   Lemma split_join_octets (octets_snd fst snd : Z) :
     0 <= snd ->
@@ -328,8 +352,15 @@ Section Split_concat.
     apply H.
     remember (blen snd) as b.
     apply Z.mul_le_mono_nonneg_l with (p := 8) in H0; [| lia].
-    assert (b <= 8 * ((b + 7) / 8))
-      by (replace 7 with (8 - 1) by trivial; apply Zdiv_pinf_ge; lia).
+    assert (b <= 8 * ((b + 7) / 8)).
+    {
+      replace 7 with (8 - 1) by trivial.
+      apply Zdiv_pinf_ge; try lia.
+      subst b.
+      unfold blen.
+      generalize (Z.log2_nonneg snd).
+      lia.
+    }
     lia.
   Qed.
 
