@@ -8,10 +8,10 @@
   (names convtest)
   (libraries extracted core num oUnit asn1fp)
   (modules (:standard \ ocamlFPBER ocamlWrappers))
-  (modes byte))
+  (modes native))
 
 (library
     (name asn1fp)
     (libraries extracted core num oUnit)
     (modules (:standard \ convtest))
-    (modes byte))
+    (modes native))

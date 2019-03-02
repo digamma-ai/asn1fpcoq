@@ -61,7 +61,7 @@ LIB=ml/_build/default/asn1fp.cma
 
 $(LIB): extracted 
 	@echo "Compiling $(LIB)"
-	(cd ml; dune build --profile dev asn1fp.cma)
+	(cd ml; dune build --profile dev asn1fp.cmxa)
 
 EXE=ml/_build/default/convtest.exe
 

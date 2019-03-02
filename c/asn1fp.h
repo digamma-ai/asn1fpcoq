@@ -1,2 +1,4 @@
-int asn_double2REAL(double *d, char *asn_real);
-int asn_REAL2double(char *asn_real, double *d);
+#include <REAL.h>
+
+int coq_double2REAL(double *d, REAL_t *asn_real);
+int coq_REAL2double(REAL_t *asn_real, double *d);
