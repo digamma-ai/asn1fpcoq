@@ -5,13 +5,7 @@
   (flags (:standard -O3 -w -39-33-20-50))))
 
 (executables
-  (names convtest)
-  (libraries extracted core num oUnit asn1fp)
-  (modules (:standard \ ocamlFPBER ocamlWrappers))
-  (modes native))
-
-(library
-    (name asn1fp)
-    (libraries extracted core num oUnit)
-    (modules (:standard \ convtest))
-    (modes native))
+  (names ocamlWrappers)
+  (libraries extracted core num oUnit)
+  (ocamlopt_flags (:standard -ccopt -L/usr/lib))
+  (modes (native object)))
