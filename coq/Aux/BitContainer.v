@@ -161,56 +161,51 @@ Qed.
 
 Fact split_div_nblen {l1 l2 : nat} {v : Z} (N : 0 <= v)
       (B : (nblen v <= l1 + l2)%nat) :
+  (0 < l1)%nat ->
+  (0 < l2)%nat ->
   (nblen (v / two_power_nat l2) <= l1)%nat.
-Proof.
-  unfold nblen in *.
-  apply Nat2Z.inj_le.
-  apply Nat2Z.inj_le in B.
-  rewrite Z2Nat.id in *.
-  -
-    admit.
-  -
-    assert(0<=Z.log2 v) by apply Z.log2_nonneg.
-    lia.
-  -
-    assert(0<=Z.log2 (v / two_power_nat l2)) by apply Z.log2_nonneg.
-    lia.
 Admitted.
 
 Fact split_mod_nblen {l1 l2 : nat} {v : Z} (N : 0 <= v)
       (B : (nblen v <= l1 + l2)%nat) :
+  (0 < l1)%nat ->
+  (0 < l2)%nat ->
   (nblen (v mod two_power_nat l2) <= l2)%nat.
-Proof.
-  unfold nblen in *.
-  apply Nat2Z.inj_le.
-  apply Nat2Z.inj_le in B.
-  rewrite Z2Nat.id in *.
-  -
-    admit.
-  -
-    assert(0<=Z.log2 v) by apply Z.log2_nonneg.
-    lia.
-  -
-    assert(0<=Z.log2 (v mod two_power_nat l2)) by apply Z.log2_nonneg.
-    lia.
 Admitted.
 
-Definition split_cont {l1 l2: nat} (c : container (l1+l2))
+Definition split_cont {l1 l2: nat} (c : container (l1+l2)) (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
   : container l1 * container l2 :=
   match c with
   | cont _ v N B =>
     ((cont l1
            (v / (two_power_nat l2))
            (split_div_nneg l2 N)
-           (split_div_nblen N B)),
+           (split_div_nblen N B L1 L2)),
      (cont l2
            (v mod (two_power_nat l2))
            (split_mod_nneg l2 N)
-           (split_mod_nblen N B)))
+           (split_mod_nblen N B L1 L2)))
   end.
 
+Lemma nblen_positive (x : Z) :
+  (0 < nblen x)%nat.
+Proof.
+  unfold nblen.
+  generalize (Z.log2_nonneg x); intros.
+  replace 0%nat with (Z.to_nat 0) by trivial.
+  apply Z2Nat.inj_lt; lia.
+Qed.
+
+Lemma cont_len_positive {l : nat} (c : container l) :
+  (0 < l)%nat.
+Proof.
+  destruct c.
+  generalize (nblen_positive v).
+  lia.
+Qed.
+
 Lemma split_join_roundtrip {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
-  split_cont (join_cont c1 c2) = (c1, c2).
+  split_cont (join_cont c1 c2) (cont_len_positive c1) (cont_len_positive c2) = (c1, c2).
 Proof.
   destruct c1 as [v1 N1 B1].
   destruct c2 as [v2 N2 B2].
