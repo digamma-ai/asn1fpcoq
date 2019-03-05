@@ -1,6 +1,7 @@
 Require Import ZArith.
 Require Import ASN1FP.Types.BitstringDef
-               ASN1FP.Aux.Bits ASN1FP.Aux.Option ASN1FP.Aux.BitContainer ASN1FP.Aux.Tactics ASN1FP.Aux.StructTactics.
+        ASN1FP.Aux.Bits ASN1FP.Aux.Option ASN1FP.Aux.BitContainer
+        ASN1FP.Aux.Tactics ASN1FP.Aux.StructTactics.
 Require Import Lia.
 
 Open Scope Z.
@@ -1041,6 +1042,18 @@ Definition cut_cont {l : nat} (c : container l) (l1 : nat) (L : (0 < l - l1)%nat
   : container (l1 + (l - l1)) :=
   cast_cont c (cut_num l l1 L).
   
+Definition try_cut_cont {l : nat} (c : container l) (l1 : nat)
+  : option (container (l1 + (l - l1))) :=
+    match le_lt_dec l1 0 with
+    | left _ => None
+    | right L1 =>
+      match le_lt_dec (l - l1) 0 with
+      | left _ => None
+      | right L2 =>
+      Some ((cut_cont c l1 L2))
+      end
+    end.
+
 Definition try_split_cont {l : nat} (c : container l) (l1 : nat) :=
     match le_lt_dec l1 0 with
     | left _ => None
@@ -1052,7 +1065,7 @@ Definition try_split_cont {l : nat} (c : container l) (l1 : nat) :=
       end
     end.
 
-Definition split_long_cont  {l : nat} (c : container (8 + l)) (L : (0 < l)%nat)
+Definition try_split_long_cont  {l : nat} (c : container (8 + l)) (L : (0 < l)%nat)
   : option (container 8 *
             container (e_nblen_of_long_cont c L) *
             container (l - e_nblen_of_long_cont c L)) :=
@@ -1163,26 +1176,33 @@ Definition construct_long_nbs
   end.
 
 Definition nbs_of_cont {l : nat} (c : container l) :=
-  match (cut_cont c info_nblen) with
+  match (try_cut_cont c info_nblen) with
   | None => None
   | Some c =>
-    let '(id, co, t, s, bb, ff, ee, content) := split_cut_info c in
-    if (c2n ee =? 3)%nat
-    then match (cut_cont content 8) with
-         | None => None
-         | Some content =>
-           match (split_long_cont content) with
+    match le_lt_dec (l - info_nblen) 0 with
+    | left _ => None
+    | right L =>
+      let '(id, co, t, s, bb, ff, ee, content) := split_cut_info c L in
+      if (c2n ee =? 3)%nat
+      then match (try_cut_cont content 8) with
            | None => None
-           | Some (eo, e, m) =>
-               construct_long_nbs id co t s bb ff ee eo e m
+           | Some content =>
+             match le_lt_dec (l - info_nblen - 8) 0 with
+             | left _ => None
+             | right L =>
+               match (try_split_long_cont content L) with
+               | None => None
+               | Some (eo, e, m) =>
+                   construct_long_nbs id co t s bb ff ee eo e m
+               end
              end
            end
-    else match (cut_cont content (8 * (c2n ee + 1))) with
-         | None => None
-         | Some c =>
-           let '(e, m) := split_cont c in
-             construct_short_nbs id co t s bb ff ee e m
-         end
+      else match (try_split_cont content (8 * (c2n ee + 1))) with
+           | None => None
+           | Some (e, m) =>
+               construct_short_nbs id co t s bb ff ee e m
+           end
+    end
   end.
 
 
@@ -1244,35 +1264,3 @@ Definition bitstring_of_bits (b : Z) : option BER_bitstring :=
   | None => None
   | Some b => Some (bitstring_of_bsaux b)
   end.
-
-
-
-(** * correctness lemmas *)
-
-(*
-Lemma split_mk_info (b : BER_nbs) :
-  match b with
-  | short_nbs id co t s bb ff ee e m _ _ _ _ _ =>
-    split_info (mk_info b) = (id, co, t, s, bb, ff, ee)
-  | long_nbs id co t s bb ff ee eo e m _ _ _ _ _ =>
-    split_info (mk_info b) = (id, co, t, s, bb, ff, ee)
-  end.
-Proof.
-  unfold split_info, mk_info, cut_b1_cont, cut_b2_cont, cut_b8_cont.
-  repeat break_match.
-  rewrite split_join_roundtrip in Heqp; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp0; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp1; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp2; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp3; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp4; tuple_inversion.
-  reflexivity.
-  rewrite split_join_roundtrip in Heqp; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp0; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp1; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp2; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp3; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp4; tuple_inversion.
-  reflexivity.
-Qed.
-*)
