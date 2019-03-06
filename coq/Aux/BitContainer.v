@@ -164,7 +164,37 @@ Fact split_div_nblen {l1 l2 : nat} {v : Z} (N : 0 <= v)
   (0 < l1)%nat ->
   (0 < l2)%nat ->
   (nblen (v / two_power_nat l2) <= l1)%nat.
-Admitted.
+Proof.
+  intros L1 L2.
+  unfold nblen in *.
+  apply Nat2Z.inj_le.
+  apply Nat2Z.inj_le in B.
+  rewrite Z2Nat.id in *;
+    [
+      |(generalize (Z.log2_nonneg v); lia)
+      |(generalize (Z.log2_nonneg (v / two_power_nat l2)); lia)
+    ].
+  rewrite Nat2Z.inj_add in B; rewrite two_power_nat_equiv.
+  assert (N1 : 0 < Z.of_nat l1) by lia; remember (Z.of_nat l1) as n1; clear Heqn1 L1 l1.
+  assert (N2 : 0 < Z.of_nat l2) by lia; remember (Z.of_nat l2) as n2; clear Heqn2 L2 l2.
+  assert (V : Z.log2 v < n1 + n2) by lia; clear B.
+
+  destruct (Z.eq_dec 0 v); [subst; simpl; lia|].
+  assert (P : 0 < v) by lia; clear N n.
+  
+  apply Z.log2_lt_pow2 in V; auto.
+  rewrite Z.pow_add_r in V; try lia.
+  rewrite Z.mul_comm in V.
+  apply Z.div_lt_upper_bound in V.
+  - destruct (Z_lt_le_dec 0 (v / 2 ^ n2)).
+    apply Z.log2_lt_pow2 in V.
+    + lia.
+    + auto.
+    + rewrite Z.log2_nonpos; lia.
+  - replace 0 with (0 ^ n2) by
+        (rewrite Z.pow_0_l by auto; reflexivity).
+    apply Z.pow_lt_mono_l; lia.
+Qed.
 
 Fact split_mod_nblen {l1 l2 : nat} {v : Z} (N : 0 <= v)
       (B : (nblen v <= l1 + l2)%nat) :
