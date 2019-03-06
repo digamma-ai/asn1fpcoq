@@ -201,7 +201,21 @@ Fact split_mod_nblen {l1 l2 : nat} {v : Z} (N : 0 <= v)
   (0 < l1)%nat ->
   (0 < l2)%nat ->
   (nblen (v mod two_power_nat l2) <= l2)%nat.
-Admitted.
+Proof.
+  intros L1 L2.
+  clear L1 B l1.
+  unfold nblen.
+  apply Nat2Z.inj_le.
+  rewrite two_power_nat_equiv.
+  assert (N2 : 0 < Z.of_nat l2) by lia; remember (Z.of_nat l2) as n2; clear Heqn2 L2 l2.
+  rewrite Z2Nat.id; [| generalize (Z.log2_nonneg (v mod 2 ^ n2)); lia].
+  assert (0 < 2 ^ n2) by (apply Z.pow_pos_nonneg; lia).
+  generalize (Z.mod_pos_bound v (2 ^ n2) H);
+    clear H; intros H; destruct H.
+  destruct (Z.eq_dec (v mod 2 ^ n2) 0); [rewrite e; simpl; lia |].
+  assert (P : 0 < v mod 2 ^ n2) by lia; clear H n.
+  apply Z.log2_lt_pow2 in H0; lia.
+Qed.
 
 Definition split_cont {l1 l2: nat} (c : container (l1+l2)) (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
   : container l1 * container l2 :=
