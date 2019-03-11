@@ -1244,7 +1244,7 @@ Definition mk_special_bsaux (b : Z) :=
                            else None.
 
 Definition bsaux_of_bits (b : Z) : option BER_bs_aux :=
-  if b <=? 0
+  if b <? 0
   then None
   else match (mk_special_bsaux b) with
        | Some b => Some b
