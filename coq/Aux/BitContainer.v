@@ -248,44 +248,5 @@ Proof.
   lia.
 Qed.
 
-Lemma split_join_roundtrip {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
-  split_cont (join_cont c1 c2) (cont_len_positive c1) (cont_len_positive c2) = (c1, c2).
-Proof.
-  destruct c1 as [v1 N1 B1].
-  destruct c2 as [v2 N2 B2].
-  simpl.
-  f_equal.
-  - assert(E:((v1 * two_power_nat l2 + v2) / two_power_nat l2) = v1).
-    {
-      autorewrite with rew_Z_bits.
-      rewrite <- Z.shiftl_mul_pow2; try lia.
-      rewrite <- Z.shiftr_div_pow2; try lia.
-      admit.
-    }
-
-    generalize (split_div_nneg l2 (join_nneg l2 N1 N2)).
-    generalize (split_div_nblen (join_nneg l2 N1 N2) (join_nblen N1 N2 B1 B2)).
-    intros N1' B1'.
-    remember ((v1 * two_power_nat l2 + v2) / two_power_nat l2) as v1' eqn:Hv.
-    rewrite E in Hv.
-    subst v1'.
-    f_equal; apply proof_irrelevance.
-  -
-    assert(E:((v1 * two_power_nat l2 + v2) mod two_power_nat l2) = v2).
-    {
-      autorewrite with rew_Z_bits.
-      remember (Z.of_nat l2) as zl2.
-      admit.
-    }
-
-    generalize (split_mod_nneg l2 (join_nneg l2 N1 N2)).
-    generalize (split_mod_nblen (join_nneg l2 N1 N2) (join_nblen N1 N2 B1 B2)).
-    intros N1' B1'.
-    remember ((v1 * two_power_nat l2 + v2) mod two_power_nat l2) as v2' eqn:Hv.
-    rewrite E in Hv.
-    subst v2'.
-    f_equal; apply proof_irrelevance.
-Admitted.
-
 Definition Z_of_cont {l : nat} (c : container l) :=
   match c with cont _ v _ _ => v end.
