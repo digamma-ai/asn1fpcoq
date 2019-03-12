@@ -7,4 +7,4 @@
 (executables
   (names convtest)
   (libraries extracted core num oUnit)
-  (modes byte))
+  (modes native))
