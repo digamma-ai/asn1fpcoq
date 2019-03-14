@@ -91,19 +91,6 @@ Proof.
   rename Heqb1 into P1, Heqo0 into P2.
   - unfold mk_special_bsaux in P2.
     repeat break_match.
-  - admit.
-  - exfalso.
-    unfold cont_of_bsaux in Heqb0.
-    break_match.
-    + unfold cont_of_Z_abs in Heqb0.
-      simpl in Heqb0.
-      debool; generalize (Z.abs_nonneg val); intros H.
-      lia.
-    + remember (cont_of_nbs b0) as c.
-      debool; generalize (c2z_nneg c); intros H.
-      admit.
-  - admit.
-  - admit.
 Admitted.
 
 Theorem bitsrting_bits_roundtrip (b : BER_bitstring) :
@@ -114,4 +101,3 @@ Theorem bitsrting_bits_roundtrip (b : BER_bitstring) :
       BER_bitstring_eqb
       b.
 Admitted.
-*)
