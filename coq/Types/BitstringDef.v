@@ -42,14 +42,24 @@ Run TemplateProgram
   ).
 *)
 
-Inductive BER_specials :=
+Inductive BER_special :=
 | pzero
 | nzero
 | pinf
 | ninf
 | nan.
 
-Definition classify_BER (val : Z) : option BER_specials :=
+Definition special_eqb (s1 s2 : BER_special) : bool :=
+  match s1, s2 with
+  | pzero, pzero => true
+  | nzero, nzero => true
+  | pinf,  pinf => true
+  | ninf,  ninf => true
+  | nan,   nan => true
+  | _, _ => false
+  end.
+
+Definition classify_BER (val : Z) : option BER_special :=
   if val =? pzero_b then Some pzero
   else if val =? nzero_b then Some nzero
     else if val =? pinf_b then Some pinf
@@ -124,7 +134,7 @@ Definition valid_long (id co t s bb ff ee eo e m : Z) : bool :=
  * the parts are final binary strings, which only need to be concatenated
  *)
 Inductive BER_bitstring :=
-  | special   (val : Z)
+  | special (val : BER_special)
   | short (id co t s bb ff ee e m : Z) :
       (valid_short id co t s bb ff ee e m) = true -> BER_bitstring
   | long  (id co t s bb ff ee eo e m : Z) :
@@ -133,7 +143,7 @@ Inductive BER_bitstring :=
 (* TODO: simplify? *)
 Definition BER_bitstring_eqb (b1 b2 : BER_bitstring) : bool :=
   match b1, b2 with
-  | special val1, special val2 => Z.eqb val1 val2
+  | special val1, special val2 => special_eqb val1 val2
   | short id1 co1 t1 s1 bb1 ff1 ee1 e1 m1 _, short id2 co2 t2 s2 bb2 ff2 ee2 e2 m2 _ =>
          (id1 =? id2) && (co1 =? co2) && (t1 =? t2) && (s1 =? s2) && (bb1 =? bb2)
       && (ff1 =? ff2) && (ee1 =? ee2) && (e1 =? e2) && (m1 =? m2)
