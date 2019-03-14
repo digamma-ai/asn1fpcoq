@@ -30,18 +30,6 @@ Definition pinf_b    := 590144.
 Definition ninf_b    := 590145.
 Definition nan_b     := 590146.
 
-(*
-Run TemplateProgram
-  (mkSwitch Z Z.eqb
-    [ (pzero_b, "pzero") ;
-      (nzero_b, "nzero") ;
-      (pinf_b,   "pinf") ;
-      (ninf_b,   "ninf") ;
-      (nan_b,     "nan") ]
-    "BER_specials" "classify_BER"
-  ).
-*)
-
 Inductive BER_special :=
 | pzero
 | nzero
@@ -66,6 +54,15 @@ Definition classify_BER (val : Z) : option BER_special :=
       else if val =? ninf_b then Some ninf
         else if val =? nan_b then Some nan
            else None.
+
+Definition bits_of_special (val : BER_special) : Z :=
+  match val with
+  | pzero => pzero_b
+  | nzero => nzero_b
+  | pinf => pinf_b
+  | ninf => ninf_b
+  | nan => nan_b
+  end.
 
 Definition valid_special (val : Z) : bool :=
   match (classify_BER val) with
