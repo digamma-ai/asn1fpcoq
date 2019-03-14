@@ -71,22 +71,21 @@ Definition bitstring_of_finite_BER
 
 Definition bitstring_of_BER (f : BER_float) : option BER_bitstring :=
   match f with
-  | BER_zero s => Some (if s then special nzero_b else special pzero_b)
-  | BER_infinity s => Some (if s then special ninf_b else special pinf_b)
-  | BER_nan => Some (special nan_b)
+  | BER_zero s => Some (if s then special nzero else special pzero)
+  | BER_infinity s => Some (if s then special ninf else special pinf)
+  | BER_nan => Some (special nan)
   | BER_finite s b ff m e _ => bitstring_of_finite_BER s b ff m e
   end.
 
 Definition BER_of_bitstring (b : BER_bitstring) : option BER_float :=
   match b with
   | special val =>
-    match classify_BER val with
-    | Some pzero => Some (BER_zero false)
-    | Some nzero => Some (BER_zero true)
-    | Some pinf => Some (BER_infinity false)
-    | Some ninf => Some (BER_infinity true)
-    | Some nan => Some (BER_nan)
-    | None => None
+    match val with
+    | pzero => Some (BER_zero false)
+    | nzero => Some (BER_zero true)
+    | pinf => Some (BER_infinity false)
+    | ninf => Some (BER_infinity true)
+    | nan => Some (BER_nan)
     end
   | short id co t s bb ff ee e m _ =>
     let s := (sign_of_bits s) in
