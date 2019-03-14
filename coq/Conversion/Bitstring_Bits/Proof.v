@@ -8,6 +8,10 @@ Require Import ASN1FP.Types.BitstringDef
 Definition Some_ize {A B : Type} : (A -> B) -> (A -> option B)
   := Basics.compose Some.
 
+Lemma special_eqb_refl (val : BER_special) :
+  special_eqb val val = true.
+Proof. destruct val; reflexivity. Qed.
+  
 Theorem bitstring_bsaux_roundtrip (b : BER_bitstring) :
   roundtrip_option
       BER_bitstring BER_bs_aux BER_bitstring
@@ -23,7 +27,7 @@ Proof.
 
   unfold bitstring_of_bsaux, bsaux_of_bitstring.
   repeat break_match; inversion Heqb0; subst.
-  - simpl; rewrite Z.eqb_refl; reflexivity.
+  - simpl. rewrite special_eqb_refl. reflexivity.
   - clear H7 H8.
     unfold c2z, c2n; simpl.
     inversion Heqb0; subst.
@@ -71,7 +75,7 @@ Definition BER_nbs_eqb (b1 b2 : BER_nbs) :=
 
 Definition BER_bsaux_eqb (b1 b2 : BER_bs_aux) :=
   match b1, b2 with
-  | special_aux z1, special_aux z2 => Z.eqb z1 z2
+  | special_aux z1, special_aux z2 => special_eqb z1 z2
   | normal_aux nbs1, normal_aux nbs2 =>
     BER_nbs_eqb nbs1 nbs2
   | _, _ => false

@@ -52,24 +52,6 @@ Proof. lia. Qed.
 Definition cut_b8_cont {l : nat} (c : container (8 + l)) (L : (0 < l)%nat)
 : cont8 * container l := split_cont c O_lt_8 L.
 
-(*** these might or might not be useful *)
-(*
-Definition cut_append_b1 (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat)
-        {l : nat} (c : container l) :
-cut_b1_cont (append_b1_cont v N L c) = (b1_cont v N L, c).
-Proof. apply split_join_roundtrip. Qed.
-
-Definition cut_append_b2 (v : Z) (N : 0 <= v) (L : (nblen v <= 2)%nat)
-        {l : nat} (c : container l) :
-cut_b2_cont (append_b2_cont v N L c) = (b2_cont v N L, c).
-Proof. apply split_join_roundtrip. Qed.
-
-Definition cut_append_b8 (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
-        {l : nat} (c : container l) :
-cut_b8_cont (append_b8_cont v N L c) = (b8_cont v N L, c).
-Proof. apply split_join_roundtrip. Qed.
-*)
-
 (* common operations *)
 Definition z2n := Z.to_nat.
 Definition c2z {l : nat} (c : container l) := Z_of_cont c.
@@ -95,9 +77,8 @@ Inductive BER_nbs :=
     (VL5 : c2z co <= 127).
 
 Inductive BER_bs_aux :=
-| special_aux (val : Z) : BER_bs_aux
+| special_aux (val : BER_special) : BER_bs_aux
 | normal_aux (b : BER_nbs) : BER_bs_aux.
-
 
 
 (** * bitstring -> nbs lemmas *)
@@ -925,13 +906,13 @@ Proof. unfold BER_nblen; lia. Qed.
 
 Definition bsaux_nblen (b : BER_bs_aux) :=
   match b with
-  | special_aux val => nblen (Z.abs val)
+  | special_aux val => nblen (bits_of_special val)
   | normal_aux b => nbs_nblen b
   end.
  
 
 
-(** * joining nbs *)
+(** * nbs -> cont *)
 
 Definition mk_info (b : BER_nbs) : container info_nblen :=
   match b with
@@ -969,7 +950,7 @@ Definition cont_of_nbs (b : BER_nbs) : container (nbs_nblen b) :=
 
 
 
-(** * splitting (into) nbs *)
+(** * cont -> nbs *)
 
 Fact info_nblen_positive : (0 < info_nblen)%nat.
 Proof. unfold info_nblen. lia. Qed.
@@ -1005,6 +986,9 @@ Definition split_info (c : container info_nblen) :
   let '(bb, c)  := cut_b2_cont c ilc5 in
   let '(ff, ee) := cut_b2_cont c ilc6 in
   (id, co, t, s, bb, ff, ee).
+
+
+(* TODO: would be nice to clean this *)
 
 Definition split_cut_info {l : nat} (c : container (info_nblen + l)) (L : (0 < l)%nat) :=
   let '(info, content) := cut_info c L in
@@ -1205,6 +1189,26 @@ Definition nbs_of_cont {l : nat} (c : container l) :=
     end
   end.
 
+(** * bsaux <-> cont *)
+
+Lemma bits_of_special_nonneg (val : BER_special) :
+  0 <= bits_of_special val.
+Proof.
+  destruct val; simpl.
+  unfold pzero_b; lia.
+  unfold nzero_b; lia.
+  unfold pinf_b; lia.
+  unfold ninf_b; lia.
+  unfold nan_b; lia.
+Qed.
+
+Definition cont_of_bsaux (b : BER_bs_aux) : container (bsaux_nblen b) :=
+  match b with
+  | special_aux val =>
+    let zval := bits_of_special val in
+    cont (nblen zval) zval (bits_of_special_nonneg val) (Nat.le_refl (nblen zval))
+  | normal_aux b => cont_of_nbs b
+  end.
 
 (** * cont <-> Z *)
 
@@ -1213,35 +1217,22 @@ Definition cont_of_BER_bits (b : Z) : option (container (BER_nblen b)) :=
   | left _ => None
   | right N => Some (cont (BER_nblen b) b N (BER_nblen_correct b))
   end.
-
-Definition cont_of_Z_abs (n : Z) : container (nblen (Z.abs n)) :=
-  let na := Z.abs n in
-  cont (nblen na) na (Z.abs_nonneg n) (Nat.le_refl (nblen na)).
   
-Definition cont_of_bsaux (b : BER_bs_aux) : container (bsaux_nblen b) :=
-  match b with
-  | special_aux val => cont_of_Z_abs val
-  | normal_aux b => cont_of_nbs b
-  end.
-
 Definition Z_of_bsaux (b : BER_bs_aux) :=
   c2z (cont_of_bsaux b).
 
 Definition bits_of_bitstring (b : BER_bitstring) : Z :=
   Z_of_bsaux (bsaux_of_bitstring b).
 
-Definition mk_special_bsaux (b : Z) :=
-  if b =? pzero_b
-  then Some (special_aux b)
-  else if b =? nzero_b
-       then Some (special_aux b)
-       else if b =? pinf_b
-            then Some (special_aux b)
-            else if b =? ninf_b
-                 then Some (special_aux b)
-                 else if b =? nan_b
-                      then Some (special_aux b)
-                           else None.
+Definition mk_special_bsaux (b : Z) : option BER_bs_aux :=
+  match classify_BER b with
+  | Some pzero => Some (special_aux pzero)
+  | Some nzero => Some (special_aux nzero)
+  | Some pinf  => Some (special_aux pinf)
+  | Some ninf  => Some (special_aux ninf)
+  | Some nan   => Some (special_aux nan)
+  | None => None
+  end.
 
 Definition bsaux_of_bits (b : Z) : option BER_bs_aux :=
   if b <? 0
