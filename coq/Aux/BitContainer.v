@@ -161,92 +161,92 @@ Qed.
 
 Fact split_div_nblen {l1 l2 : nat} {v : Z} (N : 0 <= v)
       (B : (nblen v <= l1 + l2)%nat) :
+  (0 < l1)%nat ->
+  (0 < l2)%nat ->
   (nblen (v / two_power_nat l2) <= l1)%nat.
 Proof.
+  intros L1 L2.
   unfold nblen in *.
   apply Nat2Z.inj_le.
   apply Nat2Z.inj_le in B.
-  rewrite Z2Nat.id in *.
-  -
-    admit.
-  -
-    assert(0<=Z.log2 v) by apply Z.log2_nonneg.
-    lia.
-  -
-    assert(0<=Z.log2 (v / two_power_nat l2)) by apply Z.log2_nonneg.
-    lia.
-Admitted.
+  rewrite Z2Nat.id in *;
+    [
+      |(generalize (Z.log2_nonneg v); lia)
+      |(generalize (Z.log2_nonneg (v / two_power_nat l2)); lia)
+    ].
+  rewrite Nat2Z.inj_add in B; rewrite two_power_nat_equiv.
+  assert (N1 : 0 < Z.of_nat l1) by lia; remember (Z.of_nat l1) as n1; clear Heqn1 L1 l1.
+  assert (N2 : 0 < Z.of_nat l2) by lia; remember (Z.of_nat l2) as n2; clear Heqn2 L2 l2.
+  assert (V : Z.log2 v < n1 + n2) by lia; clear B.
+
+  destruct (Z.eq_dec 0 v); [subst; simpl; lia|].
+  assert (P : 0 < v) by lia; clear N n.
+  
+  apply Z.log2_lt_pow2 in V; auto.
+  rewrite Z.pow_add_r in V; try lia.
+  rewrite Z.mul_comm in V.
+  apply Z.div_lt_upper_bound in V.
+  - destruct (Z_lt_le_dec 0 (v / 2 ^ n2)).
+    apply Z.log2_lt_pow2 in V.
+    + lia.
+    + auto.
+    + rewrite Z.log2_nonpos; lia.
+  - replace 0 with (0 ^ n2) by
+        (rewrite Z.pow_0_l by auto; reflexivity).
+    apply Z.pow_lt_mono_l; lia.
+Qed.
 
 Fact split_mod_nblen {l1 l2 : nat} {v : Z} (N : 0 <= v)
       (B : (nblen v <= l1 + l2)%nat) :
+  (0 < l1)%nat ->
+  (0 < l2)%nat ->
   (nblen (v mod two_power_nat l2) <= l2)%nat.
 Proof.
-  unfold nblen in *.
+  intros L1 L2.
+  clear L1 B l1.
+  unfold nblen.
   apply Nat2Z.inj_le.
-  apply Nat2Z.inj_le in B.
-  rewrite Z2Nat.id in *.
-  -
-    admit.
-  -
-    assert(0<=Z.log2 v) by apply Z.log2_nonneg.
-    lia.
-  -
-    assert(0<=Z.log2 (v mod two_power_nat l2)) by apply Z.log2_nonneg.
-    lia.
-Admitted.
+  rewrite two_power_nat_equiv.
+  assert (N2 : 0 < Z.of_nat l2) by lia; remember (Z.of_nat l2) as n2; clear Heqn2 L2 l2.
+  rewrite Z2Nat.id; [| generalize (Z.log2_nonneg (v mod 2 ^ n2)); lia].
+  assert (0 < 2 ^ n2) by (apply Z.pow_pos_nonneg; lia).
+  generalize (Z.mod_pos_bound v (2 ^ n2) H);
+    clear H; intros H; destruct H.
+  destruct (Z.eq_dec (v mod 2 ^ n2) 0); [rewrite e; simpl; lia |].
+  assert (P : 0 < v mod 2 ^ n2) by lia; clear H n.
+  apply Z.log2_lt_pow2 in H0; lia.
+Qed.
 
-Definition split_cont {l1 l2: nat} (c : container (l1+l2))
+Definition split_cont {l1 l2: nat} (c : container (l1+l2)) (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
   : container l1 * container l2 :=
   match c with
   | cont _ v N B =>
     ((cont l1
            (v / (two_power_nat l2))
            (split_div_nneg l2 N)
-           (split_div_nblen N B)),
+           (split_div_nblen N B L1 L2)),
      (cont l2
            (v mod (two_power_nat l2))
            (split_mod_nneg l2 N)
-           (split_mod_nblen N B)))
+           (split_mod_nblen N B L1 L2)))
   end.
 
-Lemma split_join_roundtrip {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
-  split_cont (join_cont c1 c2) = (c1, c2).
+Lemma nblen_positive (x : Z) :
+  (0 < nblen x)%nat.
 Proof.
-  destruct c1 as [v1 N1 B1].
-  destruct c2 as [v2 N2 B2].
-  simpl.
-  f_equal.
-  - assert(E:((v1 * two_power_nat l2 + v2) / two_power_nat l2) = v1).
-    {
-      autorewrite with rew_Z_bits.
-      rewrite <- Z.shiftl_mul_pow2; try lia.
-      rewrite <- Z.shiftr_div_pow2; try lia.
-      admit.
-    }
+  unfold nblen.
+  generalize (Z.log2_nonneg x); intros.
+  replace 0%nat with (Z.to_nat 0) by trivial.
+  apply Z2Nat.inj_lt; lia.
+Qed.
 
-    generalize (split_div_nneg l2 (join_nneg l2 N1 N2)).
-    generalize (split_div_nblen (join_nneg l2 N1 N2) (join_nblen N1 N2 B1 B2)).
-    intros N1' B1'.
-    remember ((v1 * two_power_nat l2 + v2) / two_power_nat l2) as v1' eqn:Hv.
-    rewrite E in Hv.
-    subst v1'.
-    f_equal; apply proof_irrelevance.
-  -
-    assert(E:((v1 * two_power_nat l2 + v2) mod two_power_nat l2) = v2).
-    {
-      autorewrite with rew_Z_bits.
-      remember (Z.of_nat l2) as zl2.
-      admit.
-    }
-
-    generalize (split_mod_nneg l2 (join_nneg l2 N1 N2)).
-    generalize (split_mod_nblen (join_nneg l2 N1 N2) (join_nblen N1 N2 B1 B2)).
-    intros N1' B1'.
-    remember ((v1 * two_power_nat l2 + v2) mod two_power_nat l2) as v2' eqn:Hv.
-    rewrite E in Hv.
-    subst v2'.
-    f_equal; apply proof_irrelevance.
-Admitted.
+Lemma cont_len_positive {l : nat} (c : container l) :
+  (0 < l)%nat.
+Proof.
+  destruct c.
+  generalize (nblen_positive v).
+  lia.
+Qed.
 
 Definition Z_of_cont {l : nat} (c : container l) :=
   match c with cont _ v _ _ => v end.

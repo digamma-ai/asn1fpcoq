@@ -1,6 +1,7 @@
 Require Import ZArith.
 Require Import ASN1FP.Types.BitstringDef
-               ASN1FP.Aux.Bits ASN1FP.Aux.BitContainer ASN1FP.Aux.Tactics ASN1FP.Aux.StructTactics.
+        ASN1FP.Aux.Bits ASN1FP.Aux.Option ASN1FP.Aux.BitContainer
+        ASN1FP.Aux.Tactics ASN1FP.Aux.StructTactics.
 Require Import Lia.
 
 Open Scope Z.
@@ -33,16 +34,26 @@ Definition append_b8_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
 : container (8 + l) := join_cont (b8_cont v N L) c.
 
 (* cut containers of common lengths (from left *)
-Definition cut_b1_cont {l : nat} (c : container (1 + l))
-: cont1 * container l := split_cont c.
+Fact O_lt_1 : (0 < 1)%nat.
+Proof. lia. Qed.
 
-Definition cut_b2_cont {l : nat} (c : container (2 + l))
-: cont2 * container l := split_cont c.
+Definition cut_b1_cont {l : nat} (c : container (1 + l)) (L : (0 < l)%nat)
+: cont1 * container l := split_cont c O_lt_1 L.
 
-Definition cut_b8_cont {l : nat} (c : container (8 + l))
-: cont8 * container l := split_cont c.
+Fact O_lt_2 : (0 < 2)%nat.
+Proof. lia. Qed.
 
-(* these might or might not be useful *)
+Definition cut_b2_cont {l : nat} (c : container (2 + l)) (L : (0 < l)%nat)
+: cont2 * container l := split_cont c O_lt_2 L.
+
+Fact O_lt_8 : (0 < 8)%nat.
+Proof. lia. Qed.
+
+Definition cut_b8_cont {l : nat} (c : container (8 + l)) (L : (0 < l)%nat)
+: cont8 * container l := split_cont c O_lt_8 L.
+
+(*** these might or might not be useful *)
+(*
 Definition cut_append_b1 (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat)
         {l : nat} (c : container l) :
 cut_b1_cont (append_b1_cont v N L c) = (b1_cont v N L, c).
@@ -57,6 +68,7 @@ Definition cut_append_b8 (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
         {l : nat} (c : container l) :
 cut_b8_cont (append_b8_cont v N L c) = (b8_cont v N L, c).
 Proof. apply split_join_roundtrip. Qed.
+*)
 
 (* common operations *)
 Definition z2n := Z.to_nat.
@@ -618,15 +630,6 @@ Proof.
   destruct b; simpl in H0; lia.
 Qed.
 
-Lemma nblen_positive (x : Z) :
-  (0 < nblen x)%nat.
-Proof.
-  unfold nblen.
-  generalize (Z.log2_nonneg x); intros.
-  replace 0%nat with (Z.to_nat 0) by trivial.
-  apply Z2Nat.inj_lt; lia.
-Qed.
-  
 Lemma Z2Nat_pos_iff (x : Z) :
   (0 < Z.to_nat x)%nat <->
   0 < x.
@@ -968,51 +971,110 @@ Definition cont_of_nbs (b : BER_nbs) : container (nbs_nblen b) :=
 
 (** * splitting (into) nbs *)
 
-Definition cut_info {l : nat} (c : container (info_nblen + l)) :
+Fact info_nblen_positive : (0 < info_nblen)%nat.
+Proof. unfold info_nblen. lia. Qed.
+
+Definition cut_info {l : nat} (c : container (info_nblen + l)) (L : (0 < l)%nat) :
   (container info_nblen * container l) :=
-  split_cont c.
+  split_cont c info_nblen_positive L.
+
+Fact ilc1 : (0 < info_nblen - 8)%nat.
+Proof. unfold info_nblen. lia. Qed.
+
+Fact ilc2 : (0 < info_nblen - 8 - 8)%nat.
+Proof. unfold info_nblen. lia. Qed.
+
+Fact ilc3 : (0 < info_nblen - 8 - 8 - 1)%nat.
+Proof. unfold info_nblen. lia. Qed.
+
+Fact ilc4 : (0 < info_nblen - 8 - 8 - 1 - 1)%nat.
+Proof. unfold info_nblen. lia. Qed.
+
+Fact ilc5 : (0 < info_nblen - 8 - 8 - 1 - 1 - 2)%nat.
+Proof. unfold info_nblen. lia. Qed.
+
+Fact ilc6 : (0 < info_nblen - 8 - 8 - 1 - 1 - 2 - 2)%nat.
+Proof. unfold info_nblen. lia. Qed.
 
 Definition split_info (c : container info_nblen) :
   (cont8 * cont8 * cont1 * cont1 * cont2 * cont2 * cont2) :=
-  let '(id, c) := cut_b8_cont c in
-  let '(co, c) := cut_b8_cont c in
-  let '(t,  c) := cut_b1_cont c in
-  let '(s,  c) := cut_b1_cont c in
-  let '(bb, c) := cut_b2_cont c in
-  let '(ff, ee) := cut_b2_cont c in
+  let '(id, c)  := cut_b8_cont c ilc1 in
+  let '(co, c)  := cut_b8_cont c ilc2 in
+  let '(t,  c)  := cut_b1_cont c ilc3 in
+  let '(s,  c)  := cut_b1_cont c ilc4 in
+  let '(bb, c)  := cut_b2_cont c ilc5 in
+  let '(ff, ee) := cut_b2_cont c ilc6 in
   (id, co, t, s, bb, ff, ee).
 
-Definition split_cut_info {l : nat} (c : container (info_nblen + l)) :=
-  let '(info, content) := cut_info c in
+Definition split_cut_info {l : nat} (c : container (info_nblen + l)) (L : (0 < l)%nat) :=
+  let '(info, content) := cut_info c L in
   let '(id, co, t, s, bb, ff, ee) := split_info info in
   (id, co, t, s, bb, ff, ee, content).
 
-Definition e_nblen_of_long_cont {l : nat} (c : container (8 + l)) : nat :=
-  c2n (fst (cut_b8_cont c)).
+Definition e_nblen_of_long_cont {l : nat} (c : container (8 + l)) (L : (0 < l)%nat) : nat :=
+  c2n (fst (cut_b8_cont c L)).
 
-Definition cut_num (a b : nat) : option (a = b + (a - b))%nat :=
+Definition try_cut_num (a b : nat) : option (a = b + (a - b))%nat :=
   match (Nat.eq_dec a (b + (a - b))) with
   | right _ => None
   | left H => Some H
   end.
 
-Definition cut_cont {l : nat} (c : container l) (l1 : nat) : option (container (l1 + (l - l1))) :=
-  match (cut_num l l1) with
-  | None => None
-  | Some H => Some (cast_cont c H)
-  end.
+Lemma try_cut_num_works (a b : nat) (L : (0 < a - b)%nat) :
+  is_Some_b (try_cut_num a b) = true.
+Proof.
+  unfold try_cut_num.
+  destruct (Nat.eq_dec a (b + (a - b))); simpl.
+  reflexivity.
+  lia.
+Qed.
 
-Definition split_long_cont  {l : nat} (c : container (8 + l))
+Definition cut_num (a b : nat) (L : (0 < a - b)%nat) :
+  (a = b + (a - b))%nat.
+{
+  generalize (try_cut_num_works a b L); intros.
+  destruct (try_cut_num a b).
+  exact e.
+  inversion H.
+} Defined.
+
+Definition cut_cont {l : nat} (c : container l) (l1 : nat) (L : (0 < l - l1)%nat)
+  : container (l1 + (l - l1)) :=
+  cast_cont c (cut_num l l1 L).
+  
+Definition try_cut_cont {l : nat} (c : container l) (l1 : nat)
+  : option (container (l1 + (l - l1))) :=
+    match le_lt_dec l1 0 with
+    | left _ => None
+    | right L1 =>
+      match le_lt_dec (l - l1) 0 with
+      | left _ => None
+      | right L2 =>
+      Some ((cut_cont c l1 L2))
+      end
+    end.
+
+Definition try_split_cont {l : nat} (c : container l) (l1 : nat) :=
+    match le_lt_dec l1 0 with
+    | left _ => None
+    | right L1 =>
+      match le_lt_dec (l - l1) 0 with
+      | left _ => None
+      | right L2 =>
+      Some (split_cont (cut_cont c l1 L2) L1 L2)
+      end
+    end.
+
+Definition try_split_long_cont  {l : nat} (c : container (8 + l)) (L : (0 < l)%nat)
   : option (container 8 *
-            container (e_nblen_of_long_cont c) *
-            container (l - e_nblen_of_long_cont c)) :=
-    let eo := fst (cut_b8_cont c) in
-    let em := snd (cut_b8_cont c) in
+            container (e_nblen_of_long_cont c L) *
+            container (l - e_nblen_of_long_cont c L)) :=
+    let eo := fst (cut_b8_cont c L) in
+    let em := snd (cut_b8_cont c L) in
     let eon := c2n eo in
-    match (cut_cont em eon) with
+    match try_split_cont em eon with
     | None => None
-    | Some em =>
-    let '(e, m) := split_cont em in
+    | Some (e,m) =>
       Some (eo, e, m)
     end.
 
@@ -1114,26 +1176,33 @@ Definition construct_long_nbs
   end.
 
 Definition nbs_of_cont {l : nat} (c : container l) :=
-  match (cut_cont c info_nblen) with
+  match (try_cut_cont c info_nblen) with
   | None => None
   | Some c =>
-    let '(id, co, t, s, bb, ff, ee, content) := split_cut_info c in
-    if (c2n ee =? 3)%nat
-    then match (cut_cont content 8) with
-         | None => None
-         | Some content =>
-           match (split_long_cont content) with
+    match le_lt_dec (l - info_nblen) 0 with
+    | left _ => None
+    | right L =>
+      let '(id, co, t, s, bb, ff, ee, content) := split_cut_info c L in
+      if (c2n ee =? 3)%nat
+      then match (try_cut_cont content 8) with
            | None => None
-           | Some (eo, e, m) =>
-               construct_long_nbs id co t s bb ff ee eo e m
+           | Some content =>
+             match le_lt_dec (l - info_nblen - 8) 0 with
+             | left _ => None
+             | right L =>
+               match (try_split_long_cont content L) with
+               | None => None
+               | Some (eo, e, m) =>
+                   construct_long_nbs id co t s bb ff ee eo e m
+               end
              end
            end
-    else match (cut_cont content (8 * (c2n ee + 1))) with
-         | None => None
-         | Some c =>
-           let '(e, m) := split_cont c in
-             construct_short_nbs id co t s bb ff ee e m
-         end
+      else match (try_split_cont content (8 * (c2n ee + 1))) with
+           | None => None
+           | Some (e, m) =>
+               construct_short_nbs id co t s bb ff ee e m
+           end
+    end
   end.
 
 
@@ -1175,7 +1244,7 @@ Definition mk_special_bsaux (b : Z) :=
                            else None.
 
 Definition bsaux_of_bits (b : Z) : option BER_bs_aux :=
-  if b <=? 0
+  if b <? 0
   then None
   else match (mk_special_bsaux b) with
        | Some b => Some b
@@ -1195,33 +1264,3 @@ Definition bitstring_of_bits (b : Z) : option BER_bitstring :=
   | None => None
   | Some b => Some (bitstring_of_bsaux b)
   end.
-
-
-
-(** * correctness lemmas *)
-
-Lemma split_mk_info (b : BER_nbs) :
-  match b with
-  | short_nbs id co t s bb ff ee e m _ _ _ _ _ =>
-    split_info (mk_info b) = (id, co, t, s, bb, ff, ee)
-  | long_nbs id co t s bb ff ee eo e m _ _ _ _ _ =>
-    split_info (mk_info b) = (id, co, t, s, bb, ff, ee)
-  end.
-Proof.
-  unfold split_info, mk_info, cut_b1_cont, cut_b2_cont, cut_b8_cont.
-  repeat break_match.
-  rewrite split_join_roundtrip in Heqp; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp0; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp1; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp2; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp3; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp4; tuple_inversion.
-  reflexivity.
-  rewrite split_join_roundtrip in Heqp; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp0; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp1; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp2; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp3; tuple_inversion.
-  rewrite split_join_roundtrip in Heqp4; tuple_inversion.
-  reflexivity.
-Qed.
