@@ -19,7 +19,7 @@ COQC="$(COQBIN)coqc" -q $(COQINCLUDES) $(COQCOPTS)
 COQDEP="$(COQBIN)coqdep" $(COQINCLUDES)
 COQEXEC="$(COQBIN)coqtop" -q -w none $(COQINCLUDES) -batch -load-vernac-source
 
-VFILES := $(shell find . -name \*.v | grep -v .\#  | grep -v ml/ | cut -c 3- )
+VFILES := $(shell find . -name \*.v  ! -path "./c/*" | grep -v .\#  | grep -v ml/ | cut -c 3- )
 VOFILES = $(VFILES:.v=.vo)
 
 # OCaml sources
