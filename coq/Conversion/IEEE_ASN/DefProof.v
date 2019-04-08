@@ -246,7 +246,7 @@ Section Base2.
         m = (mx * 2^d)%positive /\ e = ex - (Zpos d).
     Proof.
       clear Hmax valid_IEEE IEEE_float valid_IEEE_sumbool prec emax prec_gt_1 Hmax.
-      clear r scl valid_BER_sumbool BER_finite_b2 valid_BER.
+      clear r valid_BER_sumbool BER_finite_b2 valid_BER.
 
       induction m using positive_lt_ind.
       intros.
@@ -351,7 +351,7 @@ Section Base2.
       unfold uncurry in *.
       unfold normalize_IEEE_finite, valid_IEEE, shl_align_fexp, shl_align, 
       bounded, canonical_mantissa, uncurry, FLT.FLT_exp in *.
-      clear r scl valid_IEEE valid_BER IEEE_float valid_IEEE_sumbool
+      clear r valid_IEEE valid_BER IEEE_float valid_IEEE_sumbool
             BER_finite_b2 valid_BER_sumbool normalize_roundtrip.
 
       (* remove bool *)
