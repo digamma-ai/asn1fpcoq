@@ -15,11 +15,12 @@ See [doc/assumptions.md](https://github.com/digamma-ai/asn1fpcoq/blob/master/doc
 * [dune](https://github.com/ocaml/dune)
 * [num](https://github.com/ocaml/num/)
 * [coq-bbv](https://github.com/mit-plv/bbv)
+* [coq-compcert](http://compcert.inria.fr/)
 
 To install all pre-requisites:
 
     opam repo add coq-released http://coq.inria.fr/opam/released
-    opam install coq coq-ext-lib coq-flocq coq-bbv dune num core
+    opam install coq coq-ext-lib coq-flocq coq-bbv dune num core coq-compcert
 
 ## Acknowledgements
 * Thanks to [Sylvie Boldo](https://www.lri.fr/~sboldo/) and [Guillaume Melquiond](https://www.lri.fr/~melquion/) for their development of the [Floats for Coq](http://flocq.gforge.inria.fr/) library, on which this project heavily relies both abstractly and with code.
