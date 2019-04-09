@@ -63,8 +63,6 @@ Definition is_null (v : Values.val) :=
   | _ => false
   end.
 
-Print memory_chunk.
-
 Definition chunk : memory_chunk := Mint8unsigned. (* not quite sure how to deal with the memory chunks *)
 Definition INTSIZE := (nat_of_Z Int.modulus).
 
@@ -74,16 +72,12 @@ Definition strlen_C (m : mem) (b: block) (ofs : Z) :=
       | O => None (* out of int range *)
       | S n => match valid_block_b m b, Mem.load chunk m b ofs with (* checking if b is a valid reference in m, loading value from memory *)
               | left _, Some v =>
-                match is_null v, Mem.store chunk m b ofs (Vint (Int.repr l)) with (* storing value, TODO: need to allocate memory? *)
-                | false, Some m' => strlen_fun_C m' b (ofs + 1) (l + 1) n
-                | true, Some m' => Some (l, m')
-                | _, None => None (* cannot store the result in m *)
-                end
+                if is_null v
+                then Some (l, m) else strlen_fun_C m b (ofs + 1) (l + 1) n  
               | _, _ => None (* address not readable or b not allocates *)
               end
       end
   in strlen_fun_C m b ofs 0 INTSIZE.
 
-(* See Clight.v for semantics *)
 
-Print eval_expr.
+
