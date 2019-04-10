@@ -57,15 +57,20 @@ Ltac debool :=
          | [ |- Zeq_bool _ _ = true ] => apply Zeq_bool_true
          | [ H: Zeq_bool _ _ = true |- _ ] => apply Zeq_bool_eq in H
 
-         | [ |- (_ =? _)%Z = true ] => apply Z.eqb_eq
-         | [ H: (_ =? _)%Z = true |- _ ] => apply Z.eqb_eq in H
-         | [ |- (_ =? _)%Z = false ] => apply Z.eqb_neq
-         | [ H: (_ =? _)%Z = false |- _ ] => apply Z.eqb_neq in H
+         | [ |- (_ =? _)%nat = true ] => apply Nat.eqb_eq
+         | [ H: (_ =? _)%nat = true |- _ ] => apply Nat.eqb_eq in H
+         | [ |- (_ =? _)%nat = false ] => apply Nat.eqb_neq
+         | [ H: (_ =? _)%nat = false |- _ ] => apply Nat.eqb_neq in H
 
          | [ |- (_ <? _)%Z = true ] => apply Zlt_bool_true
          | [ H: (_ <? _)%Z = true |- _ ] => apply Z.ltb_lt in H
          | [ |- (_ <? _)%Z = false ] => apply Zlt_bool_false
          | [ H: (_ <? _)%Z = false |- _ ] => apply Z.ltb_ge in H
+
+         | [ |- (_ =? _)%Z = true ] => apply Z.eqb_eq
+         | [ H: (_ =? _)%Z = true |- _ ] => apply Z.eqb_eq in H
+         | [ |- (_ =? _)%Z = false ] => apply Z.eqb_neq
+         | [ H: (_ =? _)%Z = false |- _ ] => apply Z.eqb_neq in H
 
          | [ H: Bool.eqb _ _ = true |- _ ] => apply Bool.eqb_prop in H
 
