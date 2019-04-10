@@ -2,7 +2,7 @@
 
 
 From Coq Require Import String List ZArith.
-From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs Memory Values.
+From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs Memory Values ClightBigstep Events.
 (* Local Open Scope Z_scope.*)
 
 
@@ -114,18 +114,18 @@ Definition f_strlen := {|
 
 (* Big step semantics *)
 
-Require Import ClightBigstep.
-
 Parameter v : val.
 Parameter m : mem.
 Parameter ge : genv.
 Parameter e : env.           
 
+(* local env is a map from ident to val *)
+
 Definition le : temp_env  := Maps.PTree.empty val.
 Definition le' := Maps.PTree.set _s v le.
 Definition le'' := Maps.PTree.set _i v le'.
 
-Require Import Events. (* E0 is an empty trace *)
+(* E0 is an empty trace *)
            
 Definition strlen_C_exec : ClightBigstep.exec_stmt ge e le' m f_strlen.(fn_body) ((E0**E0)**E0) le'' m (Out_return (Some (v,tuint))).
 Proof.
