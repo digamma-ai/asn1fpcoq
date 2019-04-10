@@ -80,4 +80,63 @@ Definition strlen_C (m : mem) (b: block) (ofs : Z) :=
   in strlen_fun_C m b ofs 0 INTSIZE.
 
 
+(* Semantics of a C light function: *)
+
+(* strlen C light AST *)
+
+Definition _i : ident := 54%positive.
+Definition _s : ident := 53%positive.
+Definition _strlen : ident := 55%positive.
+
+Definition f_strlen := {|
+  fn_return := tuint;
+  fn_callconv := cc_default;
+  fn_params := ((_s, (tptr tschar)) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_i, tuint) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Sset _i (Econst_int (Int.repr 0) tint))
+    (Sloop
+      (Sifthenelse (Ebinop One
+                     (Ederef
+                       (Ebinop Oadd (Etempvar _s (tptr tschar))
+                         (Etempvar _i tuint) (tptr tschar)) tschar)
+                     (Econst_int (Int.repr 0) tint) tint)
+        Sskip
+        Sbreak)
+      (Sset _i
+        (Ebinop Oadd (Etempvar _i tuint) (Econst_int (Int.repr 1) tint)
+          tuint))))
+  (Sreturn (Some (Etempvar _i tuint))))
+                      |}.
+
+(* Big step semantics *)
+
+Require Import ClightBigstep.
+
+Parameter v : val.
+Parameter m : mem.
+Parameter ge : genv.
+Parameter e : env.           
+
+Definition le : temp_env  := Maps.PTree.empty val.
+Definition le' := Maps.PTree.set _s v le.
+Definition le'' := Maps.PTree.set _i v le'.
+
+Require Import Events. (* E0 is an empty trace *)
+           
+Definition strlen_C_exec : ClightBigstep.exec_stmt ge e le' m f_strlen.(fn_body) ((E0**E0)**E0) le'' m (Out_return (Some (v,tuint))).
+Proof.
+  repeat econstructor.
+  - simpl. admit. (* Addition sem_add *)
+  - simpl. (* Mem.load *) admit.
+  - simpl.  (* Comparison  sem_cmp *)  admit.
+  - simpl. (* Bool val *)  admit.
+  - admit. (* loop *)
+Admitted.
+
+
+
 
