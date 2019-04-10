@@ -363,22 +363,8 @@ Proof.
       exfalso; rename Heqo into FP, Heqo0 into BP.
       unfold BER_of_bitstring in BP.
       repeat break_match; try some_eq_none_inv; clear BP.
-      * (* special *)
-        unfold bitstring_of_BER in FP.
-        break_match; inversion FP; clear FP.
-        -- destruct s; inversion H0; subst; inversion Heqo.
-        -- destruct s; inversion H0; subst; inversion Heqo.
-        -- subst; inversion Heqo.
-        -- unfold bitstring_of_finite_BER in H0.
-           repeat break_match; inversion H0.
-      * (* short *)
-        inversion e0.
-        apply valid_short_valid_BER in H0.
-        rewrite e1 in H0. inversion H0.
-      * (* long *)
-        inversion e0.
-        apply valid_long_valid_BER in H0.
-        rewrite e1 in H0. inversion H0.
+      * rewrite (valid_short_valid_BER e0) in e1; inversion e1.
+      * rewrite (valid_long_valid_BER e0) in e1; inversion e1.
   - (* forward pass unsuccessful *)
     intros H; inversion H.
 Qed.
