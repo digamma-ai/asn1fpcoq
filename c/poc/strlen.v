@@ -12,7 +12,7 @@ Module Info.
   Definition bitsize := 64.
   Definition big_endian := false.
   Definition source_file := "strlen.c"%string.
-  Definition normalized := true.
+  Definition normalized := false.
 End Info.
 
 Definition ___builtin_ais_annot : ident := 1%positive.
@@ -67,45 +67,33 @@ Definition ___compcert_va_composite : ident := 18%positive.
 Definition ___compcert_va_float64 : ident := 17%positive.
 Definition ___compcert_va_int32 : ident := 15%positive.
 Definition ___compcert_va_int64 : ident := 16%positive.
-Definition _c : ident := 55%positive.
 Definition _i : ident := 54%positive.
-Definition _main : ident := 57%positive.
+Definition _main : ident := 56%positive.
 Definition _s : ident := 53%positive.
-Definition _strlen : ident := 56%positive.
-Definition _t'1 : ident := 58%positive.
-Definition _t'2 : ident := 59%positive.
+Definition _strlen : ident := 55%positive.
 
 Definition f_strlen := {|
   fn_return := tuint;
   fn_callconv := cc_default;
-  fn_params := ((_s, (tptr tuchar)) :: nil);
+  fn_params := ((_s, (tptr tschar)) :: nil);
   fn_vars := nil;
-  fn_temps := ((_i, tuint) :: (_c, tuchar) :: (_t'2, tuchar) ::
-               (_t'1, tuchar) :: nil);
+  fn_temps := ((_i, tuint) :: nil);
   fn_body :=
 (Ssequence
-  (Sset _i (Econst_int (Int.repr 0) tint))
   (Ssequence
-    (Ssequence
-      (Sset _t'2
-        (Ederef
-          (Ebinop Oadd (Etempvar _s (tptr tuchar)) (Etempvar _i tuint)
-            (tptr tuchar)) tuchar))
-      (Sset _c (Ecast (Etempvar _t'2 tuchar) tuchar)))
-    (Ssequence
-      (Swhile
-        (Ebinop One (Econst_int (Int.repr 0) tint) (Etempvar _c tuchar) tint)
-        (Ssequence
-          (Sset _i
-            (Ebinop Oadd (Etempvar _i tuint) (Econst_int (Int.repr 1) tint)
-              tuint))
-          (Ssequence
-            (Sset _t'1
-              (Ederef
-                (Ebinop Oadd (Etempvar _s (tptr tuchar)) (Etempvar _i tuint)
-                  (tptr tuchar)) tuchar))
-            (Sset _c (Ecast (Etempvar _t'1 tuchar) tuchar)))))
-      (Sreturn (Some (Etempvar _i tuint))))))
+    (Sset _i (Econst_int (Int.repr 0) tint))
+    (Sloop
+      (Sifthenelse (Ebinop One
+                     (Ederef
+                       (Ebinop Oadd (Etempvar _s (tptr tschar))
+                         (Etempvar _i tuint) (tptr tschar)) tschar)
+                     (Econst_int (Int.repr 0) tint) tint)
+        Sskip
+        Sbreak)
+      (Sset _i
+        (Ebinop Oadd (Etempvar _i tuint) (Econst_int (Int.repr 1) tint)
+          tuint))))
+  (Sreturn (Some (Etempvar _i tuint))))
 |}.
 
 Definition composites : list composite_definition :=
@@ -385,42 +373,5 @@ Definition public_idents : list ident :=
  ___builtin_bswap16 :: ___builtin_bswap32 :: ___builtin_bswap ::
  ___builtin_ais_annot :: nil).
 
-
-(* From Clight.v: 
-
-Record function : Type := mkfunction {
-  fn_return: type;
-  fn_callconv: calling_convention;
-  fn_params: list (ident * type);
-  fn_vars: list (ident * type);
-  fn_temps: list (ident * type);
-  fn_body: statement
-}.
-
-Definition program := Ctypes.program function. 
-
-Clightdefs.v
-
-Definition mkprogram (types: list composite_definition)
-                     (defs: list (ident * globdef fundef type))
-                     (public: list ident)
-                     (main: ident)
-                     (WF: wf_composites types) : Clight.program :=
-  let (ce, EQ) := build_composite_env' types WF in
-  {| prog_defs := defs;
-     prog_public := public;
-     prog_main := main;
-     prog_types := types;
-     prog_comp_env := ce;
-     prog_comp_env_eq := EQ |}.
-
-
-Definition wf_composites (types: list composite_definition) : Prop :=
-  match build_composite_env types with OK _ => True | Error _ => False end.
-
-*)
-
 Definition prog : Clight.program := 
-  mkprogram composites global_definitions public_idents _main Logic.I.
-
-
+  mkprogram composites global_definitions public_idents _strlen Logic.I.
