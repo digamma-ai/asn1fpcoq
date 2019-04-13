@@ -121,22 +121,18 @@ Definition f_strlen := {|
 (* Require Import strlen Maps.
 Definition ge := globalenv prog. *)
 
-Parameter ge : genv. (* global environment *)
-Definition bigStepExec := ClightBigstep.exec_stmt.
+Parameter ge : genv. (* global environment, maps id to block, pointers to definitions of functions *)
+Definition bigStepExec := ClightBigstep.exec_stmt. (* evaluation of statements*)
 Definition t := ((E0**E0)**E0). (* trace, E0 is an empty trace *)
 
-(* Find proofs on arithmetic on ptrofs type *)
-Hypothesis ptr_ofs_eq : forall ofs, ofs = (Ptrofs.unsigned
-       (Ptrofs.add (Ptrofs.repr ofs)
-                   (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))).
-
-(* One direction of correctness, for now the statement is wrong *)
-
+(* One direction of correctness, for now the statement seems wrong *)
 Definition strlen_C_exec_corr :
-  forall m b ofs (e : env) le z,
-    strlen_C m b ofs = Some (z,m) -> 
-    le!_s = Some (Vptr b (Ptrofs.repr ofs)) ->
-             exists le', le'!_i = Some (Vint (Int.repr z)) /\ bigStepExec ge e le m f_strlen.(fn_body) t le' m (Out_return (Some (Vint (Int.repr z),tuint))).
+  forall (m : Mem.mem) (b : block) (ofs : Z) (e : env) (le : temp_env) (z : Z),
+    strlen_C m b ofs = Some (z,m) ->
+    le!_s = Some (Vptr b (Ptrofs.repr ofs)) -> (* input parameter _s assigned value of address (b,ofs) in le *)
+    exists le', le'!_i = Some (Vint (Int.repr z)) /\ (* output _i assigned value z in le *)
+                bigStepExec ge e le m f_strlen.(fn_body) t le' m (Out_return (Some (Vint (Int.repr z),tuint))).
+               (* in environments ge, e (local env), le and memory m with output trace t and le' with _i mapped to value z *)
 Proof.
   intros.
   exists (Maps.PTree.set _i (Vint (Int.repr z)) le).
@@ -146,7 +142,7 @@ Proof.
     + rewrite PTree.gso. apply H0. eapply Pos.succ_discr. 
     + apply PTree.gss.
     + repeat econstructor. 
-    + simpl. rewrite <- (ptr_ofs_eq ofs). (* now need assumptions on memory, get from a lemma about strlen *) admit.
+    + simpl. (* rewrite <- (ptr_ofs_eq ofs) - arithmetic on ptrofs. now need assumptions on memory, get from a lemma about strlen *) admit.
     + simpl.  admit.
     + simpl. admit.
     + simpl.  admit.
@@ -165,7 +161,12 @@ Hypothesis ofs_le_hi : ofs' < hi.
 Definition init_mem1 := 
   Mem.store Mint8signed init_mem b' ofs' (Vint (Int.repr 0)).
 
-Lemma example_comp : forall m le, init_mem1 = Some m ->
+(* Find proofs on arithmetic on ptrofs type *)
+Hypothesis ptr_ofs_eq : forall ofs, ofs = (Ptrofs.unsigned
+       (Ptrofs.add (Ptrofs.repr ofs)
+                   (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))).
+
+Lemma example_comp : forall m le e, init_mem1 = Some m ->
                              le!_s = Some (Vptr b' (Ptrofs.repr ofs')) ->
                              exists le', bigStepExec ge e le m f_strlen.(fn_body) t le' m (Out_return (Some (Vint (Int.repr 0),tuint))).
 Proof.
@@ -191,7 +192,7 @@ Definition init_mem3 := match init_mem2 with
                         | Some m => Mem.store Mint8signed m b' (ofs'+1) (Vint (Int.repr 0))
                         end.
 
-Lemma example_comp2 : forall m le,
+Lemma example_comp2 : forall m le e,
                           init_mem2 = Some m ->
                           init_mem3 = Some m -> 
                           le!_s = Some (Vptr b' (Ptrofs.repr ofs')) ->
