@@ -147,35 +147,27 @@ Definition f_strlen := {|
 
 (* Big step semantics *)
 
-(* Require Import strlen Maps.
-Definition ge := globalenv prog. *)
-
-Parameter ge : genv. (* global environment, maps id to block, pointers to definitions of functions *)
-Definition bigStepExec := ClightBigstep.exec_stmt. (* evaluation of statements*)
-Definition t := ((E0**E0)**E0). (* trace of this particular program, E0 is an empty trace *)
+Definition Vint_of_nat := fun n => Vint (Int.repr(Z_of_nat n)).
 
 (* One direction of correctness, using functional spec, below relational with proof attempt *)
 
  Definition strlen_C_fun_corr_r :
-  forall (m : Mem.mem) (b : block) (ofs : Z) (e : env) (le : temp_env) (z : Z),
+  forall (ge :genv) (m : Mem.mem) (b : block) (ofs : Z) (e : env) (le : temp_env) (z : Z),
     strlen_C_fun_spec m b ofs = Some (z,m) ->
     le!_s = Some (Vptr b (Ptrofs.repr ofs)) -> (* input parameter _s assigned value of address (b,ofs) in le *)
-    exists le', le'!_i = Some (Vint (Int.repr z)) /\ (* output _i assigned value z in le *)
-                bigStepExec ge e le m f_strlen.(fn_body) t le' m (Out_return (Some (Vint (Int.repr z),tuint))).
-               (* in environments ge, e (local env), le and memory m with output trace t and le' with _i mapped to value z *)
+    exists t le', exec_stmt ge e le m f_strlen.(fn_body) t le' m (Out_return (Some (Vint (Int.repr z),tuint))) /\ le'!_i = Some (Vint (Int.repr z)).
+               (* in environments ge, e (local env), le and memory m with output trace t, output _i assigned value z *)
 Proof.
   intros.
-  exists (Maps.PTree.set _i (Vint (Int.repr z)) le).
-  split.
-  - apply Maps.PTree.gss.
+  repeat eexists.
+  (* econstructor can choose a wrong case in exec_stmt *)
+  eapply exec_Sseq_1. eapply exec_Sseq_1. econstructor. econstructor.
+  (* loop *)
+  (* - apply Maps.PTree.gss.
     - repeat econstructor.
     + rewrite PTree.gso. apply H0. eapply Pos.succ_discr. 
     + apply PTree.gss.
-    + repeat econstructor.
-    + simpl. admit.
-    + simpl.  admit.
-    + simpl. admit.
-    + simpl.  admit.
+    + repeat econstructor. *)
 Admitted.
 
  (* Find proofs on arithmetic on ptrofs type to rewrite this *)
@@ -183,20 +175,21 @@ Admitted.
        (Ptrofs.add (Ptrofs.repr ofs)
                    (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))). 
 
+      
 Definition strlen_C_rel_corr_r : forall n m b ofs e le,
     strlen_C_rel_spec m b ofs (Some (n,m)) ->
     le!_s = Some (Vptr b (Ptrofs.repr ofs)) -> 
-    exists le', le'!_i = Some (Vint (Int.repr (Z_of_nat n))) /\ 
-           bigStepExec ge e le m f_strlen.(fn_body) t le' m (Out_return (Some (Vint (Int.repr (Z_of_nat n)),tuint))).
+    exists le', le'!_i = Some (Vint_of_nat n) /\ 
+           bigStepExec ge e le m f_strlen.(fn_body) t le' m (Out_return (Some ((Vint_of_nat n),tuint))).
 Proof.
   induction n.
   (* Base case. *)
-  intros.
-  inversion H. unfold chunk in *. destruct H4.
-  exists (Maps.PTree.set _i (Vint (Int.repr (Z.of_nat 0))) le).
-  split.
-  - apply Maps.PTree.gss.
-  - repeat econstructor.
+    intros.
+    inversion H. unfold chunk in *. destruct H4.
+    exists (Maps.PTree.set _i (Vint (Int.repr (Z.of_nat 0))) le).
+    split.
+    - apply Maps.PTree.gss.
+    - repeat econstructor.
     + rewrite PTree.gso. apply H0. eapply Pos.succ_discr. 
     + apply PTree.gss.
     + repeat econstructor.
@@ -206,6 +199,19 @@ Proof.
     + Hypothesis fls : negb (Int.eq Int.zero Int.zero) = false.
       rewrite fls. econstructor.
     + apply PTree.gss.
+      (* Ind step *)
+     -   intros.
+        inversion H. unfold chunk in *. destruct H4.
+    exists (Maps.PTree.set _i (Vint (Int.repr (Z.of_nat (S n)))) le).
+    split.
+      + apply Maps.PTree.gss.
+    + repeat econstructor.
+     rewrite PTree.gso. apply H0. eapply Pos.succ_discr. 
+     apply PTree.gss.
+     repeat econstructor.
+     simpl. rewrite <- ptr_ofs_eq. apply H3.
+     cbn. rewrite -> H4. reflexivity.
+     cbn. unfold Val.of_bool. simpl in H8. rewrite H4 in H3. destruct (negb (Int.eq x (Int.repr 0))). simpl.  Hypothesis tr : negb (Int.eq Int.one Int.zero) = true. rewrite tr. constructor. simpl. rewrite fls. (* false goal: prove the correctness of the loop *) 
 Admitted.
 
 (* Tactic for inversion  *)
@@ -325,7 +331,7 @@ Proof.
     + apply Maps.PTree.gss.
 Qed. 
 
-(* Running on a non-empty string: some problem with the loop  *)
+(* Running on a non-empty string: TODO prove the loop  *)
 
 Definition init_mem0 := fst (Mem.alloc Mem.empty 0 hi).
 Definition init_mem2 := Mem.store Mint8signed init_mem0 b' ofs' (Vint (Int.repr 1)).
@@ -350,7 +356,7 @@ Proof.
       unfold init_mem2 in H. rewrite <- H in H0. rewrite -> (Mem.load_store_same Mint8signed init_mem0 b' ofs' (Vint (Int.repr 1))). econstructor. assumption.
     + econstructor.      
     + econstructor.
-    + Print exec_stmt. admit. (* false *)
+    + Print exec_stmt. admit. 
 Admitted.
 
      
