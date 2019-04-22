@@ -168,6 +168,40 @@ Proof.
   apply split_join_cont_fst.
 Qed.
 
+
+Definition eq_lift2 {A B C : Type} (f : A -> B -> C) :=
+  fun (a : option A) (b : option B) (c : C) =>
+    match a, b with
+    | Some a, Some b => f a b = c
+    | Some a, None   => False
+    | None,   Some b => False
+    | None,   None   => True
+    end.
+
+Lemma cont_eq_nbs_eq {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
+  c1 =c= c2 = true ->
+  eq_lift2 BER_nbs_eqb (nbs_of_cont c1) (nbs_of_cont c2) true.
+Proof.
+  intros H.
+
+  destruct c1 as (v1, N1, L1).
+  destruct c2 as (v2, N2, L2).
+  inversion H; clear H;
+    split_andb; debool;
+      subst; rename l2 into l; rename v2 into v.
+  unfold nbs_of_cont.
+  assert
+    (try_cut_cont (cont l v N1 L1) info_nblen =
+    try_cut_cont (cont l v N2 L2) info_nblen).
+  - unfold try_cut_cont.
+    repeat break_match; try reflexivity.
+    apply f_equal.
+    unfold cut_cont, cast_cont.
+    unfold cut_num.
+    admit.
+  - rewrite H.
+Admitted.
+
 Lemma nbs_is_not_special (b : BER_nbs) :
   classify_BER (c2z (cont_of_nbs b)) = None.
 Proof.
