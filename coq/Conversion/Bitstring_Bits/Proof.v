@@ -81,6 +81,93 @@ Definition BER_bsaux_eqb (b1 b2 : BER_bs_aux) :=
   | _, _ => false
   end.
 
+Definition cont_eqb_pair {l11 l12 l21 l22 : nat}
+           (p1 : container l11 * container l12)
+           (p2 : container l21 * container l22) :=
+  match p1 with
+  | (c11, c12) =>
+    match p2 with
+    | (c21, c22) =>
+      andb (c11 =c= c21) (c12 =c= c22)
+    end
+  end.
+
+Lemma add_small_div (a b x : Z) :
+  0 < x ->
+  0 <= b ->
+  b < x ->
+  (a * x + b) / x = a.
+Proof.
+  intros OX OB BX.
+  rewrite Z.div_add_l; try lia.
+  rewrite Z.div_small; lia.
+Qed.
+
+Lemma split_join_cont {l1 l2 : nat} (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
+      (c1 : container l1) (c2 : container l2) :
+  cont_eqb_pair
+    (split_cont (join_cont c1 c2) L1 L2)
+    (c1, c2)
+  = true.
+Proof.
+  unfold split_cont, join_cont, cont_eqb_pair.
+  destruct c1 as (v1, N1, L1').
+  destruct c2 as (v2, N2, L2').
+  simpl.
+  repeat rewrite Nat.eqb_refl, Bool.andb_true_l.
+  clear L1 L1' l1 L2.
+  unfold nblen in L2'.
+  rewrite two_power_nat_equiv.
+  replace l2 with (Z.to_nat (Z.of_nat l2)) in L2' by apply Nat2Z.id.
+  remember (Z.of_nat l2) as l; clear Heql l2.
+  apply Z2Nat_pos_inj_le in L2'; try (generalize (Z.log2_nonneg v2); lia).
+  assert (0 < l) by (generalize (Z.log2_nonneg v2); lia).
+  destruct (Z.eq_dec v2 0); subst.
+  - repeat rewrite Z.add_0_r.
+    rewrite Z.div_mul, Z.mod_mul.
+    repeat rewrite Z.eqb_refl; trivial.
+    all: generalize (Z.pow_pos_nonneg 2 l); lia.
+  - assert (L : Z.log2 v2 < l) by lia; clear L2'; apply Z.log2_lt_pow2 in L; try lia.
+    assert (0 < 2^l) by (apply Z.pow_pos_nonneg; lia).
+    remember (2^l) as x; clear Heqx n H l.
+    split_andb_goal; debool.
+    + apply add_small_div; assumption.
+    + rewrite Z.add_comm.
+      rewrite Z.mod_add; [|lia].
+      apply Z.mod_small; lia.
+Qed.
+
+Lemma split_join_cont_fst {l1 l2 : nat} (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
+      (c1 : container l1) (c2 : container l2) :
+  fst (split_cont (join_cont c1 c2) L1 L2) =c= c1 = true.
+Proof.
+  generalize (split_join_cont L1 L2 c1 c2); intros.
+  unfold cont_eqb_pair in H.
+  break_match.
+  split_andb.
+  simpl.
+  assumption.
+Qed.
+
+Lemma split_join_cont_snd {l1 l2 : nat} (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
+      (c1 : container l1) (c2 : container l2) :
+  snd (split_cont (join_cont c1 c2) L1 L2) =c= c2 = true.
+Proof.
+  generalize (split_join_cont L1 L2 c1 c2); intros.
+  unfold cont_eqb_pair in H.
+  break_match.
+  split_andb.
+  simpl.
+  assumption.
+Qed.
+
+Lemma cut_append_info {l : nat} (b : BER_nbs) (c : container l) (L : (0 < l)%nat)  :
+  (fst (cut_info (append_info b c) L) =c= mk_info b) = true.
+Proof.
+  unfold cut_info, append_info.
+  apply split_join_cont_fst.
+Qed.
+
 Lemma nbs_is_not_special (b : BER_nbs) :
   classify_BER (c2z (cont_of_nbs b)) = None.
 Proof.
