@@ -86,6 +86,95 @@ Lemma nbs_is_not_special (b : BER_nbs) :
 Proof.
 Admitted.
 
+Lemma cont_eqb_refl {l : nat}
+      (c : container l) :
+  c =c= c = true.
+Proof.
+  unfold cont_eqb.
+  break_match.
+  rewrite Nat.eqb_refl.
+  rewrite Z.eqb_refl.
+  reflexivity.
+Qed.
+
+Lemma cont_eqb_sym {l1 l2 : nat}
+      (c1 : container l1)
+      (c2 : container l2) :
+  c1 =c= c2 = c2 =c= c1.
+Proof.
+  unfold cont_eqb.
+  repeat break_match.
+  rewrite Nat.eqb_sym.
+  rewrite Z.eqb_sym.
+  reflexivity.
+Qed.
+
+Lemma cont_eqb_trans {l1 l2 l3 : nat}
+      (c1 : container l1)
+      (c2 : container l2)
+      (c3 : container l3) :
+  c1 =c= c2 = true ->
+  c2 =c= c3 = true ->
+  c1 =c= c3 = true.
+Proof.
+  intros H1 H2.
+  unfold cont_eqb in *.
+  repeat break_match.
+  repeat split_andb; debool.
+  subst.
+  rewrite Nat.eqb_refl, Z.eqb_refl.
+  reflexivity.
+Qed.
+
+Lemma BER_nbs_eqb_refl (b : BER_nbs) :
+  BER_nbs_eqb b b = true.
+Proof.
+  unfold BER_nbs_eqb.
+  break_match.
+  all: repeat rewrite cont_eqb_refl; reflexivity.
+Qed.
+
+Lemma BER_nbs_eqb_sym (b1 b2 : BER_nbs) :
+  BER_nbs_eqb b1 b2 = BER_nbs_eqb b2 b1.
+Proof.
+  unfold BER_nbs_eqb.
+  repeat break_match; try reflexivity.
+  all: rewrite cont_eqb_sym with (c1 := id).
+  all: rewrite cont_eqb_sym with (c1 := co).
+  all: rewrite cont_eqb_sym with (c1 :=  t).
+  all: rewrite cont_eqb_sym with (c1 :=  s).
+  all: rewrite cont_eqb_sym with (c1 := bb).
+  all: rewrite cont_eqb_sym with (c1 := ff).
+  all: rewrite cont_eqb_sym with (c1 := ee).
+  all: try (rewrite cont_eqb_sym with (c1 := eo)).
+  all: rewrite cont_eqb_sym with (c1 := e).
+  all: rewrite cont_eqb_sym with (c1 := m).
+  all: reflexivity.
+Qed.
+
+Lemma BER_nbs_eqb_trans (b1 b2 b3 : BER_nbs) :
+  BER_nbs_eqb b1 b2 = true ->
+  BER_nbs_eqb b2 b3 = true ->
+  BER_nbs_eqb b1 b3 = true.
+Proof.
+  intros H1 H2.
+  unfold BER_nbs_eqb in *.
+  repeat break_match;
+    try (inversion H2; rewrite ->H2); try (inversion H1; rewrite ->H1).
+  all: repeat split_andb.
+  all: rewrite cont_eqb_trans with (c2 := id1); [| assumption | assumption].
+  all: rewrite cont_eqb_trans with (c2 := co1); [| assumption | assumption].
+  all: rewrite cont_eqb_trans with (c2 :=  t1); [| assumption | assumption].
+  all: rewrite cont_eqb_trans with (c2 :=  s1); [| assumption | assumption].
+  all: rewrite cont_eqb_trans with (c2 := bb1); [| assumption | assumption].
+  all: rewrite cont_eqb_trans with (c2 := ff1); [| assumption | assumption].
+  all: rewrite cont_eqb_trans with (c2 := ee1); [| assumption | assumption].
+  all: try (rewrite cont_eqb_trans with (c2 := eo1); [| assumption | assumption]).
+  all: rewrite cont_eqb_trans with (c2 := e1); [| assumption | assumption].
+  all: rewrite cont_eqb_trans with (c2 := m1); [| assumption | assumption].
+  all: reflexivity.
+Qed.
+
 Theorem bsaux_bits_roundtrip (b : BER_bs_aux) :
   roundtrip_option
       BER_bs_aux Z BER_bs_aux
