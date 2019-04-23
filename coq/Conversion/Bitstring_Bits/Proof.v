@@ -177,29 +177,6 @@ Definition option_het_eq {A B : Type} (f : A -> B -> bool) : (option A -> option
     | None,   None   => true
     end.
   
-Lemma cont_eq_nbs_eq {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
-  c1 =c= c2 = true ->
-  (option_het_eq BER_nbs_eqb) (nbs_of_cont c1) (nbs_of_cont c2) = true.
-Proof.
-  intros H.
-
-  destruct c1 as (v1, N1, L1).
-  destruct c2 as (v2, N2, L2).
-  inversion H; clear H;
-    split_andb; debool;
-      subst; rename l2 into l; rename v2 into v.
-  unfold nbs_of_cont.
-  assert
-    (try_cut_cont (cont l v N1 L1) info_nblen =
-    try_cut_cont (cont l v N2 L2) info_nblen).
-  - unfold try_cut_cont.
-    repeat break_match; try reflexivity.
-    apply f_equal.
-    unfold cut_cont, cast_cont.
-    unfold cut_num.
-    admit.
-  - rewrite H.
-Admitted.
 
 Lemma nbs_is_not_special (b : BER_nbs) :
   classify_BER (c2z (cont_of_nbs b)) = None.
@@ -295,6 +272,22 @@ Proof.
   all: reflexivity.
 Qed.
 
+Lemma cont_eq_nbs_eq {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
+  c1 =c= c2 = true ->
+  (option_het_eq BER_nbs_eqb) (nbs_of_cont c1) (nbs_of_cont c2) = true.
+Proof.
+  intros H.
+  destruct c1 as (v1, N1, L1).
+  destruct c2 as (v2, N2, L2).
+  simpl in H; split_andb; debool;
+    subst; rename l2 into l; rename v2 into v.
+  rewrite Coq.Logic.ProofIrrelevance.proof_irrelevance with (p1 := N2) (p2 := N1).
+  rewrite Coq.Logic.ProofIrrelevance.proof_irrelevance with (p1 := L2) (p2 := L1).
+  unfold option_het_eq.
+  break_match.
+  rewrite BER_nbs_eqb_refl; reflexivity.
+  reflexivity.
+Qed.
 
 Theorem nbs_cont_roundtrip (b : BER_nbs) :
   (option_het_eq BER_nbs_eqb) (nbs_of_cont (cont_of_nbs b)) (Some b) = true.
