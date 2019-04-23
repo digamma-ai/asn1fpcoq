@@ -293,6 +293,15 @@ Theorem nbs_cont_roundtrip (b : BER_nbs) :
   (option_het_eq BER_nbs_eqb) (nbs_of_cont (cont_of_nbs b)) (Some b) = true.
 Admitted.
 
+Lemma cont_of_bits_of_cont_of_nbs (b : BER_nbs) (l : 0 <= c2z (cont_of_nbs b)) :
+    cont (BER_nblen (c2z (cont_of_nbs b)))
+         (c2z (cont_of_nbs b))
+         l
+         (BER_nblen_correct (c2z (cont_of_nbs b)))
+    =c=
+    cont_of_nbs b = true.
+Admitted.
+
 Theorem bsaux_bits_roundtrip (b : BER_bs_aux) :
   roundtrip_option
       BER_bs_aux Z BER_bs_aux
@@ -338,8 +347,8 @@ Proof.
       unfold cont_of_bsaux in *.
       unfold cont_of_BER_bits in Heqo1.
       break_match; inversion Heqo1; subst c; clear Heqo1.
-      generalize (cont_of_bits_of_cont_of_nbs b l); intros H.
-      generalize (nbs_of_cont_inj
+      generalize (cont_of_bits_of_cont_of_nbs b l); intros H; rewrite cont_eqb_sym in H.
+      generalize (cont_eq_nbs_eq
                  (cont_of_nbs b)
                  (cont (BER_nblen (c2z (cont_of_nbs b)))
                        (c2z (cont_of_nbs b))
@@ -348,10 +357,9 @@ Proof.
         intros H1.
       unfold bsaux_nblen in *.
       rewrite Heqo2 in H1.
-      unfold eq_lift2 in H1; break_match; inversion H1; clear H2.
+      unfold option_het_eq in H1; break_match; inversion H1; clear H2.
       generalize (nbs_cont_roundtrip b); intros H2.
-
-      unfold eq_lift2 in H2; break_match; inversion H2; clear H3.
+      unfold option_het_eq in H2; break_match; inversion H2; clear H3.
       rewrite H1.
       rewrite BER_nbs_eqb_trans with (b2 := b0).
       reflexivity.
