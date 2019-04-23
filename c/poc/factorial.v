@@ -68,7 +68,23 @@ Definition factorial_loop := (Swhile
           (Ebinop Osub (Etempvar _input tint) (Econst_int (Int.repr 1) tint)
                   tint)))).
 
+(* Map from nat to values *)
 Definition Vint_of_nat := fun n => Vint (Int.repr(Z_of_nat n)).
+
+(* To prove things about ints go to Z via unsigned_repr_eq *)
+
+Lemma zero_not_one_int : Int.zero <> Int.one.
+  assert (Int.unsigned Int.one <> Int.unsigned Int.zero).
+  { unfold Int.zero. rewrite Int.unsigned_repr_eq. rewrite Zmod_0_l. 
+  rewrite Int.unsigned_one. congruence. } congruence.
+  Qed.
+
+
+Lemma succ_not_zero_int : forall n, Z.of_nat(S n) < Int.modulus -> Int.repr (Z.of_nat (S n)) <> Int.repr (Z.of_nat O).
+Proof.
+  intros. assert (Int.unsigned (Int.repr (Z.of_nat 0)) <> Int.unsigned (Int.repr (Z.of_nat (S n)))). simpl. rewrite Int.unsigned_repr_eq. rewrite Int.unsigned_repr_eq. rewrite  Zmod_0_l. rewrite Zmod_small. congruence. split. auto with zarith. apply H. congruence.
+  Qed.
+ 
 
 Theorem factorial_loop_correct : forall ge e m, forall inp outp le,
       le!_input = Some (Vint_of_nat inp) ->
@@ -88,13 +104,13 @@ Proof.
        le' ! _output =  Some (Vint_of_nat ((fact inp)*( outp * S inp)))).
     { apply IHinp.
       + apply PTree.gss.
-      + admit. (*true : set-get lemma*) } 
+      + rewrite PTree.gso. apply PTree.gss. cbv. congruence. } 
     + destruct H1. destruct H1. destruct H1. 
       repeat eexists.
       eapply exec_Sloop_loop. eapply exec_Sseq_1. repeat econstructor. apply H. econstructor.
-      cut (forall inp, (negb (Int.eq (Int.repr (Z.of_nat (S inp))) Int.zero)) = true). intro aux. rewrite aux.
+      cut (forall inp, ((Int.eq (Int.repr (Z.of_nat (S inp))) Int.zero)) = false). intro aux. rewrite aux. simpl.
       econstructor.
-      { admit. } (* neqb S(n) 0 on Int.repr. *)
+      { intro. SearchAbout (Int.eq). rewrite <- (Int.eq_false (Int.repr (Z.of_nat (S inp0))) Int.zero). auto. apply succ_not_zero_int. (* intrange assumption *) admit. } 
         eapply exec_Sseq_1.
       repeat econstructor. apply H0. apply H.
       repeat econstructor. repeat econstructor.
@@ -104,7 +120,7 @@ Proof.
                                   (cast_int_int I32 Signed (Int.repr (Z.of_nat (S inp)))))) le)
              ! _input =  Some (Vint_of_nat (S inp))). intro aux.
       apply aux.
-      { admit. }
+      { rewrite PTree.gso. apply H. cbv. congruence. }
       repeat econstructor.
       econstructor.
       econstructor.
@@ -124,25 +140,22 @@ Proof.
       rewrite <- aux.
       apply H1.
       (* done! *)
-      { admit. }   (* f_equal. unfold Vint_of_nat. f_equal. simpl. admit. *)
+      { f_equal. simpl. admit. unfold Vint_of_nat. admit.  }   
        rewrite -> H2. simpl. f_equal. f_equal. ring.
 Admitted.
        
-Theorem factorial_correct : forall ge e m n le, le!_input = Some (Vint_of_nat n) ->
-                                                        exists t le' out,
-                                                          exec_stmt ge e le m f_factorial.(fn_body) t le' m out /\ (le'!_output) = Some (Vint_of_nat (fact n)) .
+Theorem factorial_correct : forall ge e m n le, le!_input = Some (Vint_of_nat n) ->exists t le' out, exec_stmt ge e le m f_factorial.(fn_body) t le' m out /\ (le'!_output) = Some (Vint_of_nat (fact n)) .
 Proof.
   intros.
-  - assert (exists (t : trace) (le' : temp_env),
-             exec_stmt ge e (PTree.set _output (Vint_of_nat 1) le) m factorial_loop t le' m Out_normal /\
+  assert (exists t le', exec_stmt ge e (PTree.set _output (Vint_of_nat 1) le) m factorial_loop t le' m Out_normal /\
              le' ! _output = Some (Vint_of_nat (fact n * 1))) .
-    eapply factorial_loop_correct.
-    + rewrite PTree.gso. apply H. cbv. congruence.
-    + apply PTree.gss.
-    + destruct H0. destruct H0.  destruct H0.
-      eexists. eexists. exists (Out_return (Some (Vint_of_nat (fact n), tint))). split.
-      * eapply exec_Sseq_1. econstructor. econstructor. eapply exec_Sseq_1. apply H0. repeat econstructor. rewrite Nat.mul_1_r in H1. exact H1.
-      * rewrite Nat.mul_1_r in H1. exact H1.
+    { eapply factorial_loop_correct.
+      rewrite PTree.gso. apply H. cbv. congruence.
+      apply PTree.gss. }
+   destruct H0. destruct H0.  destruct H0.
+   eexists. eexists. exists (Out_return (Some (Vint_of_nat (fact n), tint))). split.
+      + eapply exec_Sseq_1. econstructor. econstructor. eapply exec_Sseq_1. apply H0. repeat econstructor. rewrite Nat.mul_1_r in H1. exact H1.
+      + rewrite Nat.mul_1_r in H1. exact H1.
  Qed.
 
 (* runs on some inputs *)
