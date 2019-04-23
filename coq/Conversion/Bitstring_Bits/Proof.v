@@ -168,19 +168,18 @@ Proof.
   apply split_join_cont_fst.
 Qed.
 
-
-Definition eq_lift2 {A B C : Type} (f : A -> B -> C) :=
-  fun (a : option A) (b : option B) (c : C) =>
+Definition option_het_eq {A B : Type} (f : A -> B -> bool) : (option A -> option B -> bool) :=
+  fun (a : option A) (b : option B) =>
     match a, b with
-    | Some a, Some b => f a b = c
-    | Some a, None   => False
-    | None,   Some b => False
-    | None,   None   => True
+    | Some a, Some b => f a b
+    | Some a, None   => false
+    | None,   Some b => false
+    | None,   None   => true
     end.
-
+  
 Lemma cont_eq_nbs_eq {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
   c1 =c= c2 = true ->
-  eq_lift2 BER_nbs_eqb (nbs_of_cont c1) (nbs_of_cont c2) true.
+  (option_het_eq BER_nbs_eqb) (nbs_of_cont c1) (nbs_of_cont c2) = true.
 Proof.
   intros H.
 
@@ -298,7 +297,7 @@ Qed.
 
 
 Theorem nbs_cont_roundtrip (b : BER_nbs) :
-  eq_lift2 BER_nbs_eqb (nbs_of_cont (cont_of_nbs b)) (Some b) true.
+  (option_het_eq BER_nbs_eqb) (nbs_of_cont (cont_of_nbs b)) (Some b) = true.
 Admitted.
 
 Theorem bsaux_bits_roundtrip (b : BER_bs_aux) :
