@@ -70,17 +70,11 @@ Definition factorial_loop := (Swhile
 
 Definition Vint_of_nat := fun n => Vint (Int.repr(Z_of_nat n)).
 
-Ltac destruct_exists H :=
-  match goal with
-  | [ H : _ |- exists x, _ ] => destruct H ; destruct_exists H
-  | _ => idtac
-  end.
-
 Theorem factorial_loop_correct : forall ge e m, forall inp outp le,
       le!_input = Some (Vint_of_nat inp) ->
       le!_output = Some (Vint_of_nat outp) ->
-      exists t le' out,
-        exec_stmt ge e le m factorial_loop t le' m out
+      exists t le',
+        exec_stmt ge e le m factorial_loop t le' m Out_normal
         /\ (le'!_output) = Some (Vint_of_nat ((fact inp)*outp)).
 Proof.
   induction inp ; intros.
@@ -89,18 +83,18 @@ Proof.
     + eapply exec_Sloop_stop1. eapply exec_Sseq_2. repeat econstructor. apply H. simpl.  econstructor. unfold Vint_of_nat. simpl. econstructor. discriminate. econstructor.
     + rewrite -> H0. simpl. unfold Vint_of_nat. simpl. rewrite Nat.add_0_r. reflexivity.
   (* Induction step *)
-  - assert (exists (t : Events.trace) (le' : temp_env) (out : outcome),
-       exec_stmt ge e (Maps.PTree.set _input (Vint_of_nat inp) (Maps.PTree.set _output (Vint_of_nat (outp*S inp)) le)) m factorial_loop t le' m out /\
+  - assert (exists (t : Events.trace) (le' : temp_env),
+       exec_stmt ge e (Maps.PTree.set _input (Vint_of_nat inp) (Maps.PTree.set _output (Vint_of_nat (outp*S inp)) le)) m factorial_loop t le' m Out_normal /\
        le' ! _output =  Some (Vint_of_nat ((fact inp)*( outp * S inp)))).
     { apply IHinp.
       + apply PTree.gss.
       + admit. (*true : set-get lemma*) } 
-    + destruct H1. destruct H1. destruct H1. destruct H1.
+    + destruct H1. destruct H1. destruct H1. 
       repeat eexists.
       eapply exec_Sloop_loop. eapply exec_Sseq_1. repeat econstructor. apply H. econstructor.
       cut (forall inp, (negb (Int.eq (Int.repr (Z.of_nat (S inp))) Int.zero)) = true). intro aux. rewrite aux.
       econstructor.
-      { admit.} (* neqb S(n) 0 on Int.repr. *)
+      { admit. } (* neqb S(n) 0 on Int.repr. *)
         eapply exec_Sseq_1.
       repeat econstructor. apply H0. apply H.
       repeat econstructor. repeat econstructor.
@@ -128,17 +122,28 @@ Proof.
                                 le))
         ). intro aux.
       rewrite <- aux.
-      apply H1. (* done! *)
-      { admit. }
-      rewrite -> H2. simpl. f_equal. f_equal. ring.
+      apply H1.
+      (* done! *)
+      { admit. }   (* f_equal. unfold Vint_of_nat. f_equal. simpl. admit. *)
+       rewrite -> H2. simpl. f_equal. f_equal. ring.
 Admitted.
        
 Theorem factorial_correct : forall ge e m n le, le!_input = Some (Vint_of_nat n) ->
                                                         exists t le' out,
-                                                          exec_stmt ge e le m f_factorial.(fn_body) t le' m  out
-                                                          /\ (le'!_output) = Some (Vint_of_nat (fact n)).
-Admitted. (* using the correctness of the loop *)
-
+                                                          exec_stmt ge e le m f_factorial.(fn_body) t le' m out /\ (le'!_output) = Some (Vint_of_nat (fact n)) .
+Proof.
+  intros.
+  - assert (exists (t : trace) (le' : temp_env),
+             exec_stmt ge e (PTree.set _output (Vint_of_nat 1) le) m factorial_loop t le' m Out_normal /\
+             le' ! _output = Some (Vint_of_nat (fact n * 1))) .
+    eapply factorial_loop_correct.
+    + rewrite PTree.gso. apply H. cbv. congruence.
+    + apply PTree.gss.
+    + destruct H0. destruct H0.  destruct H0.
+      eexists. eexists. exists (Out_return (Some (Vint_of_nat (fact n), tint))). split.
+      * eapply exec_Sseq_1. econstructor. econstructor. eapply exec_Sseq_1. apply H0. repeat econstructor. rewrite Nat.mul_1_r in H1. exact H1.
+      * rewrite Nat.mul_1_r in H1. exact H1.
+ Qed.
 
 (* runs on some inputs *)
 Definition input2 := Maps.PTree.set _input (Vint (Int.repr 2)) lempty.
