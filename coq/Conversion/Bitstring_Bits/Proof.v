@@ -293,6 +293,26 @@ Theorem nbs_cont_roundtrip (b : BER_nbs) :
   (option_het_eq BER_nbs_eqb) (nbs_of_cont (cont_of_nbs b)) (Some b) = true.
 Admitted.
 
+Definition cont_len {l : nat} (c : container l) := l.
+
+Lemma cont_eq_cont_len_eq {l : nat}
+      (c1 c2 : container l) :
+  c1 = c2 ->
+  cont_len c1 = cont_len c2.
+Proof. destruct c1, c2. reflexivity. Qed.
+
+Lemma cast_cont_len_eq {l1 l2 : nat}
+      {c1 : container l1}
+      {E : (l1 = l2)%nat} :
+  cont_len (cast_cont c1 E) =
+  cont_len c1.
+Proof. subst. reflexivity. Qed.
+
+Lemma join_cont_len_sum {l1 l2 : nat}
+      (c1 : container l1) (c2 : container l2) :
+  cont_len (join_cont c1 c2) = (cont_len c1 + cont_len c2)%nat.
+Proof. destruct c1, c2. unfold cont_len. reflexivity. Qed.
+
 Lemma cont_of_bits_of_cont_of_nbs (b : BER_nbs) (l : 0 <= c2z (cont_of_nbs b)) :
     cont (BER_nblen (c2z (cont_of_nbs b)))
          (c2z (cont_of_nbs b))
