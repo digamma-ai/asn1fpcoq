@@ -313,6 +313,19 @@ Lemma join_cont_len_sum {l1 l2 : nat}
   cont_len (join_cont c1 c2) = (cont_len c1 + cont_len c2)%nat.
 Proof. destruct c1, c2. unfold cont_len. reflexivity. Qed.
 
+Lemma BER_nblen_nbs_nblen (b : BER_nbs)
+      (v : Z) (N : 0 <= v) (L : (nblen v <= nbs_nblen b)%nat) :
+    cont_of_nbs b = cont (nbs_nblen b) v N L ->
+    BER_nblen v = nbs_nblen b.
+Proof.
+  intros H.
+  unfold BER_nblen, nbs_nblen in *.
+  unfold cont_of_nbs, append_info, mk_info, mk_content in H.
+  destruct b.
+  apply cont_eq_cont_len_eq in H.
+  unfold cont_len in H.
+Admitted.
+
 Lemma cont_of_bits_of_cont_of_nbs (b : BER_nbs) (l : 0 <= c2z (cont_of_nbs b)) :
     cont (BER_nblen (c2z (cont_of_nbs b)))
          (c2z (cont_of_nbs b))
@@ -320,7 +333,13 @@ Lemma cont_of_bits_of_cont_of_nbs (b : BER_nbs) (l : 0 <= c2z (cont_of_nbs b)) :
          (BER_nblen_correct (c2z (cont_of_nbs b)))
     =c=
     cont_of_nbs b = true.
-Admitted.
+Proof.
+  simpl.
+  break_match.
+  split_andb_goal; debool; simpl.
+  apply (BER_nblen_nbs_nblen b v N L); assumption.
+  reflexivity.
+Qed.
 
 Theorem bsaux_bits_roundtrip (b : BER_bs_aux) :
   roundtrip_option
