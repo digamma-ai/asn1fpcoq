@@ -168,39 +168,15 @@ Proof.
   apply split_join_cont_fst.
 Qed.
 
-
-Definition eq_lift2 {A B C : Type} (f : A -> B -> C) :=
-  fun (a : option A) (b : option B) (c : C) =>
+Definition option_het_eq {A B : Type} (f : A -> B -> bool) : (option A -> option B -> bool) :=
+  fun (a : option A) (b : option B) =>
     match a, b with
-    | Some a, Some b => f a b = c
-    | Some a, None   => False
-    | None,   Some b => False
-    | None,   None   => True
+    | Some a, Some b => f a b
+    | Some a, None   => false
+    | None,   Some b => false
+    | None,   None   => true
     end.
-
-Lemma cont_eq_nbs_eq {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
-  c1 =c= c2 = true ->
-  eq_lift2 BER_nbs_eqb (nbs_of_cont c1) (nbs_of_cont c2) true.
-Proof.
-  intros H.
-
-  destruct c1 as (v1, N1, L1).
-  destruct c2 as (v2, N2, L2).
-  inversion H; clear H;
-    split_andb; debool;
-      subst; rename l2 into l; rename v2 into v.
-  unfold nbs_of_cont.
-  assert
-    (try_cut_cont (cont l v N1 L1) info_nblen =
-    try_cut_cont (cont l v N2 L2) info_nblen).
-  - unfold try_cut_cont.
-    repeat break_match; try reflexivity.
-    apply f_equal.
-    unfold cut_cont, cast_cont.
-    unfold cut_num.
-    admit.
-  - rewrite H.
-Admitted.
+  
 
 Lemma nbs_is_not_special (b : BER_nbs) :
   classify_BER (c2z (cont_of_nbs b)) = None.
@@ -296,10 +272,74 @@ Proof.
   all: reflexivity.
 Qed.
 
+Lemma cont_eq_nbs_eq {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
+  c1 =c= c2 = true ->
+  (option_het_eq BER_nbs_eqb) (nbs_of_cont c1) (nbs_of_cont c2) = true.
+Proof.
+  intros H.
+  destruct c1 as (v1, N1, L1).
+  destruct c2 as (v2, N2, L2).
+  simpl in H; split_andb; debool;
+    subst; rename l2 into l; rename v2 into v.
+  rewrite Coq.Logic.ProofIrrelevance.proof_irrelevance with (p1 := N2) (p2 := N1).
+  rewrite Coq.Logic.ProofIrrelevance.proof_irrelevance with (p1 := L2) (p2 := L1).
+  unfold option_het_eq.
+  break_match.
+  rewrite BER_nbs_eqb_refl; reflexivity.
+  reflexivity.
+Qed.
 
 Theorem nbs_cont_roundtrip (b : BER_nbs) :
-  eq_lift2 BER_nbs_eqb (nbs_of_cont (cont_of_nbs b)) (Some b) true.
+  (option_het_eq BER_nbs_eqb) (nbs_of_cont (cont_of_nbs b)) (Some b) = true.
 Admitted.
+
+Definition cont_len {l : nat} (c : container l) := l.
+
+Lemma cont_eq_cont_len_eq {l : nat}
+      (c1 c2 : container l) :
+  c1 = c2 ->
+  cont_len c1 = cont_len c2.
+Proof. destruct c1, c2. reflexivity. Qed.
+
+Lemma cast_cont_len_eq {l1 l2 : nat}
+      {c1 : container l1}
+      {E : (l1 = l2)%nat} :
+  cont_len (cast_cont c1 E) =
+  cont_len c1.
+Proof. subst. reflexivity. Qed.
+
+Lemma join_cont_len_sum {l1 l2 : nat}
+      (c1 : container l1) (c2 : container l2) :
+  cont_len (join_cont c1 c2) = (cont_len c1 + cont_len c2)%nat.
+Proof. destruct c1, c2. unfold cont_len. reflexivity. Qed.
+
+Lemma BER_nblen_nbs_nblen (b : BER_nbs)
+      (v : Z) (N : 0 <= v) (L : (nblen v <= nbs_nblen b)%nat) :
+    cont_of_nbs b = cont (nbs_nblen b) v N L ->
+    BER_nblen v = nbs_nblen b.
+Proof.
+  intros H.
+  unfold BER_nblen, nbs_nblen in *.
+  unfold cont_of_nbs, append_info, mk_info, mk_content in H.
+  destruct b.
+  apply cont_eq_cont_len_eq in H.
+  unfold cont_len in H.
+Admitted.
+
+Lemma cont_of_bits_of_cont_of_nbs (b : BER_nbs) (l : 0 <= c2z (cont_of_nbs b)) :
+    cont (BER_nblen (c2z (cont_of_nbs b)))
+         (c2z (cont_of_nbs b))
+         l
+         (BER_nblen_correct (c2z (cont_of_nbs b)))
+    =c=
+    cont_of_nbs b = true.
+Proof.
+  simpl.
+  break_match.
+  split_andb_goal; debool; simpl.
+  apply (BER_nblen_nbs_nblen b v N L); assumption.
+  reflexivity.
+Qed.
 
 Theorem bsaux_bits_roundtrip (b : BER_bs_aux) :
   roundtrip_option
@@ -346,8 +386,8 @@ Proof.
       unfold cont_of_bsaux in *.
       unfold cont_of_BER_bits in Heqo1.
       break_match; inversion Heqo1; subst c; clear Heqo1.
-      generalize (cont_of_bits_of_cont_of_nbs b l); intros H.
-      generalize (nbs_of_cont_inj
+      generalize (cont_of_bits_of_cont_of_nbs b l); intros H; rewrite cont_eqb_sym in H.
+      generalize (cont_eq_nbs_eq
                  (cont_of_nbs b)
                  (cont (BER_nblen (c2z (cont_of_nbs b)))
                        (c2z (cont_of_nbs b))
@@ -356,10 +396,9 @@ Proof.
         intros H1.
       unfold bsaux_nblen in *.
       rewrite Heqo2 in H1.
-      unfold eq_lift2 in H1; break_match; inversion H1; clear H2.
+      unfold option_het_eq in H1; break_match; inversion H1; clear H2.
       generalize (nbs_cont_roundtrip b); intros H2.
-
-      unfold eq_lift2 in H2; break_match; inversion H2; clear H3.
+      unfold option_het_eq in H2; break_match; inversion H2; clear H3.
       rewrite H1.
       rewrite BER_nbs_eqb_trans with (b2 := b0).
       reflexivity.
