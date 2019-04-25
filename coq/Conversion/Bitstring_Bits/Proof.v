@@ -1,4 +1,5 @@
 Require Import ZArith Lia.
+Require Import ProofIrrelevance.
 Require Import ASN1FP.Types.BitstringDef
         ASN1FP.Aux.Roundtrip ASN1FP.Aux.Bits
         ASN1FP.Aux.StructTactics ASN1FP.Aux.BitContainer
@@ -31,8 +32,8 @@ Proof.
   - clear H7 H8.
     unfold c2z, c2n; simpl.
     inversion Heqb0; subst.
-    repeat apply ProofIrrelevance.ProofIrrelevanceTheory.EqdepTheory.inj_pair2 in H0.
-    repeat apply ProofIrrelevance.ProofIrrelevanceTheory.EqdepTheory.inj_pair2 in H1.
+    repeat apply inj_pair2 in H0.
+    repeat apply inj_pair2 in H1.
     rewrite <- H0, <- H1.
     simpl.
     repeat rewrite Z.eqb_refl.
@@ -40,8 +41,8 @@ Proof.
   - 
     unfold c2z, c2n; simpl.
     inversion Heqb0; subst.
-    repeat apply ProofIrrelevance.ProofIrrelevanceTheory.EqdepTheory.inj_pair2 in H0.
-    repeat apply ProofIrrelevance.ProofIrrelevanceTheory.EqdepTheory.inj_pair2 in H1.
+    repeat apply inj_pair2 in H0.
+    repeat apply inj_pair2 in H1.
     rewrite <- H0, <- H1.
     simpl.
     repeat rewrite Z.eqb_refl.
@@ -103,7 +104,7 @@ Proof.
   rewrite Z.div_small; lia.
 Qed.
 
-Lemma split_join_cont {l1 l2 : nat} (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
+Lemma split_join_cont_eqb {l1 l2 : nat} (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
       (c1 : container l1) (c2 : container l2) :
   cont_eqb_pair
     (split_cont (join_cont c1 c2) L1 L2)
@@ -137,11 +138,27 @@ Proof.
       apply Z.mod_small; lia.
 Qed.
 
+Lemma split_join_cont_eq {l1 l2 : nat} (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
+      (c1 : container l1) (c2 : container l2) :
+    (split_cont (join_cont c1 c2) L1 L2) = (c1, c2).
+Proof.
+  generalize (split_join_cont_eqb L1 L2 c1 c2); intros H.
+  unfold cont_eqb_pair in H.
+  unfold cont_eqb in *.
+  repeat break_match.
+  repeat split_andb; debool; subst.
+  rewrite proof_irrelevance with (p1 := N0) (p2 := N).
+  rewrite proof_irrelevance with (p1 := L0) (p2 := L).
+  rewrite proof_irrelevance with (p1 := N2) (p2 := N1).
+  rewrite proof_irrelevance with (p1 := L4) (p2 := L3).
+  reflexivity.
+Qed.
+
 Lemma split_join_cont_fst {l1 l2 : nat} (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
       (c1 : container l1) (c2 : container l2) :
   fst (split_cont (join_cont c1 c2) L1 L2) =c= c1 = true.
 Proof.
-  generalize (split_join_cont L1 L2 c1 c2); intros.
+  generalize (split_join_cont_eqb L1 L2 c1 c2); intros.
   unfold cont_eqb_pair in H.
   break_match.
   split_andb.
@@ -153,7 +170,7 @@ Lemma split_join_cont_snd {l1 l2 : nat} (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
       (c1 : container l1) (c2 : container l2) :
   snd (split_cont (join_cont c1 c2) L1 L2) =c= c2 = true.
 Proof.
-  generalize (split_join_cont L1 L2 c1 c2); intros.
+  generalize (split_join_cont_eqb L1 L2 c1 c2); intros.
   unfold cont_eqb_pair in H.
   break_match.
   split_andb.
@@ -218,8 +235,7 @@ Proof.
   unfold cont_eqb in *.
   repeat break_match.
   repeat split_andb; debool.
-  subst.
-  rewrite Nat.eqb_refl, Z.eqb_refl.
+  subst. rewrite Nat.eqb_refl, Z.eqb_refl.
   reflexivity.
 Qed.
 
@@ -272,6 +288,12 @@ Proof.
   all: reflexivity.
 Qed.
 
+Lemma split_cast_join {l1 l2 : nat}
+      (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
+      (c1 : container l1) (c2 : container l2) :
+      split_cont (cast_cont (join_cont c1 c2) (eq_refl (l1 + l2)%nat)) L1 L2 = (c1, c2).
+Proof. simpl; apply split_join_cont_eq. Qed.
+
 Lemma cont_eq_nbs_eq {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
   c1 =c= c2 = true ->
   (option_het_eq BER_nbs_eqb) (nbs_of_cont c1) (nbs_of_cont c2) = true.
@@ -291,6 +313,29 @@ Qed.
 
 Theorem nbs_cont_roundtrip (b : BER_nbs) :
   (option_het_eq BER_nbs_eqb) (nbs_of_cont (cont_of_nbs b)) (Some b) = true.
+Proof.
+  unfold option_het_eq.
+  break_match; [rename b0 into r_b |].
+  - (* backward pass successful *)
+    unfold nbs_of_cont in Heqo.
+    destruct b eqn:B, r_b eqn:R_B.
+    repeat break_match; inversion Heqo; clear H0; subst; simpl.
+    + unfold construct_long_nbs in Heqo; repeat break_match; inversion Heqo.
+    + unfold construct_short_nbs in Heqo; repeat break_match; inversion Heqo.
+      subst.
+      apply ProofIrrelevance.ProofIrrelevanceTheory.EqdepTheory.inj_pair2 in H7.
+      repeat apply ProofIrrelevance.ProofIrrelevanceTheory.EqdepTheory.inj_pair2 in H8.
+      subst; clear Heqo.
+
+      unfold try_cut_cont in Heqo0; repeat break_match; inversion Heqo0; clear Heqo0.
+      unfold cont_of_nbs, append_info, mk_info, mk_content in H0.
+      subst c.
+
+      unfold split_cut_info in Heqp.
+      repeat break_match.
+      tuple_inversion.
+      rename c into info, c0 into me.
+      unfold cut_info in Heqp0.
 Admitted.
 
 Definition cont_len {l : nat} (c : container l) := l.
@@ -321,9 +366,13 @@ Proof.
   intros H.
   unfold BER_nblen, nbs_nblen in *.
   unfold cont_of_nbs, append_info, mk_info, mk_content in H.
+
   destruct b.
-  apply cont_eq_cont_len_eq in H.
-  unfold cont_len in H.
+  destruct id as (vid, Nid, Lid).
+  destruct co as (vco, Nco, Lco).
+  unfold join_cont at 2 in H.
+  unfold join_cont at 2 in H.
+  unfold content_nblen in H.
 Admitted.
 
 Lemma cont_of_bits_of_cont_of_nbs (b : BER_nbs) (l : 0 <= c2z (cont_of_nbs b)) :
