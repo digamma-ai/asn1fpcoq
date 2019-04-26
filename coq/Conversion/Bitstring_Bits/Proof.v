@@ -288,11 +288,42 @@ Proof.
   all: reflexivity.
 Qed.
 
+(*
+PROBLEM:
+
+split_cont
+  (cut_cont
+    (cast_cont
+      (join_cont c1 c2)
+      ?(old_len = new_len))
+    l_to_cut
+    ?:(0 < new_len - l_to_cut))
+: container l_to_cut * container (new_len - l_to_cut)
+*)
+
 Lemma split_cast_join {l1 l2 : nat}
       (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
       (c1 : container l1) (c2 : container l2) :
       split_cont (cast_cont (join_cont c1 c2) (eq_refl (l1 + l2)%nat)) L1 L2 = (c1, c2).
 Proof. simpl; apply split_join_cont_eq. Qed.
+
+(** * care *)
+Lemma split_cut_join {l1 l2 : nat}
+      (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
+      (L2' : (0 < l1 + l2 - l1)%nat)
+      (c1 : container l1) (c2 : container l2) :
+  cont_eqb_pair
+    (split_cont (cut_cont (join_cont c1 c2) l1 L2') L1 L2')
+    (c1, c2)
+  = true.
+Proof.
+  unfold cont_eqb_pair.
+  break_match; rename c0 into r_c1, c into r_c2.
+  unfold cut_cont in Heqp.
+  generalize (split_cast_join L1 L2 c1 c2); intro.
+  unfold cut_num in Heqp.
+  unfold try_cut_num in Heqp.
+Admitted.
 
 Lemma cont_eq_nbs_eq {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :
   c1 =c= c2 = true ->
@@ -303,8 +334,8 @@ Proof.
   destruct c2 as (v2, N2, L2).
   simpl in H; split_andb; debool;
     subst; rename l2 into l; rename v2 into v.
-  rewrite Coq.Logic.ProofIrrelevance.proof_irrelevance with (p1 := N2) (p2 := N1).
-  rewrite Coq.Logic.ProofIrrelevance.proof_irrelevance with (p1 := L2) (p2 := L1).
+  rewrite proof_irrelevance with (p1 := N2) (p2 := N1).
+  rewrite proof_irrelevance with (p1 := L2) (p2 := L1).
   unfold option_het_eq.
   break_match.
   rewrite BER_nbs_eqb_refl; reflexivity.
@@ -317,14 +348,32 @@ Proof.
   unfold option_het_eq.
   break_match; [rename b0 into r_b |].
   - (* backward pass successful *)
+    unfold nbs_of_cont, cont_of_nbs in Heqo.
+    repeat break_match.
+    inversion Heqo.
+    inversion Heqo.
+    subst.
+    unfold try_cut_cont in Heqo0.
+    repeat break_match; inversion Heqo0; clear Heqo0; subst c.
+    unfold split_cut_info in Heqp.
+    break_match.
+Admitted.
+
+(*
+A MORE DESTRUCTIVE PROOF
+
+Proof.
+  unfold option_het_eq.
+  break_match; [rename b0 into r_b |].
+  - (* backward pass successful *)
     unfold nbs_of_cont in Heqo.
     destruct b eqn:B, r_b eqn:R_B.
     repeat break_match; inversion Heqo; clear H0; subst; simpl.
     + unfold construct_long_nbs in Heqo; repeat break_match; inversion Heqo.
     + unfold construct_short_nbs in Heqo; repeat break_match; inversion Heqo.
       subst.
-      apply ProofIrrelevance.ProofIrrelevanceTheory.EqdepTheory.inj_pair2 in H7.
-      repeat apply ProofIrrelevance.ProofIrrelevanceTheory.EqdepTheory.inj_pair2 in H8.
+      apply inj_pair2 in H7.
+      repeat apply inj_pair2 in H8.
       subst; clear Heqo.
 
       unfold try_cut_cont in Heqo0; repeat break_match; inversion Heqo0; clear Heqo0.
@@ -334,9 +383,14 @@ Proof.
       unfold split_cut_info in Heqp.
       repeat break_match.
       tuple_inversion.
-      rename c into info, c0 into me.
+      rename c into info, c0 into em.
+      remember (join_cont id (join_cont co
+                 (join_cont t (join_cont s (join_cont bb (join_cont ff ee)))))) as info'.
+      remember (cast_cont (join_cont e m) (short_nblen_correct co ee m)) as em'.
       unfold cut_info in Heqp0.
+      unfold info_nblen, nbs_nblen in Heqp0.
 Admitted.
+*)
 
 Definition cont_len {l : nat} (c : container l) := l.
 
