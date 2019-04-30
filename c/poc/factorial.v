@@ -151,7 +151,7 @@ Proof.
   induction inp ; intros outp le H Hout Hloop H2 H3.
   (* Base case *)
   - repeat eexists.
-    + eapply exec_Sloop_stop1. eapply exec_Sseq_2. repeat econstructor. apply H2. simpl.  econstructor. unfold Vint_of_nat. simpl. econstructor. discriminate. econstructor.
+    + eapply exec_Sloop_stop1. eapply exec_Sseq_2. repeat econstructor. apply H2.  econstructor.  econstructor. discriminate. econstructor.
     + rewrite -> H3. simpl. unfold Vint_of_nat. rewrite Nat.add_0_r. reflexivity.
   (* Induction step *)
   - assert (exists (t : Events.trace) (le' : temp_env),
@@ -163,50 +163,30 @@ Proof.
         nia.
       + simpl in Hloop. nia. 
       + apply PTree.gss.
-      + rewrite PTree.gso. apply PTree.gss. cbv. congruence. } 
-    + destruct H0. destruct H0. destruct H0. 
-      repeat eexists.
-      eapply exec_Sloop_loop. eapply exec_Sseq_1. repeat econstructor. apply H2. econstructor.
-      cut (((Int.eq (Int.repr (Z.of_nat (S inp))) Int.zero)) = false). intro aux. rewrite aux. simpl.
-      econstructor.
-      { SearchAbout (Int.eq). rewrite <- (Int.eq_false (Int.repr (Z.of_nat (S inp))) Int.zero). auto. apply succ_not_zero_int. apply H. } 
-        eapply exec_Sseq_1.
+      + rewrite PTree.gso. apply PTree.gss. cbv. congruence. }
+    destruct H0. destruct H0. destruct H0. 
+    repeat eexists.
+    + eapply exec_Sloop_loop.
+      eapply exec_Sseq_1. repeat econstructor. apply H2. econstructor.
+      rewrite -> (Int.eq_false (Int.repr (Z.of_nat (S inp))) Int.zero). econstructor. apply succ_not_zero_int. apply H.
+      eapply exec_Sseq_1.
       repeat econstructor. apply H3. apply H2.
       repeat econstructor. repeat econstructor.
-      cut ((PTree.set _output
-                      (Vint
-                         (Int.mul (cast_int_int I32 Signed (Int.repr (Z.of_nat outp)))
-                                  (cast_int_int I32 Signed (Int.repr (Z.of_nat (S inp)))))) le)
-             ! _input =  Some (Vint_of_nat (S inp))). intro aux.
-      apply aux.
-      { rewrite PTree.gso. apply H2. cbv. congruence. }
+      rewrite PTree.gso. apply H2.  cbv. congruence.
       repeat econstructor.
       econstructor.
       econstructor.
-      cut (
-          (PTree.set _input (Vint_of_nat inp)
-                     (PTree.set _output (Vint_of_nat (outp * S inp)) le)) =
-          (PTree.set _input
-                     (Vint
-                        (Int.sub (cast_int_int I32 Signed (Int.repr (Z.of_nat (S inp))))
-                                 (cast_int_int I32 Signed (Int.repr 1))))
-                     (PTree.set _output
-                                (Vint
-                                   (Int.mul (cast_int_int I32 Signed (Int.repr (Z.of_nat outp)))
-                                            (cast_int_int I32 Signed (Int.repr (Z.of_nat (S inp))))))
-                                le))
-        ). intro aux.
-      rewrite <- aux.
-      apply H0.
-      
-      {    f_equal. unfold Vint_of_nat. f_equal.
-         * simpl. unfold Int.sub. rewrite Int.unsigned_repr_eq. rewrite Int.unsigned_repr_eq. f_equal. repeat rewrite Zmod_small; nia.
-
-         * f_equal. unfold Vint_of_nat. f_equal. simpl. unfold Int.mul. f_equal. rewrite Int.unsigned_repr_eq. rewrite Int.unsigned_repr_eq. repeat rewrite Zmod_small; nia. 
-   
-      }
-       rewrite -> H1. simpl. f_equal. f_equal. ring.
+      assert ((PTree.set _input (Vint_of_nat inp)
+                     (PTree.set _output (Vint_of_nat (outp * S inp)) le)) = (PTree.set _input (Vint (Int.sub (Int.repr (Z.of_nat (S inp))) (Int.repr 1))) (PTree.set _output (Vint (Int.mul (Int.repr (Z.of_nat outp)) (Int.repr (Z.of_nat (S inp))))) le))).
+      {    unfold Vint_of_nat. repeat f_equal.
+           unfold Int.sub. repeat rewrite Int.unsigned_repr_eq. f_equal. repeat rewrite Zmod_small; nia.
+           unfold Int.mul. f_equal. repeat rewrite Int.unsigned_repr_eq. repeat rewrite Zmod_small; nia.
+           }
+        rewrite <- H4. eapply H0.
+        + rewrite -> H1. simpl. f_equal. f_equal. ring.
 Qed.
+
+SearchAbout Int.modulus.
 
 Theorem factorial_correct : forall ge e m n le,
     Z.of_nat n < Int.modulus ->
@@ -218,7 +198,7 @@ Proof.
              le' ! _output = Some (Vint_of_nat (fact n * 1))) .
   { eapply factorial_loop_correct.
     + apply H.
-    + simpl. split; auto with zarith. pose Int.modulus_gt_one. nia. 
+    + simpl. split; auto with zarith. cbv. auto. 
     + nia.      
     + rewrite PTree.gso. apply H1. cbv. congruence.
     + apply PTree.gss. }
