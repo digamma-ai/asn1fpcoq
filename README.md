@@ -15,7 +15,7 @@ See [doc/assumptions.md](https://github.com/digamma-ai/asn1fpcoq/blob/master/doc
 * [dune](https://github.com/ocaml/dune)
 * [num](https://github.com/ocaml/num/)
 * [coq-bbv](https://github.com/mit-plv/bbv)
-* [coq-compcert](http://compcert.inria.fr/)
+* [coq-compcert 3.4](http://compcert.inria.fr/)
 
 To install all pre-requisites:
 
