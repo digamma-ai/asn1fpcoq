@@ -1,7 +1,7 @@
 (** This is a toy example to demonstrate how to specify and prove correct a C function using C light *)
 
 
-From Coq Require Import String List ZArith.
+From Coq Require Import String List ZArith Psatz.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs Memory Values ClightBigstep Events Maps.
 (* Local Open Scope Z_scope.*)
 
@@ -121,6 +121,9 @@ Definition _i : ident := 54%positive.
 Definition _s : ident := 53%positive.
 Definition _strlen : ident := 55%positive.
 
+Notation _input := _s.
+Notation _output := _i.
+
 Definition f_strlen := {|
   fn_return := tuint;
   fn_callconv := cc_default;
@@ -148,6 +151,138 @@ Definition f_strlen := {|
 (* Big step semantics *)
 
 Definition Vint_of_nat := fun n => Vint (Int.repr(Z_of_nat n)).
+
+(* (Sloop
+       (Ssequence (Sifthenelse (Etempvar _input tint) Sskip Sbreak)
+          (Ssequence
+             (Sset _output (Ebinop Omul (Etempvar _output tint) (Etempvar _input tint) tint))
+             (Sset _input
+                (Ebinop Osub (Etempvar _input tint) (Econst_int (Int.repr 1) tint) tint)))) Sskip)
+
+ *)
+
+Locate Ederef.
+
+Definition f_strlen_loop :=  (Sloop
+      (Sifthenelse (Ebinop One (* comparison ([!=]) *)
+                     (Ederef (* pointer dereference (unary [*]) *)
+                       (Ebinop Oadd (Etempvar _input (tptr tschar))
+                         (Etempvar _output tuint) (tptr tschar)) tschar)
+                     (Econst_int (Int.repr 0) tint) tint)
+        Sskip
+        Sbreak)
+      (Sset _output
+        (Ebinop Oadd (Etempvar _output tuint) (Econst_int (Int.repr 1) tint)
+                tuint))).
+
+Print Values.val.
+Check Mem.load.
+
+
+(* (* Int.modulus: 4294967296     
+Ptrofs.modulus if Archi.ptr62 = true -> 18446744073709551616 else 4294967296 *)   
+
+ *)
+
+
+(* rewrite PTree.gso. apply PTree.gss *)
+Lemma strlen_loop_break_correct : Archi.ptr64 = false -> forall ge e m b ofs outp le,
+      ofs + Z.of_nat outp < Ptrofs.modulus ->
+      0 < ofs < Ptrofs.modulus ->
+      1 <= Z.of_nat outp < Ptrofs.modulus ->
+      le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
+      le!_output = Some (Vint_of_nat outp) ->
+      Mem.load Mint8signed m b (ofs + (Z_of_nat outp)) = Some (Vint (Int.repr 0)) ->
+      exists t le', exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\
+        (le'!_output) = Some (Vint_of_nat outp).
+Proof.
+  intro Arch.
+  intros  ge e m b ofs outp le.
+  intro S.
+  intros.
+  repeat eexists.
+  - eapply exec_Sloop_stop1. eapply exec_Sifthenelse. econstructor. econstructor. econstructor.
+    econstructor.
+    econstructor.
+    apply H1.
+    econstructor.
+    apply H2. econstructor. econstructor. econstructor. simpl.
+    cut ( (Ptrofs.unsigned
+       (Ptrofs.add (Ptrofs.repr ofs)
+                   (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr (Z.of_nat outp)))))) = (ofs + (Z_of_nat outp)) ). intro aux. rewrite aux. apply H3.
+    { pose (Ptrofs.modulus_eq32 Arch).
+      rewrite Ptrofs.mul_commut. rewrite Ptrofs.mul_one. unfold Ptrofs.add. repeat rewrite Ptrofs.unsigned_repr_eq.  unfold Ptrofs.of_intu. unfold Ptrofs.of_int. repeat rewrite Int.unsigned_repr_eq. repeat rewrite Ptrofs.unsigned_repr_eq. repeat rewrite Zmod_small ; nia. }
+    econstructor.
+    econstructor.
+    econstructor.
+    econstructor.
+    econstructor.
+  - apply H2.
+    Qed.
+    
+Lemma strlen_loop_continue_correct : Archi.ptr64 = false -> forall z ge e m b ofs outp le,
+      1 <= Z.of_nat outp + 1 < Ptrofs.modulus ->
+      0 < z ->
+      ofs + Z.of_nat outp < Ptrofs.modulus ->
+      0 < ofs < Ptrofs.modulus ->
+      1 <= Z.of_nat outp < Ptrofs.modulus ->
+      le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
+      le!_output = Some (Vint_of_nat outp) ->
+      Mem.load Mint8signed m b (ofs + (Z_of_nat outp)) = Some (Vint (Int.repr z)) ->
+      exists t le', exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\
+               (le'!_output) = Some (Vint_of_nat (outp + 1)).
+
+Proof.
+  intro Arch.
+  intros z ge e m b ofs outp le.
+  intro P.
+  intro Z.
+  intro S.
+  intros.
+  repeat eexists.
+  Print exec_stmt.
+  - eapply exec_Sloop_loop.
+
+    eapply exec_Sifthenelse. econstructor. econstructor. econstructor.
+    econstructor.
+    econstructor.
+    apply H1.
+    econstructor.
+    apply H2. econstructor. econstructor. econstructor. simpl.
+    assert ( (Ptrofs.unsigned
+       (Ptrofs.add (Ptrofs.repr ofs)
+                   (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr (Z.of_nat outp)))))) = (ofs + (Z_of_nat outp)) ) as E1. 
+    { pose (Ptrofs.modulus_eq32 Arch).
+      rewrite Ptrofs.mul_commut. rewrite Ptrofs.mul_one. unfold Ptrofs.add. repeat rewrite Ptrofs.unsigned_repr_eq.  unfold Ptrofs.of_intu. unfold Ptrofs.of_int. repeat rewrite Int.unsigned_repr_eq. repeat rewrite Ptrofs.unsigned_repr_eq. repeat rewrite Zmod_small ; nia. }
+    rewrite E1. apply H3.
+    econstructor.
+    econstructor. simpl.
+    cut ((negb (Int.eq (Int.repr z) (Int.repr 0))) = true). intro aux. rewrite aux. simpl. econstructor. {  admit. }
+    econstructor.
+    econstructor.
+    econstructor.
+    econstructor. 
+   
+    econstructor.
+    apply H2.
+     econstructor.
+     econstructor.
+     eapply exec_Sloop_stop1. repeat econstructor. rewrite PTree.gso. apply H1. cbv. congruence. 
+     apply PTree.gss. econstructor. simpl.
+
+      assert ( 
+    (Ptrofs.unsigned
+       (Ptrofs.add (Ptrofs.repr ofs)
+          (Ptrofs.mul (Ptrofs.repr 1)
+             (Ptrofs.of_intu (Int.add (Int.repr (Z.of_nat outp)) (Int.repr 1)))))) = (ofs + (Z_of_nat outp + 1)) ) as E1. 
+    { pose (Ptrofs.modulus_eq32 Arch).
+      rewrite Ptrofs.mul_commut. rewrite Ptrofs.mul_one. unfold Ptrofs.add. repeat rewrite Ptrofs.unsigned_repr_eq.  unfold Ptrofs.of_intu. unfold Ptrofs.of_int. repeat rewrite Int.unsigned_repr_eq. repeat rewrite Ptrofs.unsigned_repr_eq. repeat rewrite Zmod_small; unfold Int.add; repeat rewrite Int.unsigned_repr_eq ;  repeat rewrite Zmod_small;  admit. } 
+    rewrite E1. (* Mem.load Mint8signed m b (ofs + (Z.of_nat outp + 1)) = Some ?v10 *)
+
+                                                                       
+
+Admitted.
+
 
 (* One direction of correctness, using functional spec, below relational with proof attempt *)
 
