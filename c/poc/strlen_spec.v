@@ -152,17 +152,6 @@ Definition f_strlen := {|
 
 Definition Vint_of_nat := fun n => Vint (Int.repr(Z_of_nat n)).
 
-(* (Sloop
-       (Ssequence (Sifthenelse (Etempvar _input tint) Sskip Sbreak)
-          (Ssequence
-             (Sset _output (Ebinop Omul (Etempvar _output tint) (Etempvar _input tint) tint))
-             (Sset _input
-                (Ebinop Osub (Etempvar _input tint) (Econst_int (Int.repr 1) tint) tint)))) Sskip)
-
- *)
-
-Locate Ederef.
-
 Definition f_strlen_loop :=  (Sloop
       (Sifthenelse (Ebinop One (* comparison ([!=]) *)
                      (Ederef (* pointer dereference (unary [*]) *)
@@ -175,21 +164,25 @@ Definition f_strlen_loop :=  (Sloop
         (Ebinop Oadd (Etempvar _output tuint) (Econst_int (Int.repr 1) tint)
                 tuint))).
 
-Print Values.val.
-Check Mem.load.
-
-
 (* (* Int.modulus: 4294967296     
 Ptrofs.modulus if Archi.ptr62 = true -> 18446744073709551616 else 4294967296 *)   
 
  *)
 
+Ltac ints_to_Z :=
+  repeat rewrite Int.unsigned_repr_eq; repeat rewrite Zmod_small.
 
-(* rewrite PTree.gso. apply PTree.gss *)
+Ltac ptrofs_to_Z :=
+  repeat rewrite Ptrofs.unsigned_repr_eq; repeat rewrite Zmod_small.
+
+ Ltac ptrofs_compute_add_mul :=
+      simpl; unfold Ptrofs.add; unfold Ptrofs.mul; unfold Ptrofs.of_intu; unfold Ptrofs.of_int;
+      repeat rewrite Ptrofs.unsigned_repr_eq;  repeat rewrite Int.unsigned_repr_eq; repeat rewrite Zmod_small; simpl.
+ 
 Lemma strlen_loop_break_correct : Archi.ptr64 = false -> forall ge e m b ofs outp le,
       ofs + Z.of_nat outp < Ptrofs.modulus ->
       0 < ofs < Ptrofs.modulus ->
-      1 <= Z.of_nat outp < Ptrofs.modulus ->
+      0 <= Z.of_nat outp < Ptrofs.modulus ->
       le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
       le!_output = Some (Vint_of_nat outp) ->
       Mem.load Mint8signed m b (ofs + (Z_of_nat outp)) = Some (Vint (Int.repr 0)) ->
@@ -211,7 +204,8 @@ Proof.
        (Ptrofs.add (Ptrofs.repr ofs)
                    (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr (Z.of_nat outp)))))) = (ofs + (Z_of_nat outp)) ). intro aux. rewrite aux. apply H3.
     { pose (Ptrofs.modulus_eq32 Arch).
-      rewrite Ptrofs.mul_commut. rewrite Ptrofs.mul_one. unfold Ptrofs.add. repeat rewrite Ptrofs.unsigned_repr_eq.  unfold Ptrofs.of_intu. unfold Ptrofs.of_int. repeat rewrite Int.unsigned_repr_eq. repeat rewrite Ptrofs.unsigned_repr_eq. repeat rewrite Zmod_small ; nia. }
+      rewrite Ptrofs.mul_commut.
+      ptrofs_compute_add_mul ; nia. }
     econstructor.
     econstructor.
     econstructor.
@@ -220,69 +214,19 @@ Proof.
   - apply H2.
     Qed.
     
-Lemma strlen_loop_continue_correct : Archi.ptr64 = false -> forall z ge e m b ofs outp le,
-      1 <= Z.of_nat outp + 1 < Ptrofs.modulus ->
-      0 < z ->
-      ofs + Z.of_nat outp < Ptrofs.modulus ->
-      0 < ofs < Ptrofs.modulus ->
-      1 <= Z.of_nat outp < Ptrofs.modulus ->
-      le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
-      le!_output = Some (Vint_of_nat outp) ->
-      Mem.load Mint8signed m b (ofs + (Z_of_nat outp)) = Some (Vint (Int.repr z)) ->
-      exists t le', exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\
-               (le'!_output) = Some (Vint_of_nat (outp + 1)).
+
+Definition strlen_C_exec_correct : Archi.ptr64 = false -> forall ge e m b ofs le,
+      0 <= ofs < Ptrofs.modulus -> (* valid offset *)
+      le!_input = Some (Vptr b (Ptrofs.repr ofs)) -> (* input is an address [b,ofs] *)
+      forall l, (ofs + (Z_of_nat l)) < Ptrofs.modulus /\ Mem.load Mint8signed m b (ofs + (Z_of_nat l)) = Some (Vint (Int.repr 0)) -> (* if there is a null term at l distance from ofs *)
+      forall k, ((k < l)%nat ->  exists z, z > 0 /\ Mem.load Mint8signed m b (ofs + (Z_of_nat k)) = Some (Vint (Int.repr z))) -> (* and in between are chars *)   
+      exists t le' out, exec_stmt ge e le m f_strlen.(fn_body) t le' m out /\
+        (le'!_output) = Some (Vint_of_nat l). (* then the output of the program is l *)
 
 Proof.
-  intro Arch.
-  intros z ge e m b ofs outp le.
-  intro P.
-  intro Z.
-  intro S.
-  intros.
-  repeat eexists.
-  Print exec_stmt.
-  - eapply exec_Sloop_loop.
-
-    eapply exec_Sifthenelse. econstructor. econstructor. econstructor.
-    econstructor.
-    econstructor.
-    apply H1.
-    econstructor.
-    apply H2. econstructor. econstructor. econstructor. simpl.
-    assert ( (Ptrofs.unsigned
-       (Ptrofs.add (Ptrofs.repr ofs)
-                   (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr (Z.of_nat outp)))))) = (ofs + (Z_of_nat outp)) ) as E1. 
-    { pose (Ptrofs.modulus_eq32 Arch).
-      rewrite Ptrofs.mul_commut. rewrite Ptrofs.mul_one. unfold Ptrofs.add. repeat rewrite Ptrofs.unsigned_repr_eq.  unfold Ptrofs.of_intu. unfold Ptrofs.of_int. repeat rewrite Int.unsigned_repr_eq. repeat rewrite Ptrofs.unsigned_repr_eq. repeat rewrite Zmod_small ; nia. }
-    rewrite E1. apply H3.
-    econstructor.
-    econstructor. simpl.
-    cut ((negb (Int.eq (Int.repr z) (Int.repr 0))) = true). intro aux. rewrite aux. simpl. econstructor. {  admit. }
-    econstructor.
-    econstructor.
-    econstructor.
-    econstructor. 
-   
-    econstructor.
-    apply H2.
-     econstructor.
-     econstructor.
-     eapply exec_Sloop_stop1. repeat econstructor. rewrite PTree.gso. apply H1. cbv. congruence. 
-     apply PTree.gss. econstructor. simpl.
-
-      assert ( 
-    (Ptrofs.unsigned
-       (Ptrofs.add (Ptrofs.repr ofs)
-          (Ptrofs.mul (Ptrofs.repr 1)
-             (Ptrofs.of_intu (Int.add (Int.repr (Z.of_nat outp)) (Int.repr 1)))))) = (ofs + (Z_of_nat outp + 1)) ) as E1. 
-    { pose (Ptrofs.modulus_eq32 Arch).
-      rewrite Ptrofs.mul_commut. rewrite Ptrofs.mul_one. unfold Ptrofs.add. repeat rewrite Ptrofs.unsigned_repr_eq.  unfold Ptrofs.of_intu. unfold Ptrofs.of_int. repeat rewrite Int.unsigned_repr_eq. repeat rewrite Ptrofs.unsigned_repr_eq. repeat rewrite Zmod_small; unfold Int.add; repeat rewrite Int.unsigned_repr_eq ;  repeat rewrite Zmod_small;  admit. } 
-    rewrite E1. (* Mem.load Mint8signed m b (ofs + (Z.of_nat outp + 1)) = Some ?v10 *)
-
-                                                                       
-
-Admitted.
-
+  intros. repeat eexists.
+  Admitted.
+  
 
 (* One direction of correctness, using functional spec, below relational with proof attempt *)
 
@@ -311,16 +255,17 @@ Admitted.
                    (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))). 
 
       
-Definition strlen_C_rel_corr_r : forall n m b ofs e le,
+Definition strlen_C_rel_corr_r : forall n m b ofs e le ge,
     strlen_C_rel_spec m b ofs (Some (n,m)) ->
     le!_s = Some (Vptr b (Ptrofs.repr ofs)) -> 
-    exists le', le'!_i = Some (Vint_of_nat n) /\ 
-           bigStepExec ge e le m f_strlen.(fn_body) t le' m (Out_return (Some ((Vint_of_nat n),tuint))).
+    exists t le', le'!_i = Some (Vint_of_nat n) /\ 
+           exec_stmt ge e le m f_strlen.(fn_body) t le' m (Out_return (Some ((Vint_of_nat n),tuint))).
 Proof.
   induction n.
   (* Base case. *)
     intros.
     inversion H. unfold chunk in *. destruct H4.
+    eexists.
     exists (Maps.PTree.set _i (Vint (Int.repr (Z.of_nat 0))) le).
     split.
     - apply Maps.PTree.gss.
@@ -337,7 +282,8 @@ Proof.
       (* Ind step *)
      -   intros.
         inversion H. unfold chunk in *. destruct H4.
-    exists (Maps.PTree.set _i (Vint (Int.repr (Z.of_nat (S n)))) le).
+        eexists.
+        exists (Maps.PTree.set _i (Vint (Int.repr (Z.of_nat (S n)))) le).
     split.
       + apply Maps.PTree.gss.
     + repeat econstructor.
@@ -448,7 +394,6 @@ Definition init_mem1 :=
   Mem.store Mint8signed init_mem b' ofs' (Vint (Int.repr 0)).
 
 
-
 Lemma example_comp : forall m le e, init_mem1 = Some m ->
                              le!_s = Some (Vptr b' (Ptrofs.repr ofs')) ->
                              exists le', bigStepExec ge e le m f_strlen.(fn_body) t le' m (Out_return (Some (Vint (Int.repr 0),tuint))).
@@ -500,3 +445,107 @@ Admitted.
   If the type [ty] indicates an access by value, the corresponding
   memory load is performed.  If the type [ty] indicates an access by
   reference or by copy, the pointer [Vptr b ofs] is returned. *)
+
+
+
+(* Lemma strlen_loop_continue_correct : Archi.ptr64 = false -> forall z ge e m b ofs outp le,
+      
+      1 <= Z.of_nat outp + 1 < Ptrofs.modulus ->
+      0 < z < Int.modulus ->
+      ofs + Z.of_nat outp < Ptrofs.modulus ->
+      0 < ofs < Ptrofs.modulus ->
+      0 <= Z.of_nat outp < Ptrofs.modulus ->
+      
+      le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
+      le!_output = Some (Vint_of_nat outp) ->
+      Mem.load Mint8signed m b (ofs + (Z_of_nat outp)) = Some (Vint (Int.repr z)) ->
+      
+      exists t le', exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\
+                    (le'!_output) = Some (Vint_of_nat (outp + 1)).
+Proof.
+  induction outp.
+  (* Base *)
+  intros.
+  repeat eexists.
+  eapply exec_Sloop_loop. 
+
+  econstructor. econstructor.  econstructor.  econstructor.  econstructor.  econstructor. apply H5. econstructor.  apply H6.
+  econstructor.  econstructor.  econstructor.
+  { pose (Ptrofs.modulus_eq32 H). ptrofs_compute_add_mul. apply H7. all: nia. } 
+  econstructor.  econstructor.  simpl.
+  assert ((negb (Int.eq (Int.repr z) (Int.repr 0))) = true).
+  { unfold Int.eq. SearchAbout zeq. Search (_ < _ -> _ <> _ ).
+    destruct H1 as [H1].
+    pose ((zeq_false _ z 0 true false) (not_eq_sym (Z.lt_neq 0 z H1))). ints_to_Z. rewrite e0. auto. all: nia. }
+  rewrite H8. simpl. econstructor. econstructor.   econstructor.
+  econstructor. econstructor. econstructor.  apply H6.
+  econstructor. econstructor.  eapply exec_Sloop_stop1.
+
+                                                
+   
+      
+  
+Lemma strlen_loop_continue_correct : Archi.ptr64 = false -> forall z ge e m b ofs outp le,
+      1 <= Z.of_nat outp + 1 < Ptrofs.modulus ->
+      0 < z ->
+      ofs + Z.of_nat outp < Ptrofs.modulus ->
+      0 < ofs < Ptrofs.modulus ->
+      1 <= Z.of_nat outp < Ptrofs.modulus ->
+      le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
+      le!_output = Some (Vint_of_nat outp) ->
+      Mem.load Mint8signed m b (ofs + (Z_of_nat outp)) = Some (Vint (Int.repr z)) ->
+      exists t le', exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\
+               (le'!_output) = Some (Vint_of_nat (outp + 1)).
+
+Proof.
+  intro Arch.
+  intros z ge e m b ofs outp le.
+  intro P.
+  intro Z.
+  intro S.
+  intros.
+  repeat eexists.
+  Print exec_stmt.
+  - eapply exec_Sloop_loop.
+
+    eapply exec_Sifthenelse. econstructor. econstructor. econstructor.
+    econstructor.
+    econstructor.
+    apply H1.
+    econstructor.
+    apply H2. econstructor. econstructor. econstructor. simpl.
+    assert ( (Ptrofs.unsigned
+       (Ptrofs.add (Ptrofs.repr ofs)
+                   (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr (Z.of_nat outp)))))) = (ofs + (Z_of_nat outp)) ) as E1. 
+    { pose (Ptrofs.modulus_eq32 Arch).
+      rewrite Ptrofs.mul_commut. rewrite Ptrofs.mul_one. unfold Ptrofs.add. repeat rewrite Ptrofs.unsigned_repr_eq.  unfold Ptrofs.of_intu. unfold Ptrofs.of_int. repeat rewrite Int.unsigned_repr_eq. repeat rewrite Ptrofs.unsigned_repr_eq. repeat rewrite Zmod_small ; nia. }
+    rewrite E1. apply H3.
+    econstructor.
+    econstructor. simpl.
+    cut ((negb (Int.eq (Int.repr z) (Int.repr 0))) = true). intro aux. rewrite aux. simpl. econstructor. {  admit. }
+    econstructor.
+    econstructor.
+    econstructor.
+    econstructor. 
+   
+    econstructor.
+    apply H2.
+     econstructor.
+     econstructor.
+     eapply exec_Sloop_stop1. repeat econstructor. rewrite PTree.gso. apply H1. cbv. congruence. 
+     apply PTree.gss. econstructor. simpl.
+
+      assert ( 
+    (Ptrofs.unsigned
+       (Ptrofs.add (Ptrofs.repr ofs)
+          (Ptrofs.mul (Ptrofs.repr 1)
+             (Ptrofs.of_intu (Int.add (Int.repr (Z.of_nat outp)) (Int.repr 1)))))) = (ofs + (Z_of_nat outp + 1)) ) as E1. 
+    { pose (Ptrofs.modulus_eq32 Arch).
+      rewrite Ptrofs.mul_commut. rewrite Ptrofs.mul_one. unfold Ptrofs.add. repeat rewrite Ptrofs.unsigned_repr_eq.  unfold Ptrofs.of_intu. unfold Ptrofs.of_int. repeat rewrite Int.unsigned_repr_eq. repeat rewrite Ptrofs.unsigned_repr_eq. repeat rewrite Zmod_small; unfold Int.add; repeat rewrite Int.unsigned_repr_eq ;  repeat rewrite Zmod_small;  admit. } 
+    rewrite E1. (* Mem.load Mint8signed m b (ofs + (Z.of_nat outp + 1)) = Some ?v10 *)
+
+                                                                       
+
+Admitted.
+
+ *)
