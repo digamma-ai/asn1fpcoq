@@ -9,7 +9,6 @@ Open Scope Z.
 (** * common lengths *)
 
 Definition cont1 := container 1.
-
 Definition cont2 := container 2.
 Definition cont8 := container 8.
 
@@ -52,10 +51,11 @@ Proof. lia. Qed.
 Definition cut_b8_cont {l : nat} (c : container (8 + l)) (L : (0 < l)%nat)
 : cont8 * container l := split_cont c O_lt_8 L.
 
+
+
 (* common operations *)
-Definition z2n := Z.to_nat.
 Definition c2z {l : nat} (c : container l) := Z_of_cont c.
-Definition c2n {l : nat} (c : container l) := z2n (c2z c).
+Definition c2n {l : nat} (c : container l) := Z.to_nat (c2z c).
 
 
 (** * container tuples *)
@@ -400,7 +400,7 @@ Proof.
         replace 1%nat with (Z.to_nat 1%Z) by reflexivity.
       rewrite <- Z2Nat.inj_add, <- Z2Nat.inj_mul; lia.
   - subst eec.
-    unfold c2n, c2z, z2n, Z_of_cont, b2_cont.
+    unfold c2n, c2z, Z_of_cont, b2_cont.
     reflexivity.
 Qed.
 
@@ -434,7 +434,7 @@ Proof.
     + replace 8%nat with (Z.to_nat 8%Z) by reflexivity.
       rewrite <- Z2Nat.inj_mul; lia.
   - subst eoc.
-    unfold c2n, c2z, z2n, Z_of_cont, b2_cont.
+    unfold c2n, c2z, Z_of_cont, b2_cont.
     reflexivity.
 Qed.
 
@@ -445,7 +445,7 @@ Lemma VS_m_N {id co t s bb ff ee e m : Z}
 Proof. split_valid; lia. Qed.
 
 Ltac uncont :=
-  unfold c2n, c2z, z2n, Z_of_cont in *; try reflexivity.
+  unfold c2n, c2z, Z_of_cont in *; try reflexivity.
 
 Lemma VS_m_L {id co t s bb ff ee e m : Z}
       (VS : valid_short id co t s bb ff ee e m = true) :
