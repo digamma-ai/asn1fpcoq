@@ -62,56 +62,64 @@ Definition is_null (v : Values.val) :=
   | _ => false
   end.
 
+
 Definition chunk : memory_chunk := Mint8signed. (* that's what we read from memory *)
 Definition INTSIZE := (nat_of_Z Int.modulus).
-
 
 Fixpoint strlen_fun_C (m : mem) (b : block) (ofs : Z) (l: Z) (intrange : nat) {struct intrange} : option (Z*mem):= (* maybe nat output? *)
       match intrange with
       | O => None (* out of int range *)
-      | S n => match valid_block_b m b, Mem.load chunk m b ofs with (* checking if b is a valid reference in m, loading value from memory *)
-              | left _, Some v =>
+      | S n => match Mem.load chunk m b ofs with (*  loading value from memory *)
+              | Some v =>
                 if is_null v
                 then Some (l, m) else strlen_fun_C m b (ofs + 1) (l + 1) n  
-              | _, _ => None (* address not readable or b not allocates *)
+              | None => None (* address not readable or b not allocated *)
               end
       end.
 
 Definition strlen_C_fun_spec (m : mem) (b: block) (ofs : Z) :=  strlen_fun_C m b ofs 0 INTSIZE.
 
+(* Coercion Int.intval : Int.int >-> Z.*)
 
-(* Relational spec, to use in the proofs *)
+Definition VintZ := fun (z : Z) => Vint (Int.repr z).
+
+Inductive C_char : Values.val -> Prop :=
+| Null : C_char (VintZ 0)
+| NotNull : forall v c, v = VintZ c -> 0 < c < 128 -> C_char v. 
+
+Definition VintN:= fun n => Vint (Int.repr(Z_of_nat n)).
+
+Inductive C_string (m : Mem.mem) (b : block) (ofs : Z) (len : nat) :=
+   is_C_string : forall n i, (0 < n < 128)%nat ->
+                          (0 <= i < len)%nat ->
+                          Mem.load Mint8signed m b (ofs + Z_of_nat i) = Some (VintN n) ->
+                          Mem.load Mint8signed m b (Z_of_nat len) = Some (VintZ 0) ->
+                          C_string m b ofs len.
+                                   
+
+(* Relational spec  *)
 
 Inductive strlen_C_rel_spec : Mem.mem -> block -> Z -> option (nat * mem)-> Prop
-  := | CorrectRun :  forall n m b ofs,
-    (n < INTSIZE)%nat ->
-    forall v, (* Mem.valid_block m b -> *) (* ignore for now *)
-              Mem.load chunk m b ofs = Some v ->
-              (exists z, v = Vint z) -> (* not Undef *)
-              Mem.load chunk m b (ofs + (Z_of_nat n)) = Some (Vint (Int.repr 0)) ->
-              strlen_C_rel_spec m b ofs (Some (n,m))
-  | OutOfRange :   forall n m b ofs,
-    (n > INTSIZE)%nat ->
-    forall v, (* Mem.valid_block m b -> *)
-              Mem.load chunk m b ofs = Some v ->
-              Mem.load chunk m b (ofs + (Z_of_nat n)) = Some (Vint (Int.repr 0)) ->
-              strlen_C_rel_spec m b ofs None
-
-
-  | MemoryLoadZero :  forall n m b ofs,
-    (n < INTSIZE)%nat ->
-              (* Mem.valid_block m b -> *)
+  :=
+  | CorrectRun :  forall len m b ofs,
+      (len < INTSIZE)%nat -> C_string m b ofs len ->  strlen_C_rel_spec m b ofs (Some (len,m))
+  | OutOfRange : forall len m b ofs,
+      (len > INTSIZE)%nat -> C_string m b ofs len ->  strlen_C_rel_spec m b ofs None.
+ (*                                                                       
+  | MemoryLoadFail : OutOfRange : forall len m b ofs,
+      (len < INTSIZE)%nat -> Mem.load Mint8signed m b (ofs + Z_of_nat len) = None -> strlen_C_rel_spec m b ofs None
+                                                                        
+                                                                        
+  | MemoryLoadZero : forall m b ofs,
               Mem.load chunk m b ofs = None ->
               strlen_C_rel_spec m b ofs None
-
-  | MemoryLoadSucc : forall n m b ofs,
-       (n < INTSIZE)%nat ->
-      forall v, (* Mem.valid_block m b -> *)
-              Mem.load chunk m b ofs = Some v ->
+  | MemoryLoadSucc : forall len m b ofs,
+       (len < INTSIZE)%nat ->
+      forall v, Mem.load chunk m b ofs = Some v ->
               Mem.load chunk m b (ofs + (Z_of_nat n)) = Some (Vint (Int.repr 0)) ->
               (exists n', (n' < n)%nat /\ Mem.load chunk m b (ofs + (Z_of_nat n')) = None) ->
               strlen_C_rel_spec m b ofs None.
-                                                                           
+  *)                                                                         
                             
 (* Semantics of a C light function: *)
 
