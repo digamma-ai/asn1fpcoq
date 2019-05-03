@@ -1,7 +1,6 @@
 Require Import ZArith.
-Require Import ASN1FP.Types.ASNDef ASN1FP.Types.BitstringDef
+Require Import ASN1FP.Types.ASN ASN1FP.Types.Bitstring
         ASN1FP.Aux.Bits ASN1FP.Aux.Tactics ASN1FP.Aux.StructTactics.
-
 Require Import Flocq.Core.Zaux.
 
 Open Scope Z.

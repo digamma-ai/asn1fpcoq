@@ -1,12 +1,6 @@
 Require Import ZArith.
-Require Import ASN1FP.Types.ASNDef
+Require Import ASN1FP.Types.ASN
                ASN1FP.Aux.Roundtrip ASN1FP.Aux.Bits ASN1FP.Aux.StructTactics ASN1FP.Aux.Tactics.
-
-(*
-Require Import Template.All Switch.Switch Strings.String Lists.List.
-
-Import ListNotations.
-*)
 
 Open Scope Z.
 
@@ -73,15 +67,15 @@ Definition valid_special (val : Z) : bool :=
 (*
  * do the atomic parts constitute a valid BER-encoded real
  * in short form:
- *   id - identifier octet(s) [ 8.1.2 ]
- *   co - length octet(s) [ 8.1.3 ]
- *   t  - encoding type bit [ 8.5.6 ]
- *   s  - sign bit [ 8.5.7.1 ]
- *   bb - base bits [ 8.5.7.2 ]
- *   ff - scaling factor bits [ 8.5.7.3 ]
+ *   id - identifier octet(s)  [ 8.1.2 ]
+ *   co - length octet(s)      [ 8.1.3 ]
+ *   t  - encoding type bit    [ 8.5.6 ]
+ *   s  - sign bit             [ 8.5.7.1 ]
+ *   bb - base bits            [ 8.5.7.2 ]
+ *   ff - scaling factor bits  [ 8.5.7.3 ]
  *   ee - exponent format bits [ 8.5.7.4 ]
- *   e  - exponent bits [ 8.5.7.4 ]
- *   m  - mantissa bits [ 8.5.7.5 ]
+ *   e  - exponent bits        [ 8.5.7.4 ]
+ *   m  - mantissa bits        [ 8.5.7.5 ]
  *)
 Definition valid_short (id co t s bb ff ee e m : Z) : bool :=
      (id =? real_id_b)          (* identifier is "REAL" *)
@@ -100,16 +94,16 @@ Definition valid_short (id co t s bb ff ee e m : Z) : bool :=
 (*
  * do the atomic parts constitute a valid BER-encoded real
  * in long form:
- *   id - identifier octet(s) [ 8.1.2 ]
- *   co - length octet(s) [ 8.1.3 ]
- *   t  - encoding type bit [ 8.5.6 ]
- *   s  - sign bit [ 8.5.7.1 ]
- *   bb - base bits [ 8.5.7.2 ]
- *   ff - scaling factor bits [ 8.5.7.3 ]
- *   ee - exponent format bits [ 8.5.7.4 ]
+ *   id - identifier octet(s)   [ 8.1.2 ]
+ *   co - length octet(s)       [ 8.1.3 ]
+ *   t  - encoding type bit     [ 8.5.6 ]
+ *   s  - sign bit              [ 8.5.7.1 ]
+ *   bb - base bits             [ 8.5.7.2 ]
+ *   ff - scaling factor bits   [ 8.5.7.3 ]
+ *   ee - exponent format bits  [ 8.5.7.4 ]
  *   eo - exponent length octet [ 8.5.7.4 (d) ]
- *   e  - exponent bits [ 8.5.7.4 ]
- *   m  - mantissa bits [ 8.5.7.5 ]
+ *   e  - exponent bits         [ 8.5.7.4 ]
+ *   m  - mantissa bits         [ 8.5.7.5 ]
  *)
 Definition valid_long (id co t s bb ff ee eo e m : Z) : bool :=
      (id =? real_id_b)          (* identifier is "REAL" *)

@@ -84,7 +84,7 @@ Inductive BER_float :=
 
 (*
  * is the encoding a finite real number
-*)
+ *)
 Definition is_finite (r : BER_float) : bool :=
   match r with
   | BER_zero _ => true
@@ -95,7 +95,7 @@ Definition is_finite (r : BER_float) : bool :=
 (*
  * strict equality:
  * check if all parts are exactly equal
-*)
+ *)
 Definition BER_float_strict_eqb (f1 f2 : BER_float) : bool :=
   match f1,f2 with
   | BER_zero s1, BER_zero s2 => Bool.eqb s1 s2

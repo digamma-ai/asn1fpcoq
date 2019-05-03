@@ -1,6 +1,7 @@
+(*
 Require Import ZArith Basics.
 Require Import Aux.Option
-        Types.ASNDef
+        Types.ASN
         Conversion.IEEE_ASN.DefProof
         Conversion.ASN_Bitstring.Def
         Conversion.Bitstring_Bits.Def
@@ -53,3 +54,4 @@ Section B64.
     normalize_b64_abstract m e.
 
 End B64.
+*)

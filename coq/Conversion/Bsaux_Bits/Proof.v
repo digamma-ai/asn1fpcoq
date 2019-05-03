@@ -1,62 +1,19 @@
 Require Import ZArith Lia.
 Require Import ProofIrrelevance.
-Require Import ASN1FP.Types.BitstringDef
+Require Import ASN1FP.Types.Bitstring ASN1FP.Types.BSaux
         ASN1FP.Aux.Roundtrip ASN1FP.Aux.Bits
-        ASN1FP.Aux.StructTactics ASN1FP.Aux.BitContainer
-        ASN1FP.Aux.Tactics ASN1FP.Aux.Option
-        ASN1FP.Conversion.Bitstring_Bits.Def.
+        ASN1FP.Aux.StructTactics ASN1FP.Types.BitContainer
+        ASN1FP.Aux.Tactics ASN1FP.Aux.Option ASN1FP.Conversion.Bsaux_Bits.Def.
+Require Import ASN1FP.Conversion.Bitstring_Bsaux.Def ASN1FP.Conversion.Bitstring_Bsaux.Proof.
 
-Definition Some_ize {A B : Type} : (A -> B) -> (A -> option B)
-  := Basics.compose Some.
-
-Lemma special_eqb_refl (val : BER_special) :
-  special_eqb val val = true.
-Proof. destruct val; reflexivity. Qed.
-  
-Theorem bitstring_bsaux_roundtrip (b : BER_bitstring) :
-  roundtrip_option
-      BER_bitstring BER_bs_aux BER_bitstring
-      (Some_ize bsaux_of_bitstring)
-      (Some_ize bitstring_of_bsaux)
-      BER_bitstring_eqb
-      b.
-Proof.
-  (* basic simplification *)
-  unfold roundtrip_option.
-  intros H; clear H.
-  unfold bool_het_inverse'; simpl.
-
-  unfold bitstring_of_bsaux, bsaux_of_bitstring.
-  repeat break_match; inversion Heqb0; subst.
-  - simpl. rewrite special_eqb_refl. reflexivity.
-  - clear H7 H8.
-    unfold c2z, c2n; simpl.
-    inversion Heqb0; subst.
-    repeat apply inj_pair2 in H0.
-    repeat apply inj_pair2 in H1.
-    rewrite <- H0, <- H1.
-    simpl.
-    repeat rewrite Z.eqb_refl.
-    reflexivity.
-  - 
-    unfold c2z, c2n; simpl.
-    inversion Heqb0; subst.
-    repeat apply inj_pair2 in H0.
-    repeat apply inj_pair2 in H1.
-    rewrite <- H0, <- H1.
-    simpl.
-    repeat rewrite Z.eqb_refl.
-    reflexivity.
-Qed.
+Open Scope bool_scope.
 
 Definition cont_eqb {l1 l2 : nat} (c1 : container l1) (c2 : container l2) :=
   match c1, c2 with
-  | cont _ v1 _ _, cont _ v2 _ _ => andb (l1 =? l2)%nat (v1 =? v2)
+  | cont _ v1 _ _, cont _ v2 _ _ => andb (Nat.eqb l1 l2) (Z.eqb v1 v2)
   end.
 
 Infix "=c=" := cont_eqb (at level 50).
-
-Open Scope bool_scope.
 
 Definition BER_nbs_eqb (b1 b2 : BER_nbs) :=
   match b1, b2 with
@@ -288,19 +245,6 @@ Proof.
   all: reflexivity.
 Qed.
 
-(*
-PROBLEM:
-
-split_cont
-  (cut_cont
-    (cast_cont
-      (join_cont c1 c2)
-      ?(old_len = new_len))
-    l_to_cut
-    ?:(0 < new_len - l_to_cut))
-: container l_to_cut * container (new_len - l_to_cut)
-*)
-
 Lemma split_cast_join {l1 l2 : nat}
       (L1 : (0 < l1)%nat) (L2 : (0 < l2)%nat)
       (c1 : container l1) (c2 : container l2) :
@@ -358,39 +302,6 @@ Proof.
     unfold split_cut_info in Heqp.
     break_match.
 Admitted.
-
-(*
-A MORE DESTRUCTIVE PROOF
-
-Proof.
-  unfold option_het_eq.
-  break_match; [rename b0 into r_b |].
-  - (* backward pass successful *)
-    unfold nbs_of_cont in Heqo.
-    destruct b eqn:B, r_b eqn:R_B.
-    repeat break_match; inversion Heqo; clear H0; subst; simpl.
-    + unfold construct_long_nbs in Heqo; repeat break_match; inversion Heqo.
-    + unfold construct_short_nbs in Heqo; repeat break_match; inversion Heqo.
-      subst.
-      apply inj_pair2 in H7.
-      repeat apply inj_pair2 in H8.
-      subst; clear Heqo.
-
-      unfold try_cut_cont in Heqo0; repeat break_match; inversion Heqo0; clear Heqo0.
-      unfold cont_of_nbs, append_info, mk_info, mk_content in H0.
-      subst c.
-
-      unfold split_cut_info in Heqp.
-      repeat break_match.
-      tuple_inversion.
-      rename c into info, c0 into em.
-      remember (join_cont id (join_cont co
-                 (join_cont t (join_cont s (join_cont bb (join_cont ff ee)))))) as info'.
-      remember (cast_cont (join_cont e m) (short_nblen_correct co ee m)) as em'.
-      unfold cut_info in Heqp0.
-      unfold info_nblen, nbs_nblen in Heqp0.
-Admitted.
-*)
 
 Definition cont_len {l : nat} (c : container l) := l.
 
@@ -510,13 +421,4 @@ Proof.
   - admit. (* trivial *)
   - admit.
   - admit. (* trivial *)
-Admitted.
-
-Theorem bitsrting_bits_roundtrip (b : BER_bitstring) :
-  roundtrip_option
-      BER_bitstring Z BER_bitstring
-      (Some_ize bits_of_bitstring)
-      bitstring_of_bits
-      BER_bitstring_eqb
-      b.
 Admitted.

@@ -1,3 +1,4 @@
+(*
 Require Import ZArith.
 Require Import ASN1FP.Conversion.IEEE_ASN.DefProof.
 
@@ -49,3 +50,4 @@ Section B64.
   Definition b64_of_BER_abstract_rounded := IEEE_of_BER_rounded prec emax prec_gt_1 prec_lt_emax.
 
 End B64.
+*)

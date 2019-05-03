@@ -250,3 +250,52 @@ Qed.
 
 Definition Z_of_cont {l : nat} (c : container l) :=
   match c with cont _ v _ _ => v end.
+
+(** * common container lengths *)
+
+Definition cont1 := container 1.
+Definition cont2 := container 2.
+Definition cont8 := container 8.
+
+Definition b1_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat) : cont1
+:= cont 1 v N L.
+Definition b2_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 2)%nat) : cont2
+:= cont 2 v N L.
+Definition b8_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat) : cont8
+:= cont 8 v N L.
+
+(* create and append containers of common lengths *)
+Definition append_b1_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 1)%nat)
+        {l : nat} (c : container l)
+: container (1 + l) := join_cont (b1_cont v N L) c.
+
+Definition append_b2_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 2)%nat)
+        {l : nat} (c : container l)
+: container (2 + l) := join_cont (b2_cont v N L) c.
+
+Definition append_b8_cont (v : Z) (N : 0 <= v) (L : (nblen v <= 8)%nat)
+        {l : nat} (c : container l)
+: container (8 + l) := join_cont (b8_cont v N L) c.
+
+(* common operations *)
+Definition c2z {l : nat} (c : container l) := Z_of_cont c.
+Definition c2n {l : nat} (c : container l) := Z.to_nat (c2z c).
+
+(* cut containers of common lengths (from left *)
+Fact O_lt_1 : (0 < 1)%nat.
+Proof. lia. Qed.
+
+Definition cut_b1_cont {l : nat} (c : container (1 + l)) (L : (0 < l)%nat)
+: cont1 * container l := split_cont c O_lt_1 L.
+
+Fact O_lt_2 : (0 < 2)%nat.
+Proof. lia. Qed.
+
+Definition cut_b2_cont {l : nat} (c : container (2 + l)) (L : (0 < l)%nat)
+: cont2 * container l := split_cont c O_lt_2 L.
+
+Fact O_lt_8 : (0 < 8)%nat.
+Proof. lia. Qed.
+
+Definition cut_b8_cont {l : nat} (c : container (8 + l)) (L : (0 < l)%nat)
+: cont8 * container l := split_cont c O_lt_8 L.

@@ -1,14 +1,26 @@
-Require Import ZArith PArith.
-Require Import ASN1FP.Types.ASNDef ASN1FP.Types.IEEEAux
+Require Import ZArith PArith Lia.
+Require Import ASN1FP.Types.ASN
         ASN1FP.Aux.Roundtrip ASN1FP.Aux.StructTactics ASN1FP.Aux.Aux
         ASN1FP.Aux.Tactics ASN1FP.Aux.Option ASN1FP.Aux.StrongInduction.
 
-Require Import Lia.
-
-Require Import Flocq.Core.Zaux Flocq.IEEE754.Binary.
-Require Import Flocq.Core.Defs.
+Require Import Flocq.Core.Zaux Flocq.IEEE754.Binary Flocq.Core.Defs.
 
 Open Scope Z.
+
+(*
+ *  eqivalence on floats of the same type, returning `true`
+ *  for normal equality
+ *  or for any two NaN values (NaN payloads not taken into account)
+ *)
+Definition float_eqb_nan_t {prec emax : Z} (x y : binary_float prec emax) : bool :=
+  match Bcompare prec emax x y with
+  | Some Eq => true
+  | None => true
+  | _ => false
+  end.
+
+Definition binary_bounded_sumbool (prec emax : Z) (m : positive) (e : Z) :=
+  Sumbool.sumbool_of_bool (Binary.bounded prec emax m e).
 
 Section Base2.
 
