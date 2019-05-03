@@ -3,8 +3,8 @@ Require Import ProofIrrelevance.
 Require Import ASN1FP.Types.Bitstring ASN1FP.Types.BSaux
         ASN1FP.Aux.Roundtrip ASN1FP.Aux.Bits
         ASN1FP.Aux.StructTactics ASN1FP.Types.BitContainer
-        ASN1FP.Aux.Tactics ASN1FP.Aux.Option ASN1FP.Conversion.Bsaux_Bits.Def.
-Require Import ASN1FP.Conversion.Bitstring_Bsaux.Def ASN1FP.Conversion.Bitstring_Bsaux.Proof.
+        ASN1FP.Aux.Tactics ASN1FP.Aux.Option ASN1FP.Conversion.Bsaux_Bits.Definitions.
+Require Import ASN1FP.Conversion.Bitstring_Bsaux.Definitions ASN1FP.Conversion.Bitstring_Bsaux.Correctness.
 
 Open Scope bool_scope.
 

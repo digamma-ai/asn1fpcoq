@@ -4,7 +4,7 @@ Require Import ASN1FP.Types.Bitstring ASN1FP.Types.BSaux
         ASN1FP.Aux.Roundtrip ASN1FP.Aux.Bits
         ASN1FP.Aux.StructTactics ASN1FP.Types.BitContainer
         ASN1FP.Aux.Tactics ASN1FP.Aux.Option.
-Require Import ASN1FP.Conversion.Bitstring_Bsaux.Def.
+Require Import ASN1FP.Conversion.Bitstring_Bsaux.Definitions.
 
 (** * lengths *)
 
