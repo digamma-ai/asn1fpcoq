@@ -1,4 +1,4 @@
-Require ASN1FP.Conversion.FullBin.
+Require ASN1FP.Conversion.Full.Extracted.
 
 Require ExtrOcamlBasic.
 Require ExtrOcamlString.
@@ -27,4 +27,4 @@ Extraction Library ExtrOcamlNatBigInt.
 Extraction Library ExtrOcamlZBigInt.
 
 
-Recursive Extraction Library FullBin.
+Recursive Extraction Library Extracted.

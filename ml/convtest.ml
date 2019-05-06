@@ -3,7 +3,7 @@ open OUnit2
 open Big_int
 open Core
 
-open FullBin
+open Extracted
 
 let opt_float_eqb_nan_t o1 o2 =
   match o1, o2 with
