@@ -26,7 +26,7 @@ Search (Z -> Z).
 Section B32.
 
   Definition float32_to_BER_exact (target_radix : radix) (scaled : bool) : Z -> option Z :=
-    ret ∘ Z_of_bsaux ∘ bsaux_of_bitstring <=< bitstring_of_BER <=<
+    ret ∘ bits_of_bsaux ∘ bsaux_of_bitstring <=< bitstring_of_BER <=<
         BER_of_b32_abstract ∘ b32_of_bits.
 
   Definition BER_to_float32_exact : Z -> option Z :=
@@ -45,7 +45,7 @@ End B32.
 Section B64.
 
   Definition float64_to_BER_exact (target_radix : radix) (scaled : bool) : Z -> option Z :=
-    ret ∘ Z_of_bsaux ∘ bsaux_of_bitstring <=< bitstring_of_BER <=<
+    ret ∘ bits_of_bsaux ∘ bsaux_of_bitstring <=< bitstring_of_BER <=<
         BER_of_b64_abstract ∘ b64_of_bits.
 
   Definition BER_to_float64_exact : Z -> option Z :=

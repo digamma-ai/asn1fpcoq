@@ -375,11 +375,11 @@ Section Definitions.
     | right N => Some (cont (BER_nblen b) b N (BER_nblen_correct b))
     end.
     
-  Definition Z_of_bsaux (b : BER_bs_aux) :=
+  Definition bits_of_bsaux (b : BER_bs_aux) :=
     c2z (cont_of_bsaux b).
   
   Definition bits_of_bitstring (b : BER_bitstring) : Z :=
-    Z_of_bsaux (bsaux_of_bitstring b).
+    bits_of_bsaux (bsaux_of_bitstring b).
   
   Definition mk_special_bsaux (b : Z) : option BER_bs_aux :=
     match classify_BER b with
@@ -771,13 +771,13 @@ Section Correctness.
   Theorem bsaux_bits_roundtrip (b : BER_bs_aux) :
     roundtrip_option
         BER_bs_aux Z BER_bs_aux
-        (Some_ize Z_of_bsaux)
+        (Some_ize bits_of_bsaux)
         bsaux_of_bits
         BER_bsaux_eqb
         b.
   Proof.
     unfold roundtrip_option, bool_het_inverse'; simpl; intros T; clear T.
-    unfold bsaux_of_bits, Z_of_bsaux.
+    unfold bsaux_of_bits, bits_of_bsaux.
     repeat break_match; inversion Heqo; clear Heqo; subst; debool.
     - unfold cont_of_bsaux in *.
       break_match.
