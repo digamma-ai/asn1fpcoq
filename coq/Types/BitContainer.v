@@ -299,3 +299,8 @@ Proof. lia. Qed.
 
 Definition cut_b8_cont {l : nat} (c : container (8 + l)) (L : (0 < l)%nat)
 : cont8 * container l := split_cont c O_lt_8 L.
+
+Ltac uncont :=
+  unfold c2n, c2z, Z_of_cont in *; try reflexivity.
+  
+  

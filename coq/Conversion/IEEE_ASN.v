@@ -25,7 +25,7 @@ Definition binary_bounded_sumbool (prec emax : Z) (m : positive) (e : Z) :=
 Section Base2.
 
   Variable prec emax : Z.
-  Variable prec_gt_1 : prec > 1.
+  Hypothesis prec_gt_1 : prec > 1.
   Hypothesis Hmax : (prec < emax)%Z.
 
   (* only radix = 2 is considered for both formats in this section
@@ -34,7 +34,7 @@ Section Base2.
    *)
   Let r := radix2.
   Let scl := 0.
-(* can a given (m,e) pair be represented in IEEE/BER exactly *)
+  (* can a given (m,e) pair be represented in IEEE/BER exactly *)
   Let valid_IEEE := bounded prec emax.
   Let valid_BER := valid_BER r scl.
 
@@ -164,7 +164,8 @@ Section Base2.
      *  2) If the ASN encoding is a NaN,
      *     float's NaN payload is set to 1
      *)
-    Definition IEEE_of_BER_rounded (Hmax : prec < emax) (rounding : mode) (r : BER_float) : option (IEEE_float) :=
+    Definition IEEE_of_BER_rounded (Hmax : prec < emax)
+               (rounding : mode) (r : BER_float) : option (IEEE_float) :=
       match r with
       | BER_zero s => Some (B754_zero _ _ s)
       | BER_infinity s => Some (B754_infinity _ _ s)
@@ -181,7 +182,8 @@ Section Base2.
      *
      *  NaN payload is set to 1 uncoditionally
      *)
-    Definition IEEE_of_IEEE_round_reset_nan (Hmax : prec < emax) (rounding : mode) (f : IEEE_float) : IEEE_float :=
+    Definition IEEE_of_IEEE_round_reset_nan (Hmax : prec < emax)
+               (rounding : mode) (f : IEEE_float) : IEEE_float :=
       match f with
       | B754_nan _ _ _ _ _ => B754_nan _ _ false 1 def_NaN
       | B754_infinity _ _ s => B754_infinity _ _ s
