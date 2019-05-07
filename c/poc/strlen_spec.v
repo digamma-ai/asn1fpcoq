@@ -83,9 +83,7 @@ Definition strlen_C_fun_spec (m : mem) (b: block) (ofs : Z) :=  strlen_fun_C m b
 
 Definition VintZ := fun (z : Z) => Vint (Int.repr z).
 
-Inductive C_char : Values.val -> Prop :=
-| Null : C_char (VintZ 0)
-| NotNull : forall v c, v = VintZ c -> 0 < c < 128 -> C_char v. 
+
 
 Definition VintN:= fun n => Vint (Int.repr(Z_of_nat n)).
 
@@ -95,20 +93,62 @@ Definition tuchar := Tint I8 Unsigned noattr.
 
 Locate typ.
 
-Inductive C_string (m : Mem.mem) (b : block) (ofs : Z) (len : nat) :=
+(* Try recursive definition *)
+
+Inductive C_char : nat -> Set :=
+| Null_char : C_char 0
+| Not_null_char : forall n, C_char (S n).
+
+Check (Not_null_char 0).
+Check (C_char 1).
+
+
+(* Idea : take C_string to be nat *)
+
+(* Inductive C_string (m : Mem.mem) (b : block) (ofs : nat) : nat -> Prop :=
+| Empty_C_string : Mem.load Mint8signed m b (Z.of_nat ofs) = Some (VintZ 0) -> C_string m b ofs 0
+| Succ_C_string : forall v, C_char v -> Mem.load Mint8signed m b (Z.of_nat (S ofs)) = Some (VintZ 0) ->
+                       Mem.load Mint8signed m b (Z.of_nat ofs) = Some v ->
+                        C_string m b ofs ofs. *)
+
+
+Inductive pre_C_string (m : Mem.mem) (b : block) (ofs : Z) (len : nat) :=
+  is_pre_C_string : forall n i, (0 < Z.of_nat n < Int.modulus) ->
+                        (0 <= i <= len)%nat ->
+                        Mem.load Mint8signed m b (ofs + Z_of_nat i) = Some (VintN n) ->
+                        pre_C_string m b ofs len.
+
+Inductive C_string (m : Mem.mem) (b : block) (ofs : Z) : nat -> Prop :=
+  | empty_C_string : Mem.load Mint8signed m b ofs = Some (VintZ 0) ->
+                   C_string m b ofs O
+  | non_empty_C_string : forall len, pre_C_string m b ofs len -> C_string m b (ofs + Z.of_nat (S len)) O -> C_string m b ofs len.                         
+
+(* Inductive C_string (m : Mem.mem) (b : block) (ofs : Z) (len : nat) :=
   is_C_string : forall n i, (0 < Z.of_nat n < Int.modulus) ->
                         (0 <= i < len)%nat ->
                         Mem.load Mint8signed m b (ofs + Z_of_nat i) = Some (VintN n) ->
                         Mem.load Mint8signed m b (ofs + Z_of_nat len) = Some (VintZ 0) ->
                         C_string m b ofs len.
 
-
+*)
 Locate tschar.
 
 (* Relational spec  *)
 
+(*Inductive non_null_char : val -> Prop :=
+  is_non_null_char : forall n, (0 < n)%nat -> non_null_char (VintN n).
+
+Inductive pre_C_string : C_char -> Prop :=
+  char_pre_C_string : Not_null_char.
+  
+  
+
 Inductive strlen_C_rel_spec : Mem.mem -> block -> Z -> option (nat * mem)-> Prop
   :=
+
+  | ReadEmptyString : forall m b ofs, Mem.load Mint8signed m b ofs = Some (VintZ 0) -> strlen_C_rel_spec m b ofs (Some (O, m))
+  | ReadSuccString : forall m b ofs len,  Mem.load Mint8signed m b (ofs + len)  = Some (VintZ 0) ->
+                                     forall i z, i < len -> 0 < z -> Mem.load Mint8signed m b (ofs + i) = Some (VintZ z) ->  strlen_C_rel_spec m b ofs (Some (
   | CorrectRun :  forall len m b ofs,
       (len < INTSIZE)%nat -> C_string m b ofs len ->  strlen_C_rel_spec m b ofs (Some (len,m))
   | OutOfRange : forall len m b ofs,
@@ -128,7 +168,7 @@ Inductive strlen_C_rel_spec : Mem.mem -> block -> Z -> option (nat * mem)-> Prop
               (exists n', (n' < n)%nat /\ Mem.load chunk m b (ofs + (Z_of_nat n')) = None) ->
               strlen_C_rel_spec m b ofs None.
   *)                                                                         
-                            
+    *)                        
 (* Semantics of a C light function: *)
 
 (* strlen C light AST *)
@@ -193,6 +233,55 @@ Ltac ptrofs_to_Z :=
  Ltac ptrofs_compute_add_mul :=
       simpl; unfold Ptrofs.add; unfold Ptrofs.mul; unfold Ptrofs.of_intu; unfold Ptrofs.of_int;
       repeat rewrite Ptrofs.unsigned_repr_eq;  repeat rewrite Int.unsigned_repr_eq; repeat rewrite Zmod_small; simpl.
+
+
+
+Ltac seq1 := eapply exec_Sseq_1.
+Ltac seq2 := eapply exec_Sseq_2.
+Ltac sset := eapply exec_Sset.
+Ltac loop := eapply exec_Sloop_loop.
+Ltac gss := eapply gss.
+
+Ltac gso_assumption :=
+  match goal with
+  | [ H : ?P ! ?I = Some ?W |- (PTree.set ?O _ ?P) ! ?I = Some ?Z ] => rewrite gso  
+  | [ H : ?P ! ?Q = Some ?W |-  ?P ! ?Q = Some ?Z ] => apply H
+  | [ |- _ <> _ ] => cbv ; congruence
+  end.
+
+Lemma strlen_correct_empty_string :
+  (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
+  Archi.ptr64 = false ->
+  forall ge e m b ofs le len,                       
+    (* Preconditions on the length of the string and valid offset *)
+    0 < ofs < Ptrofs.modulus ->
+    Z_of_nat len < Int.modulus ->
+    ofs + Z_of_nat len < Ptrofs.modulus ->                      
+    (* Initialize local variables *)
+    le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
+    le!_output = Some (VintZ 0) ->                     
+    (* Precondition: reading empty C string from memory *)
+    Mem.load chunk m b ofs = Some (VintN O) ->
+    (* C light expression f_strlen returns O and assigns O to output variable *)
+    exists t le', exec_stmt ge e le m f_strlen.(fn_body) t le' m (Out_return (Some ((VintN O),tuint))) /\ (le'!_output) = Some (VintN O).
+Proof.
+  intros.
+  repeat eexists.
+  - seq1.
+    + seq1.
+      * sset. (* evaluate expression *) repeat econstructor.
+      * eapply exec_Sloop_stop1. (* break from the loop *)
+        repeat econstructor. repeat gso_assumption. 
+        eapply gss. 
+        repeat econstructor. simpl.
+        replace (Ptrofs.unsigned
+                   (Ptrofs.add (Ptrofs.repr ofs) (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))) with ofs. apply H5.
+        { pose (Ptrofs.modulus_eq32 H). ptrofs_compute_add_mul. all: nia. }
+        repeat econstructor. simpl. repeat econstructor. econstructor. econstructor.
+    + (* return statement *)
+      repeat econstructor. eapply gss.
+  - eapply gss.
+Qed.
  
 Lemma strlen_loop_break_correct : Archi.ptr64 = false -> forall ge e m b ofs outp le,
       ofs + Z.of_nat outp < Ptrofs.modulus ->
@@ -264,6 +353,12 @@ Proof.
     econstructor.
 Qed.
 
+
+(* Proof attempts below *)
+
+  
+
+
 Lemma strlen_correct : Archi.ptr64 = false -> forall ge e m b ofs le len,
       
       (0 <= Z_of_nat len < Int.modulus ) -> (* len is within bounds *)
@@ -281,23 +376,33 @@ Lemma strlen_correct : Archi.ptr64 = false -> forall ge e m b ofs le len,
 Admitted.
 
 
-(* Proof attempts below *)
+Lemma strlen_corr2 : (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
+  Archi.ptr64 = false ->
+  forall ge e m b ofs le len,
+                       
+               (* Preconditions on the length of the string and valid offset *)
+    0 < ofs < Ptrofs.modulus ->
+    Z_of_nat len < Int.modulus ->
+    ofs + Z_of_nat len < Ptrofs.modulus ->
+                       
+                       (* Initialize local variables *)
+    le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
+    le!_output = Some (VintZ 0) ->
 
-Lemma strlen_corr2 : Archi.ptr64 = false -> forall ge e m b ofs le len,
-      (ofs + Z_of_nat len) < Ptrofs.modulus ->
-      0 < ofs < Ptrofs.modulus ->
-      le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
-      le!_output = Some (VintZ 0) ->
-      C_string m b ofs len ->
-      (0 <= Z_of_nat len < Int.modulus ) ->
-      exists t le', exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\
-                    (le'!_output) = Some (Vint_of_nat len).
+                       
+       (* Precondition: reading C string from memory *)
+    forall i z, (i < len)%nat ->
+           Mem.load chunk m b (ofs + Z.of_nat i) = Some (VintN (S z)) ->
+           Mem.load chunk m b ofs = Some (VintN O) ->
+           
+      exists t le', exec_stmt ge e le m f_strlen.(fn_body) t le' m (Out_return (Some ((VintN len),tuint))) /\
+                    (le'!_output) = Some (VintN len).
 Proof.
   induction len.
   - (* Base case *) intro L. intros.
     apply (strlen_loop_break_correct H _  _ _ b ofs _ _).
     (* 1,2,3: nia. *)    
-    all: clear H4;  (* stack overflow on nia *)  try nia; inversion H3; assumption.
+     all: try nia ; try assumption. inversion H3. simpl; unfold VintZ in H5; replace (ofs + 0) with ofs by lia. assumption. inversion H3. simpl; unfold VintZ in H5; replace (ofs + 0) with ofs by lia. assumption.
   - (* Induction Step *) intro L. intros.
     assert (C_string m b ofs len).
     { inversion H3. admit. }
@@ -450,7 +555,7 @@ Admitted.
             inversion H ; clear H  
           | _ => idtac
         end.    
-
+ 
 
  Ltac solve_by_inverts n :=
    match n with
