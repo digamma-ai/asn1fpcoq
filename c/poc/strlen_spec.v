@@ -102,14 +102,17 @@ Inductive strlen : C_string -> nat -> Prop :=
 
 Definition VintP := fun p : positive => Vint (Int.repr (Z.pos p)).
 
+(* Inductive strlen_mem_op : mem -> block -> Z -> option (C_string*nat) -> Prop :=
+| LengthZeroMem_op : forall m b ofs, Mem.load Mint8signed m b ofs = Some (VintZ 0) -> strlen_mem_op m b ofs (Some (CEmptyString, O))
+| LengthSuccMem_op : forall m b ofs c s n, strlen_mem_op m b (ofs + 1) (Some (s,n)) -> Mem.load Mint8signed m b ofs = Some (VintP c) -> strlen_mem_op m b ofs (Some ((CString c s),(S n))).
+*)
 
-Inductive strlen_mem : mem -> block -> Z -> option (C_string*nat) -> Prop :=
-| LengthZeroMem : forall m b ofs, Mem.load Mint8signed m b ofs = Some (VintZ 0) -> strlen_mem m b ofs (Some (CEmptyString, O))
-| LengthSuccMem : forall m b ofs c s n, strlen_mem m b (ofs + 1) (Some (s,n)) -> Mem.load Mint8signed m b ofs = Some (VintP c) -> strlen_mem m b ofs (Some ((CString c s),(S n))).
-
-(*
-| LengthZeroMemFail : forall m b ofs, Mem.load Mint8unsigned m b ofs = None -> strlen_mem m b ofs None
- *) 
+ Inductive strlen_mem : mem -> block -> Z -> nat -> Prop :=
+| LengthZeroMem m b ofs: Mem.load Mint8signed m b ofs = Some (VintZ 0) -> strlen_mem m b ofs 0
+| LengthSuccMem m b ofs: forall p v,
+    strlen_mem m b (ofs+1) p ->
+    Mem.load Mint8signed m b ofs = Some (VintP v) ->
+    strlen_mem m b ofs (S p).
 
 (* Semantics of a C light function: *)
 
@@ -216,7 +219,7 @@ Proof.
         repeat econstructor. simpl.
         replace (Ptrofs.unsigned
                    (Ptrofs.add (Ptrofs.repr ofs) (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))) with ofs. apply H5.
-        { pose (Ptrofs.modulus_eq32 H). ptrofs_compute_add_mul. all: nia. }
+        { pose (Ptrofs.modulus_eq32 H). ptrofs_compute_add_mul.  all: nia. }
         repeat econstructor. simpl. repeat econstructor. econstructor. econstructor.
     + (* return statement *)
       repeat econstructor. eapply gss.
@@ -236,7 +239,7 @@ Lemma strlen_correct_empty_string_recursive :
     le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
     le!_output = Some (VintZ 0) ->                     
     (* Precondition: reading empty C string from memory *)
-    strlen_mem m b ofs (Some (CEmptyString,O)) ->
+    strlen_mem m b ofs O ->
     (* C light expression f_strlen returns O and assigns O to output variable *)
     exists t le', exec_stmt ge e le m f_strlen.(fn_body) t le' m (Out_return (Some ((VintN O),tuint))) /\ (le'!_output) = Some (VintN O).
 Proof.
@@ -321,7 +324,7 @@ Lemma strlen_correct_test :
     le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
     le!_output = Some (VintZ 0) ->                     
     (* Precondition: reading  C string of length 2 from memory *)
-    strlen_mem m b ofs (Some ((CString 1%positive (CString 1%positive CEmptyString)),2%nat)) ->
+    strlen_mem m b ofs 2%nat ->
     
     (* C light expression f_strlen returns O and assigns O to output variable *)
     exists t le', exec_stmt ge e le m f_strlen.(fn_body) t le' m (Out_return (Some ((VintZ 2),tuint))) /\ (le'!_output) = Some (VintZ 2).
@@ -333,14 +336,18 @@ Proof.
     + seq1.
       * sset. (* evaluate expression *) repeat econstructor.
       * (* loop 1 *)
-        loop. repeat econstructor. repeat gso_assumption. eapply gss.        repeat econstructor. simpl. replace (Ptrofs.unsigned
-                                               (Ptrofs.add (Ptrofs.repr ofs) (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))) with ofs. apply H7.  { pose (Ptrofs.modulus_eq32 H). ptrofs_compute_add_mul. all: nia. } repeat econstructor. simpl. repeat econstructor. econstructor. repeat econstructor. repeat econstructor. apply gss. repeat econstructor.
+        loop. repeat econstructor. repeat gso_assumption. eapply gss.        repeat econstructor. simpl. replace (Ptrofs.unsigned (Ptrofs.add (Ptrofs.repr ofs) (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))) with ofs. apply H7.  { pose (Ptrofs.modulus_eq32 H). ptrofs_compute_add_mul. all: nia. } repeat econstructor. simpl. repeat econstructor. simpl.
+        replace (negb (Int.eq (Int.repr (Z.pos v)) (Int.repr 0))) with true.      
+        econstructor. admit. repeat econstructor. repeat econstructor. repeat econstructor. apply gss. repeat econstructor.
 
         (* loop 2 *)
         loop. repeat econstructor. rewrite gso; repeat gso_assumption. eapply gss.
         repeat econstructor. simpl. replace (Ptrofs.unsigned
        (Ptrofs.add (Ptrofs.repr ofs)
-                   (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.add (Int.repr 0) (Int.repr 1)))))) with (ofs + 1). apply H8.  { pose (Ptrofs.modulus_eq32 H). ptrofs_compute_add_mul. all: admit. }        repeat econstructor. simpl. repeat econstructor. econstructor. repeat econstructor. repeat econstructor. apply gss. repeat econstructor.
+                   (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.add (Int.repr 0) (Int.repr 1)))))) with (ofs + 1). apply H8.  { pose (Ptrofs.modulus_eq32 H). ptrofs_compute_add_mul. all: admit. }        repeat econstructor. simpl. repeat econstructor. simpl.
+        replace (negb (Int.eq (Int.repr (Z.pos v0)) (Int.repr 0))) with true.
+      
+        econstructor. repeat econstructor. repeat econstructor. admit.  econstructor. repeat econstructor. repeat econstructor. apply gss. repeat econstructor.
          (* exit loop *)
         eapply exec_Sloop_stop1. (* break from the loop *)
         repeat econstructor.  rewrite gso; repeat gso_assumption.  rewrite gso; repeat gso_assumption.  eapply gss.
@@ -355,42 +362,106 @@ Proof.
   - eapply gss.
 Admitted.
 
-Lemma strlen_loop_continue_correct : Archi.ptr64 = false -> forall ge e m b ofs outp le,
-      
-      1 <= Z.of_nat (S outp) < Ptrofs.modulus ->
-      ofs + Z.of_nat (S outp) < Ptrofs.modulus ->
-      0 < ofs < Ptrofs.modulus ->
-      0 <= Z.of_nat outp < Ptrofs.modulus ->
-      
-      le!_input = Some (Vptr b (Ptrofs.repr (ofs + (Z.of_nat outp)))) ->
-      le!_output = Some (VintN outp) ->
-      
-      (exists z, 0 < z < Int.modulus /\
-Mem.load Mint8signed m b (ofs + (Z_of_nat outp)) = Some (Vint (Int.repr z))) ->
-      
-      exists t le', exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ (le'!_output) = Some (VintN (S outp)).
-Admitted.
 
+(* Helper lemmas about strlen_mem *)
+
+Lemma strlen_trans1 : forall len m b ofs, strlen_mem m b ofs len -> strlen_mem m b (ofs + Z.of_nat len) O.
+Proof.
+  induction len ; intros.
+  - replace (ofs + Z.of_nat 0) with ofs by nia. assumption.
+  - inversion_clear H.
+    replace (ofs + Z.of_nat (S len)) with (ofs + 1 + Z.of_nat len) by nia.
+    apply (IHlen m b (ofs + 1) H0).
+Qed.
+
+Lemma strlen_trans2 : forall len m b ofs, strlen_mem m b ofs (S len) -> strlen_mem m b (ofs + 1) len.
+Proof. intros. inversion H. assumption. Qed.
+
+Lemma strlen_trans3 : forall len m b ofs, strlen_mem m b ofs len -> forall i, (i < len)%nat -> strlen_mem m b (ofs + Z.of_nat i) (len - i)%nat.
+Proof.
+  induction len.
+  - intros. omega.
+  - induction i ; intro.
+    + replace (ofs + Z.of_nat 0) with ofs by nia.
+       replace  (S len - 0)%nat with (S len)%nat by omega. assumption. 
+    + inversion_clear H.
+       assert (i < len)%nat by omega. pose (IHlen m b (ofs + 1) H1 i H).
+       replace (S len - S i)%nat with (len - i)%nat by omega.
+       replace (ofs + Z.of_nat (S i)) with  (ofs + 1 + Z.of_nat i) by nia.
+       assumption.
+Qed.  
+   
+Lemma strlen_trans4 : forall len m b ofs, strlen_mem m b ofs len ->
+                                     forall i, (i < len)%nat -> exists p : positive, Mem.load chunk m b (ofs + Z.of_nat i) = Some (VintP p).
+Proof.
+  induction len.
+  - intros. omega.
+  -  induction i ; intro ; inversion_clear H.
+    +  replace (ofs + Z.of_nat 0) with ofs by nia.
+       exists v. assumption.
+    +  assert (i < len)%nat by omega. pose (IHlen m b (ofs + 1) H1 i H).
+       replace (ofs + Z.of_nat (S i)) with  (ofs + 1 + Z.of_nat i) by nia.
+       assumption.  
+Qed.
+    
+
+Lemma strlen_loop_continue_correct : Archi.ptr64 = false -> forall len ge e m b ofs le,
+      
+      1 <= Z.of_nat (S len) < Ptrofs.modulus ->
+      ofs + Z.of_nat (S len) < Ptrofs.modulus ->
+      0 < ofs < Ptrofs.modulus ->
+      0 <= Z.of_nat (S len) < Ptrofs.modulus ->
+
+      strlen_mem m b ofs len -> (* assume we have a string of length len at [b,ofs] in m *)
+      
+      forall i, (i < len)%nat ->  (* then the loop continues until len and outputs i++ *)
+           
+      le!_input = Some (Vptr b (Ptrofs.repr (ofs + Z.of_nat i))) -> (* ofs + i? *)
+      le!_output = Some (VintN i) ->
+      
+      exists t le', exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ le'!_output = Some (VintN (S i)).
+Proof.
+  induction len.
+  - intros. omega.
+  - induction i.
+    + intros. inversion_clear H4.
+      pose (IHlen ge e m b (ofs + 1) le).
+      assert (1 <= Z.of_nat (S len) < Ptrofs.modulus) by nia. 
+      assert (ofs + 1 + Z.of_nat (S len) < Ptrofs.modulus) by nia.
+      assert (0 < ofs + 1 < Ptrofs.modulus) by nia.
+      assert (0 <= Z.of_nat (S len) < Ptrofs.modulus) by nia.
+      apply (e0 H4 H10 H11 H12).
+      assumption.
+      admit. (* (0 < len)%nat *) 
+      admit. (* le ! _input = Some (Vptr b (Ptrofs.repr (ofs + 1))) *)
+      assumption.
+    +   
+       
+Admitted.
 
 Lemma strlen_correct : (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
   Archi.ptr64 = false ->
-  forall len ge e m b ofs le str,
+  forall len ge e m b ofs le,
                        
     (* Preconditions on the length of the string and valid offset *)
     0 < ofs < Ptrofs.modulus ->
-    Z_of_nat (S len) < Int.modulus ->
-    ofs + Z_of_nat (S len) < Ptrofs.modulus ->
+    Z_of_nat len < Int.modulus ->
+    ofs + Z_of_nat len < Ptrofs.modulus ->
                        
                        (* Initialize local variables *)
     le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
     le!_output = Some (VintZ 0) ->
                        
-       (* Precondition: reading C string from memory *)
-    strlen_mem m b ofs (Some (str,len)) ->
+       (* Precondition: reading C string of length len from memory *)
+    strlen_mem m b ofs len ->
+    
            
-      exists t le', exec_stmt ge e le m f_strlen.(fn_body) t le' m (Out_return (Some ((VintN len),tuint))) /\
-                    (le'!_output) = Some (VintN len).
+      exists t le', exec_stmt ge e le m f_strlen.(fn_body) t le' m (Out_return (Some ((VintN len),tuint))) /\ (le'!_output) = Some (VintN len).
 Proof.
+  intros.
+  pose (S := strlen_trans len m b ofs H5).
+  inversion_clear S. 
+  
   induction len.
   
   (* Base case *)
@@ -398,19 +469,21 @@ Proof.
     
   (* Inductive Step *)  
   - intros.
-    pose (S := IHlen ge e m b (ofs + 1) le str).
+     pose (S := IHlen ge e m b (ofs + 1) le).
     assert (0 < ofs + 1 < Ptrofs.modulus). nia.
-    assert (ofs + 1 + Z.of_nat (Datatypes.S len) < Ptrofs.modulus). nia.
-    assert (Z.of_nat (Datatypes.S len) < Int.modulus). nia.
-    apply ( S H6 H8 H7 H3 H4  ).
+    assert (ofs + 1 + Z.of_nat len < Ptrofs.modulus). nia.
+    assert (Z.of_nat  len < Int.modulus). nia.
+    inversion_clear H5.
+    cut (le ! _input = Some (Vptr b (Ptrofs.repr (ofs + 1)))). intro.
+    pose ( S H6 H8 H7 H5 H4 H9  ).
 
-    pose (S := ).
-    inversion H5.
+    pose (S := ). *)
+    inversion_clear H5. 
    repeat eexists.
       -- seq1.
          + seq1.
            * sset. repeat econstructor.
-           * fold f_strlen_loop.
+           * fold f_strlen_loop. 
              
 Admitted. 
                         
