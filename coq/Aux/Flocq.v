@@ -1,4 +1,4 @@
-Require Import ZArith Lia Basics.
+Require Import ZArith Lia Basics RelationClasses.
 Require Import Flocq.IEEE754.Binary Flocq.Core.Defs Flocq.Core.Zaux.
 Require Import ASN1FP.Aux.StructTactics ASN1FP.Aux.Option.
 
@@ -125,15 +125,62 @@ Section normalization.
       (e2 <= e1 /\ m2 = m1 * 2 ^ (e1 - e2))
       (e1 <= e2 /\ m1 = m2 * 2 ^ (e2 - e1)).
 
-  Lemma float_eq_refl (f : float) :
-    float_eq f f.
+  Lemma float_eq_refl : Reflexive float_eq.
   Proof.
+    unfold Reflexive; intro f.
     unfold float_eq; left.
     replace (Fexp f - Fexp f) with 0.
     all: lia.
   Qed.
 
+  Lemma float_eq_sym : Symmetric float_eq.
+  Proof.
+    unfold Symmetric, float_eq.
+    intros; destruct H; auto.
+  Qed.
 
+  Lemma float_eq_trans : Transitive float_eq.
+  Proof.
+    unfold Transitive.
+    destruct x as [mx ex], y as [my ey], z as [mz ez].
+    unfold float_eq.
+    clear prec emax emin float Float.
+    simpl.
+    intros XY YZ.
+    destruct XY as [XY | XY]; destruct YZ as [YZ | YZ].
+    all: destruct XY as [EXY MXY]; destruct YZ as [EYZ MYZ]; subst.
+    - left; split; [lia |].
+      rewrite <-Z.mul_assoc.
+      rewrite <-Z.pow_add_r; try lia.
+      replace (ex - ey + (ey - ez)) with (ex - ez) by lia.
+      reflexivity.
+    - destruct (Z.eq_dec ex ez); subst.
+      + (* ex = ez *)
+        apply Z.mul_reg_r in MYZ.
+        subst; left; split; [lia |].
+        rewrite Z.sub_diag; lia.
+        generalize (Z.pow_pos_nonneg 2 (ez - ey)); lia.
+      + destruct (Z_lt_le_dec ex ez).
+        * (* ex < ez *)
+          assert (ey <= ex < ez) by lia; clear EXY EYZ n l.
+          right; split; [lia |].
+          apply f_equal with (f := fun x => Z.div x (2 ^ (ex - ey))) in MYZ.
+          rewrite Z_div_mult in MYZ;
+            [| generalize (Z.pow_pos_nonneg 2 (ex - ey)); lia].
+          admit.
+        * (* ez < ex *)
+          assert (ey <= ez < ex) by lia; clear EXY EYZ n l.
+          admit.
+    - admit.
+    - right; split; [lia |].
+      rewrite <-Z.mul_assoc.
+      rewrite <-Z.pow_add_r; try lia.
+      replace (ez - ey + (ey - ex)) with (ez - ex) by lia.
+      reflexivity.
+  Admitted.
+
+  Definition float_eq_equivalence :=
+    Build_Equivalence float_eq float_eq_refl float_eq_sym float_eq_trans.
 
   (** * converting between floats in the same cohort *)
 
