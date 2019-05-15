@@ -122,8 +122,8 @@ Section normalization.
     let '(m1, e1) := (Fnum f1, Fexp f1) in
     let '(m2, e2) := (Fnum f2, Fexp f2) in
     or
-      (m2 = m1 * 2 ^ (e1 - e2))
-      (m1 = m2 * 2 ^ (e2 - e1)).
+      (e2 <= e1 /\ m2 = m1 * 2 ^ (e1 - e2))
+      (e1 <= e2 /\ m1 = m2 * 2 ^ (e2 - e1)).
 
   Lemma float_eq_refl (f : float) :
     float_eq f f.
@@ -216,7 +216,11 @@ Section normalization.
     rewrite two_power_pos_equiv in Heqrm.
     assert (0 < 2 ^ Z.pos de).
     apply Z.pow_pos_nonneg.
-    all: lia.
+    all: try lia.
+    subst rm.
+    rewrite two_power_pos_equiv.
+    generalize (Z.pow_pos_nonneg 2 (Z.pos de)).
+    lia.
   Qed.
 
   Lemma dec_e_eq (f : float) (de : positive) :
@@ -228,6 +232,8 @@ Section normalization.
     left.
     replace (e - (e - Z.pos de)) with (Z.pos de) by lia.
     rewrite two_power_pos_equiv.
+    split.
+    lia.
     reflexivity.
   Qed.
 
@@ -434,7 +440,7 @@ Section normalization.
   Proof.
     unfold float_eq.
     destruct f1 as [m1 e1], f2 as [m2 e2].
-    simpl; intros H E; destruct H; subst.
+    simpl; intros H E; destruct H; destruct H as [T H]; clear T; subst.
     all: rewrite Z.sub_diag; simpl; lia.
   Qed.
 
