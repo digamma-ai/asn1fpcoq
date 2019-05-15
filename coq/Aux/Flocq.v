@@ -294,7 +294,7 @@ Section normalization.
     - intro H; inversion H; apply dec_e_eq.
   Qed.
 
-  Lemma set_exp_eq (f1 : float) (e : Z) {f2 : float} :
+  Lemma set_e_eq (f1 : float) (e : Z) {f2 : float} :
     set_e f1 e = Some f2 ->
     float_eq f1 f2.
   Proof.
@@ -467,7 +467,7 @@ Section normalization.
 
   Definition normalize_float (f : float) : option float :=
     match set_e f emin with
-      | None => None         (* minimal available exponent is less than emin *)
+      | None => None
       | Some f1 => if digits (Fnum f1) <=? prec
                    then Some f1
                    else match set_digits_m f prec with
@@ -492,23 +492,61 @@ Section normalization.
   Qed.
 
   Lemma digits_m_unique (f1 f2 : float) :
+    Fnum f1 <> 0 -> Fnum f2 <> 0 ->
     float_eq f1 f2 ->
     digits (Fnum f1) = digits (Fnum f2) ->
     Fexp f1 = Fexp f2.
   Proof.
     unfold float_eq.
     destruct f1 as [m1 e1], f2 as [m2 e2].
-    simpl; intros H DM; destruct H; subst.
-  Admitted.
-  
-  (*
+    simpl; intros M1 M2 H DM; destruct H; destruct H as [H1 H2]; subst.
+    all: destruct (Z.eq_dec e1 e2); try assumption.
+    - assert (e2 < e1) by lia; clear H1 n.
+      apply Zcompare_Gt in H.
+      apply Zcompare_Gt_spec in H; destruct H as [de H].
+      replace (e1 - e2) with (Z.pos de) in DM by lia.
+      rewrite <-two_power_pos_equiv in DM.
+      rewrite digits_mul_pow2 in DM by assumption.
+      contradict DM; lia.
+    - assert (e1 < e2) by lia; clear H1 n.
+      apply Zcompare_Gt in H.
+      apply Zcompare_Gt_spec in H; destruct H as [de H].
+      replace (e2 - e1) with (Z.pos de) in DM by lia.
+      rewrite <-two_power_pos_equiv in DM.
+      rewrite digits_mul_pow2 in DM by assumption.
+      contradict DM; lia.
+  Qed.
+
   Theorem normalize_correct (f : float) :
     match (normalize_float f) with
     | Some nf => (float_eq f nf) /\ (valid_float nf = true)
     | None => forall (xf : float),
         float_eq f xf -> valid_float xf = false
     end.
+  Proof.
+    break_match. rename f0 into nf.
+    - (* successful normalization - equal and valid? *)
+      unfold normalize_float in Heqo.
+      repeat break_match; inversion Heqo; subst.
+      + (* subnormal *)
+        split.
+        * (* same float? *)
+          apply set_e_eq with (e := emin).
+          assumption.
+        * (* valid float? *)
+          apply Z.leb_le in Heqb.
+          unfold valid_float.
+          break_match; try reflexivity.
+          admit.
+      + (* normal *)
+        split.
+        * (* same float? *)
+          apply set_digits_m_eq with (dm := prec).
+          assumption.
+        * (* valid float? *)
+          admit.
+    - (* unsuccesful normalization - impossible to normalize? *)
+      admit.
   Admitted.
-  *)
-
+  
 End normalization.
