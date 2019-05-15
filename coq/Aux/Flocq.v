@@ -111,6 +111,12 @@ Section normalization.
     | zero e => Float 0 e
     | sme s m e => Float (if s then Z.neg m else Z.pos m) e
     end.
+
+  Definition valid_float (f : float) :=
+    match (sme_of_float f) with
+    | zero e => true
+    | sme s m e => bounded prec emax m e
+    end.
   
   Definition float_eq (f1 : float) (f2 : float) : Prop :=
     let '(m1, e1) := (Fnum f1, Fexp f1) in
@@ -146,7 +152,7 @@ Section normalization.
     Float (m * two_power_pos de) (e - Z.pos de).
 
   (* shift (up or down) the exponent by de *)
-  Definition shift_exp (f : float) (de : Z) : option float :=
+  Definition shift_e (f : float) (de : Z) : option float :=
     match de with
     | Z0 => Some f
     | Z.pos pde => inc_e f pde
@@ -154,8 +160,41 @@ Section normalization.
     end.
 
   (* set exponent to a given one *)
-  Definition set_exp (f : float) (exp__target : Z) : option float :=
-    shift_exp f (exp__target - Fexp f).
+  Definition set_e (f : float) (e : Z) : option float :=
+    shift_e f (e - Fexp f).
+
+  Lemma inc_e_correct (f1 : float) (de : positive) {f2 : float} :
+    inc_e f1 de = Some f2 ->
+    Fexp f2 = Fexp f1 + Z.pos de.
+  Proof.
+    unfold inc_e.
+    intro; break_match; inversion H; clear H.
+    reflexivity.
+  Qed.
+
+  Lemma dec_e_correct (f : float) (de : positive) :
+    Fexp (dec_e f de) = Fexp f - Z.pos de.
+  Proof. reflexivity. Qed.
+
+  Lemma shift_e_correct (f1 : float) (de : Z) {f2 : float} :
+    shift_e f1 de = Some f2 ->
+    Fexp f2 = Fexp f1 + de.
+  Proof.
+    unfold shift_e; intro; break_match; inversion H; clear H.
+    lia.
+    apply inc_e_correct; assumption.
+    apply dec_e_correct.
+  Qed.
+
+  Lemma set_e_correct (f1 : float) (e : Z) {f2 : float} :
+    set_e f1 e = Some f2 ->
+    Fexp f2 = e.
+  Proof.
+    unfold set_e.
+    intro H.
+    apply shift_e_correct in H.
+    lia.
+  Qed.
 
   (* increasing/decreasing/setting an exponent preserves the float's value *)
   Lemma inc_e_eq (f1 : float) (de : positive) {f2 : float} :
@@ -192,8 +231,8 @@ Section normalization.
     reflexivity.
   Qed.
 
-  Lemma shift_exp_eq (f1 : float) (de : Z) {f2 : float} :
-    shift_exp f1 de = Some f2 ->
+  Lemma shift_e_eq (f1 : float) (de : Z) {f2 : float} :
+    shift_e f1 de = Some f2 ->
     float_eq f1 f2.
   Proof.
     destruct de; simpl.
@@ -202,21 +241,21 @@ Section normalization.
     - intro H; inversion H; apply dec_e_eq.
   Qed.
 
-  Lemma set_exp_eq (f1 : float) (exp__target : Z) {f2 : float} :
-    set_exp f1 exp__target = Some f2 ->
+  Lemma set_exp_eq (f1 : float) (e : Z) {f2 : float} :
+    set_e f1 e = Some f2 ->
     float_eq f1 f2.
   Proof.
-    unfold set_exp.
-    apply shift_exp_eq.
+    unfold set_e.
+    apply shift_e_eq.
   Qed.
 
-  (** ** exponent can always be decreased *)
-  Lemma can_decrease_exp (f : float) (exp__target : Z) :
-    exp__target < Fexp f ->
-    is_Some_b (set_exp f exp__target) = true.
+  (** exponent can always be decreased *)
+  Lemma can_decrease_exponent (f : float) (e : Z) :
+    e < Fexp f ->
+    is_Some_b (set_e f e) = true.
   Proof.
-    unfold set_exp, shift_exp.
-    destruct f as [m e]; simpl; intro.
+    unfold set_e, shift_e.
+    destruct f as [fm fe]; simpl; intro.
     break_match; try lia.
     reflexivity.
   Qed.
@@ -224,7 +263,7 @@ Section normalization.
   (* binary digits of m, disregarding the sign *)
   Definition digits (m : Z) := Z.log2 (Z.abs m) + 1.
 
-  Lemma digits_of_pow2_mul (m : Z) (d : positive):
+  Lemma digits_mul_pow2 (m : Z) (d : positive) :
     m <> 0 -> digits (m * two_power_pos d) = digits m + Z.pos d.
   Proof.
     intro.
@@ -255,56 +294,161 @@ Section normalization.
     all: lia.
   Qed.
 
-  (** ** correspondence between shifting the exponent and the number of digits of the mantissa *)
-  Lemma dec_e_digits_m (f : float) (de : positive) :
-    Fnum f <> 0 -> digits (Fnum (dec_e f de)) = digits (Fnum f) + Z.pos de.
+  Lemma digits_div_pow2 (m : Z) (d : positive) :
+    m <> 0 ->
+    m mod two_power_pos d = 0 ->
+    digits (m / two_power_pos d) = digits m - Z.pos d.
   Proof.
-    unfold dec_e; simpl.
-    apply digits_of_pow2_mul.
-  Qed.
-
-  Lemma inc_e_digits_m (f1 : float) (de : positive) {f2 : float} :
-    Fnum f1 <> 0 ->
-    inc_e f1 de = Some f2 ->
-    digits (Fnum f2) = digits (Fnum f1) - Z.pos de.
-  Proof.
-    destruct f1 as [m1 e1], f2 as [m2 e2].
-    unfold inc_e.
-    simpl; intros M H.
-    break_match; inversion H; clear H.
+    intros M H.
     unfold digits.
     rewrite Zabs_div_exact.
     rewrite two_power_pos_equiv in *.
     rewrite Z.abs_pow.
-    remember (Z.abs m1) as pm1; remember (Z.pos de) as pde.
-    rewrite Z.eqb_eq in Heqb.
-    apply Zmod_divides in Heqb.
-    destruct Heqb as [c Heqb].
-    subst m1.
-    rewrite Z.abs_mul, Z.abs_pow in Heqpm1.
+    remember (Z.abs m) as pm; remember (Z.pos d) as pd.
+    apply Zmod_divides in H; destruct H.
+    subst m.
+    rewrite Z.abs_mul, Z.abs_pow in Heqpm.
     replace (Z.abs 2) with 2 in * by reflexivity.
-    subst pm1.
-    remember (Z.abs c) as pc.
+    subst pm.
+    remember (Z.abs x) as px.
     rewrite Z.mul_comm.
     rewrite Z.div_mul.
     rewrite Z.log2_mul_pow2.
     all: subst.
     all: try lia.
-    destruct (Z.eq_dec c 0); subst; lia.
-    destruct (Z.eq_dec (2 ^ Z.pos de) 0); [ rewrite e in M; lia | assumption ].
-    generalize (Z.pow_pos_nonneg 2 (Z.pos de)); lia.
-    rewrite two_power_pos_equiv; generalize (Z.pow_pos_nonneg 2 (Z.pos de)); lia.
-    rewrite Z.eqb_eq in Heqb; assumption.
+    destruct (Z.eq_dec x 0); subst; lia.
+    destruct (Z.eq_dec (2 ^ Z.pos d) 0); [ rewrite e in M; lia | assumption ].
+    assert (m mod 2 ^ Z.pos d < 2 ^ Z.pos d); try lia.
+    apply Zmod_pos_bound.
+    apply Z.pow_pos_nonneg; lia.
+    rewrite two_power_pos_equiv; generalize (Z.pow_pos_nonneg 2 (Z.pos d)); lia.
   Qed.
-  
-  (*
+
+  (** ** correspondence between shifting the exponent and the number of digits of the mantissa *)
+
+  Definition inc_digits_m := dec_e.
+  Definition dec_digits_m := inc_e.
+  Definition shift_digits_m (f : float) (ddm : Z) := shift_e f (- ddm).
+  Definition set_digits_m (f : float) (dm : Z) := shift_digits_m f (dm - digits (Fnum f)).
+
+  Lemma inc_digits_m_correct (f : float) (ddm : positive) :
+    Fnum f <> 0 ->
+    digits (Fnum (inc_digits_m f ddm)) = digits (Fnum f) + Z.pos ddm.
+  Proof.
+    unfold inc_digits_m, dec_e; simpl.
+    apply digits_mul_pow2.
+  Qed.
+
+  Lemma dec_digits_m_correct (f1 : float) (ddm : positive) {f2 : float} :
+    Fnum f1 <> 0 ->
+    dec_digits_m f1 ddm = Some f2 ->
+    digits (Fnum f2) = digits (Fnum f1) - Z.pos ddm.
+  Proof.
+    destruct f1 as [m1 e1], f2 as [m2 e2].
+    unfold dec_digits_m, inc_e.
+    simpl; intros M H.
+    break_match; inversion H; clear H.
+    rewrite Z.eqb_eq in Heqb.
+    apply digits_div_pow2; assumption.
+  Qed.
+
+  Lemma shift_digits_m_correct (f1 : float) (ddm : Z) {f2 : float} :
+    Fnum f1 <> 0 ->
+    shift_digits_m f1 ddm = Some f2 ->
+    digits (Fnum f2) = digits (Fnum f1) + ddm.
+  Proof.
+    unfold shift_digits_m, shift_e.
+    simpl; intros M H.
+    break_match; inversion H; clear H; subst.
+    - lia.
+    - replace inc_e with dec_digits_m in H1 by reflexivity.
+      replace ddm with (Z.neg p) by lia.
+      apply dec_digits_m_correct; assumption.
+    - replace dec_e with inc_digits_m in Heqz by reflexivity.
+      replace ddm with (Z.pos p) by lia.
+      apply inc_digits_m_correct; assumption.
+  Qed.
+
+  Lemma set_digits_m_correct (f1 : float) (dm : Z) {f2 : float} :
+    Fnum f1 <> 0 ->
+    set_digits_m f1 dm = Some f2 ->
+    digits (Fnum f2) = dm.
+  Proof.
+    intros M H.
+    unfold set_digits_m in H.
+    apply shift_digits_m_correct in H; [| assumption].
+    rewrite H.
+    lia.
+  Qed.
+
+  Lemma inc_digits_m_eq (f : float) (ddm : positive) :
+    float_eq f (inc_digits_m f ddm).
+  Proof.
+    unfold inc_digits_m.
+    apply dec_e_eq.
+  Qed.
+
+  Lemma dec_digits_m_eq (f1 : float) (ddm : positive) {f2 : float} :
+    dec_digits_m f1 ddm = Some f2 ->
+    float_eq f1 f2.
+  Proof.
+    unfold dec_digits_m.
+    apply inc_e_eq.
+  Qed.
+
+  Lemma shift_digits_m_eq (f1 : float) (ddm : Z) {f2 : float} :
+    shift_digits_m f1 ddm = Some f2 ->
+    float_eq f1 f2.
+  Proof.
+    unfold shift_digits_m.
+    apply shift_e_eq.
+  Qed.
+
+  Lemma set_digits_m_eq (f1 : float) (dm : Z) {f2 : float} :
+    set_digits_m f1 dm = Some f2 ->
+    float_eq f1 f2.
+  Proof.
+    unfold set_digits_m.
+    apply shift_digits_m_eq.
+  Qed.
+
   Definition normalize_float (f : float) : option float :=
-    match set_exp f emin with
+    match set_e f emin with
       | None => None         (* minimal available exponent is less than emin *)
       | Some f1 => if digits (Fnum f1) <=? prec
                    then Some f1
-                   else 
-                    
+                   else match set_digits_m f prec with
+                       | None => None
+                       | Some f2 => if andb
+                                         (emin <=? Fexp f2)
+                                         (Fexp f2 <=? emax - prec)
+                                    then Some f2
+                                    else None
+                       end
+    end.
+
+  Lemma exponent_unique (f1 f2 : float) :
+    float_eq f1 f2 ->
+    Fexp f1 = Fexp f2 ->
+    Fnum f1 = Fnum f2.
+  Proof.
+    unfold float_eq.
+    destruct f1 as [m1 e1], f2 as [m2 e2].
+    simpl; intros H E; destruct H; subst.
+    all: rewrite Z.sub_diag; simpl; lia.
+  Qed.
+
+  Lemma digits_m_unique (f1 f2 : float) :
+    float_eq f1 f2 ->
+    digits (Fnum f1) = digits (Fnum f2) ->
+    Fexp f1 = Fexp f2.
+  Proof.
+    unfold float_eq.
+    destruct f1 as [m1 e1], f2 as [m2 e2].
+    simpl; intros H DM; destruct H; subst.
+  Admitted.
+  
+  (*
   Theorem normalize_correct (f : float) :
     match (normalize_float f) with
     | Some nf => (float_eq f nf) /\ (valid_float nf = true)
