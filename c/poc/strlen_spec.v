@@ -526,9 +526,32 @@ Proof.
     +  assert (i < len)%nat by omega. pose (IHlen m b (ofs + 1) H1 i H).
        replace (ofs + Z.of_nat (S i)) with  (ofs + 1 + Z.of_nat i) by nia.
        assumption.  
-Qed.
+Qed.    
+ Ltac invert_clear :=
+        match goal with
+          | [H : context[exec_stmt] |- _] =>
+            inversion_clear H 
+          | [H : context[eval_expr] |- _] =>
+            inversion_clear H 
+          | [H : context[eval_lvalue] |- _] =>
+            inversion_clear H 
+          | [H : context[bool_val] |- _] =>
+            inversion_clear H  
+          | [H : context[deref_loc] |- _] =>
+            inversion_clear H  
+          | [H : context[sem_binary_operation] |- _] =>
+           inversion_clear H  
+          | [H : context[access_mode] |- _] =>
+            inversion_clear H  
+          | _ => idtac
+        end.    
 
 
+ Ltac solve_by_inverts n :=
+   match n with
+   | O => subst
+   | S (?n') =>  invert_clear; solve_by_inverts n'
+   end.
 
 
 (* Lemma used in the induction step below *)
@@ -574,7 +597,7 @@ Proof.
     
     
   
-                                                                                                                                                                                                                                                                               
+                                                                                                                                                                                                         
 Lemma exec_trans : forall ge e le m b ofs len,   
     le!_output = Some (VintZ 0) ->
     le!_input = Some (Vptr b (Ptrofs.repr (ofs + 1))) ->
@@ -604,7 +627,7 @@ Proof.
   - (* Base case *)
     (* Break condition *)
     apply strlen_loop_break_correct2.
-        
+
   Admitted.
 
 Lemma strlen_loop_correct : (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)

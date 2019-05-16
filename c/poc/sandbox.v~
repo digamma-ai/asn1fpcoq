@@ -1,0 +1,41 @@
+Lemma strlen_loop_continue_correct : Archi.ptr64 = false -> forall z ge e m b ofs outp le,
+      
+      1 <= Z.of_nat (S outp) < Ptrofs.modulus ->
+      0 < z < Int.modulus ->
+      ofs + Z.of_nat ( S outp ) < Ptrofs.modulus ->
+      0 < ofs < Ptrofs.modulus ->
+      0 <= Z.of_nat outp < Ptrofs.modulus ->
+      
+      le!_input = Some (Vptr b (Ptrofs.repr (ofs + (Z.of_nat outp)))) ->
+      le!_output = Some (VintN outp) ->
+      
+      Mem.load Mint8signed m b (ofs + (Z_of_nat outp)) = Some (Vint (Int.repr z)) ->
+      
+      exists t le', exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ (le'!_output) = Some (VintN (S outp)).
+Proof.
+  induction outp.
+  intros.
+  repeat eexists.
+  - loop.  repeat econstructor; repeat gso_assumption. repeat econstructor. simpl.
+     replace  (Ptrofs.unsigned
+       (Ptrofs.add (Ptrofs.repr (ofs + 0))
+                   (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))) with (ofs + Z.of_nat 0). apply H7. { pose (Ptrofs.modulus_eq32 H). rewrite Ptrofs.mul_commut. rewrite Ptrofs.mul_one. ptrofs_compute_add_mul. all: nia. }
+   econstructor. simpl. replace  (negb (Int.eq (Int.repr z) (Int.repr 0))) with true.
+    econstructor. { admit. } 
+    repeat econstructor. econstructor.
+    repeat econstructor. gso_assumption.
+    repeat econstructor.
+    assert (exists t, exec_stmt ge e (PTree.set _output (Vint (Int.add (Int.repr (Z.of_nat 0)) (Int.repr 1))) le)
+    m
+    (Sloop
+       (Sifthenelse
+          (Ebinop One
+             (Ederef
+                (Ebinop Oadd (Etempvar _input (tptr tschar)) (Etempvar _output tuint)
+                   (tptr tschar)) tschar) (Econst_int (Int.repr 0) tint) tint) Sskip Sbreak)
+       (Sset _output (Ebinop Oadd (Etempvar _output tuint) (Econst_int (Int.repr 1) tint) tuint)))
+    t (PTree.set _output (Vint (Int.add (Int.repr (Z.of_nat 0)) (Int.repr 1))) le) m Out_normal ).
+    
+    fold f_strlen_loop. apply (strlen_loop_break_correct2 H _  _ _ b ofs (S O) _) ; try nia ; try assumption.  gso_assumption.
+  admit. admit. apply gss.
+Admitted.
