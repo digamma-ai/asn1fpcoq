@@ -86,9 +86,6 @@ End Flocq_bounded_IEEE.
 
 Section normalization.
 
-  Variable prec emax : Z.
-  Let emin := 3 - emax - prec.
-
   (* a basic float - a pair of two integers - mantissa and exponent *)
   Let float := float radix2.
   Let Float := Float radix2.
@@ -112,7 +109,7 @@ Section normalization.
     | sme s m e => Float (if s then Z.neg m else Z.pos m) e
     end.
 
-  Definition valid_float (f : float) :=
+  Definition valid_float (prec emax : Z) (f : float) :=
     match (sme_of_float f) with
     | zero e => true
     | sme s m e => bounded prec emax m e
@@ -139,12 +136,25 @@ Section normalization.
     intros; destruct H; auto.
   Qed.
 
+  Lemma Zpow_divide (b p1 p2 : Z) :
+    0 < b ->
+    0 <= p1 <= p2 ->
+    (b ^ p1 | b ^ p2).
+  Proof.
+    intros B P.
+    rewrite <-Z.mod_divide by (apply Z.pow_nonzero; lia).
+    replace p2 with ((p2 - p1) + p1) by lia.
+    rewrite Z.pow_add_r by lia.
+    Search Zmod Z.mul.
+    apply Z_mod_mult.
+  Qed.
+
   Lemma float_eq_trans : Transitive float_eq.
   Proof.
     unfold Transitive.
     destruct x as [mx ex], y as [my ey], z as [mz ez].
     unfold float_eq.
-    clear prec emax emin float Float.
+    clear float Float.
     simpl.
     intros XY YZ.
     destruct XY as [XY | XY]; destruct YZ as [YZ | YZ].
@@ -162,22 +172,58 @@ Section normalization.
         generalize (Z.pow_pos_nonneg 2 (ez - ey)); lia.
       + destruct (Z_lt_le_dec ex ez).
         * (* ex < ez *)
-          assert (ey <= ex < ez) by lia; clear EXY EYZ n l.
+          rename MYZ into H.
+          assert (H1 : ey <= ex < ez) by lia; clear EXY EYZ n l.
           right; split; [lia |].
-          apply f_equal with (f := fun x => Z.div x (2 ^ (ex - ey))) in MYZ.
-          rewrite Z_div_mult in MYZ;
+          apply f_equal with (f := fun x => Z.div x (2 ^ (ex - ey))) in H.
+          rewrite Z_div_mult in H;
             [| generalize (Z.pow_pos_nonneg 2 (ex - ey)); lia].
-          admit.
+          subst.
+          rewrite Z.divide_div_mul_exact;
+            [| apply Z.pow_nonzero; lia | apply Zpow_divide; lia].
+          replace (ez - ey) with ((ez - ex) + (ex - ey)) by lia.
+          rewrite Z.pow_add_r by lia.
+          rewrite Z.div_mul by (apply Z.pow_nonzero; lia).
+          reflexivity.
         * (* ez < ex *)
-          assert (ey <= ez < ex) by lia; clear EXY EYZ n l.
-          admit.
-    - admit.
+          rename MYZ into H.
+          assert (H1: ey <= ez < ex) by lia; clear EXY EYZ n l.
+          left; split; [lia |].
+          apply f_equal with (f := fun x => Z.div x (2 ^ (ez - ey))) in H.
+          rewrite Z_div_mult in H;
+            [| generalize (Z.pow_pos_nonneg 2 (ez - ey)); lia].
+          subst.
+          rewrite Z.divide_div_mul_exact;
+            [| apply Z.pow_nonzero; lia | apply Zpow_divide; lia].
+          replace (ex - ey) with ((ex - ez) + (ez - ey)) by lia.
+          rewrite Z.pow_add_r by lia.
+          rewrite Z.div_mul by (apply Z.pow_nonzero; lia).
+          reflexivity.
+    - destruct (Z.eq_dec ex ez); subst.
+      + (* ex = ez *)
+        left; split; [lia |].
+        rewrite Z.sub_diag; lia.
+      + destruct (Z_lt_le_dec ex ez).
+        * (* ex < ez *)
+          assert (H : ex < ez <= ey) by lia; clear EXY EYZ n l.
+          right; split; [lia |].
+          rewrite <-Z.mul_assoc.
+          rewrite <-Z.pow_add_r by lia.
+          replace (ey - ez + (ez - ex)) with (ey - ex) by lia.
+          reflexivity.
+        * (* ez < ex *)
+          assert (H: ez < ex <= ey) by lia; clear EXY EYZ n l.
+          left; split; [lia |].
+          rewrite <-Z.mul_assoc.
+          rewrite <-Z.pow_add_r by lia.
+          replace (ey - ex + (ex - ez)) with (ey - ez) by lia.
+          reflexivity.
     - right; split; [lia |].
       rewrite <-Z.mul_assoc.
       rewrite <-Z.pow_add_r; try lia.
       replace (ez - ey + (ey - ex)) with (ez - ex) by lia.
       reflexivity.
-  Admitted.
+  Qed.
 
   Definition float_eq_equivalence :=
     Build_Equivalence float_eq float_eq_refl float_eq_sym float_eq_trans.
@@ -334,7 +380,6 @@ Section normalization.
     a mod b = 0 ->
     Z.abs (a / b) = Z.abs a / Z.abs b.
   Proof.
-    clear prec emax emin float Float.
     intros B AMB.
     apply Zmod_divides in AMB; [| assumption ].
     destruct AMB as [c AMB].
@@ -465,7 +510,8 @@ Section normalization.
     apply shift_digits_m_eq.
   Qed.
 
-  Definition normalize_float (f : float) : option float :=
+  Definition normalize_float (prec emax : Z) (f : float) : option float :=
+    let emin := 3 - emax - prec in
     match set_e f emin with
       | None => None
       | Some f1 => if digits (Fnum f1) <=? prec
@@ -517,11 +563,11 @@ Section normalization.
       contradict DM; lia.
   Qed.
 
-  Theorem normalize_correct (f : float) :
-    match (normalize_float f) with
-    | Some nf => (float_eq f nf) /\ (valid_float nf = true)
+  Theorem normalize_correct (prec emax : Z) (f : float) :
+    match (normalize_float prec emax f) with
+    | Some nf => (float_eq f nf) /\ (valid_float prec emax nf = true)
     | None => forall (xf : float),
-        float_eq f xf -> valid_float xf = false
+        float_eq f xf -> valid_float prec emax xf = false
     end.
   Proof.
     break_match. rename f0 into nf.
@@ -531,7 +577,7 @@ Section normalization.
       + (* subnormal *)
         split.
         * (* same float? *)
-          apply set_e_eq with (e := emin).
+          apply set_e_eq with (e := 3 - emax - prec).
           assumption.
         * (* valid float? *)
           apply Z.leb_le in Heqb.
