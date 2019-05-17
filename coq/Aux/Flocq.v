@@ -129,7 +129,6 @@ Section normalization.
     rewrite <-Z.mod_divide by (apply Z.pow_nonzero; lia).
     replace p2 with ((p2 - p1) + p1) by lia.
     rewrite Z.pow_add_r by lia.
-    Search Zmod Z.mul.
     apply Z_mod_mult.
   Qed.
 
@@ -211,6 +210,22 @@ Section normalization.
 
   Definition float_eq_equivalence :=
     Build_Equivalence float_eq float_eq_refl float_eq_sym float_eq_trans.
+
+  Lemma not_zero_eq (f1 f2 : float) :
+    not_zero f1 ->
+    float_eq f1 f2 ->
+    not_zero f2.
+  Proof.
+    unfold not_zero, float_eq.
+    destruct f1 as [m1 e1], f2 as [m2 e2]; simpl.
+    intros NZ1 H.
+    destruct H; destruct H as [H1 H2]; subst.
+    - assert (0 < 2 ^ (e1 - e2)) by (apply Z.pow_pos_nonneg; lia).
+      apply Z.neq_mul_0.
+      lia.
+    - intros H; contradict NZ1.
+      subst; reflexivity.
+  Qed.
 
   (** * converting between floats in the same cohort *)
 
@@ -452,7 +467,7 @@ Section normalization.
   Qed.
 
   Lemma set_digits_m_correct (f1 : float) (dm : Z) {f2 : float} :
-    Fnum f1 <> 0 ->
+    not_zero f1 ->
     set_digits_m f1 dm = Some f2 ->
     digits (Fnum f2) = dm.
   Proof.
@@ -510,7 +525,7 @@ Section normalization.
                        end
     end.
 
-  Lemma exponent_unique (f1 f2 : float) :
+  Lemma exponent_unique_fnum (f1 f2 : float) :
     float_eq f1 f2 ->
     Fexp f1 = Fexp f2 ->
     Fnum f1 = Fnum f2.
@@ -521,15 +536,28 @@ Section normalization.
     all: rewrite Z.sub_diag; simpl; lia.
   Qed.
 
-  Lemma digits_m_unique (f1 f2 : float) :
-    not_zero f1 -> not_zero f2 ->
+  Lemma exponent_unique (f1 f2 : float) :
+    float_eq f1 f2 ->
+    Fexp f1 = Fexp f2 ->
+    f1 = f2.
+  Proof.
+    intros.
+    copy_apply (exponent_unique_fnum f1 f2 H) H0.
+    destruct f1, f2; simpl in *.
+    subst; reflexivity.
+  Qed.
+
+  Lemma digits_m_unique_fexp (f1 f2 : float) :
+    not_zero f1 ->
     float_eq f1 f2 ->
     digits (Fnum f1) = digits (Fnum f2) ->
     Fexp f1 = Fexp f2.
   Proof.
-    unfold float_eq.
+    intros NZ1 H.
+    assert (NZ2 : not_zero f2) by apply (not_zero_eq f1 f2 NZ1 H).
+    unfold float_eq in *.
     destruct f1 as [m1 e1], f2 as [m2 e2].
-    simpl; intros M1 M2 H DM; destruct H; destruct H as [H1 H2]; subst.
+    simpl in *; intro DM; destruct H; destruct H as [H1 H2]; subst.
     all: destruct (Z.eq_dec e1 e2); try assumption.
     - assert (e2 < e1) by lia; clear H1 n.
       apply Zcompare_Gt in H.
@@ -545,6 +573,17 @@ Section normalization.
       rewrite <-two_power_pos_equiv in DM.
       rewrite digits_mul_pow2 in DM by assumption.
       contradict DM; lia.
+  Qed.
+
+  Lemma digits_m_unique (f1 f2 : float) :
+    not_zero f1 ->
+    float_eq f1 f2 ->
+    digits (Fnum f1) = digits (Fnum f2) ->
+    f1 = f2.
+  Proof.
+    intros.
+    copy_apply (digits_m_unique_fexp f1 f2 H H0) H1.
+    apply exponent_unique; assumption.
   Qed.
 
   Fact digits_Zpos_log_inf (p : positive) :
@@ -595,6 +634,147 @@ Section normalization.
       split; intros H; destruct H; auto.
   Qed.
 
+  Lemma not_None_iff_exists_Some {A : Type} {x : option A} :
+    x <> None <-> exists y, x = Some y.
+  Proof.
+    split; intro.
+    - destruct x.
+      + exists a; reflexivity.
+      + contradict H; reflexivity.
+    - destruct H; subst; discriminate.
+  Qed.
+
+  Lemma valid_float_superset (prec emax : Z) (f : float) :
+    valid_float prec emax f = true ->
+    Fexp f = 3 - emax - prec \/ digits (Fnum f) = prec.
+  Proof.
+    intros.
+  Admitted.
+
+  Lemma float_eq_trans_l (f1 f2 f3 : float) :
+    float_eq f1 f2 ->
+    float_eq f1 f3 ->
+    float_eq f2 f3.
+  Proof.
+    intros EQ12 EQ13.
+    apply float_eq_sym in EQ12.
+    apply float_eq_trans with (y := f1);
+      assumption.
+  Qed.
+
+  Lemma float_eq_trans_r (f1 f2 f3 : float) :
+    float_eq f2 f1 ->
+    float_eq f3 f1 ->
+    float_eq f2 f3.
+  Proof.
+    intros EQ12 EQ13.
+    apply float_eq_sym in EQ13.
+    apply float_eq_trans with (y := f1);
+      assumption.
+  Qed.
+
+  Lemma float_eq_set_e (f1 f2 : float) :
+    float_eq f1 f2 ->
+    set_e f1 (Fexp f2) = Some f2.
+  Proof.
+    intro.
+    destruct set_e eqn:SE.
+    - (* if successful, then equal *)
+      copy_apply set_e_eq SE; rename H0 into H1.
+      apply set_e_correct in SE.
+      apply (float_eq_trans_l f1 f f2 H1) in H.
+      apply (exponent_unique f f2 H) in SE.
+      subst; reflexivity.
+    - (* always successful *)
+      exfalso.
+      unfold float_eq, set_e, shift_e, inc_e, dec_e in *.
+      destruct f1 as [m1 e1], f2 as [m2 e2]; simpl in *.
+      repeat break_match; try discriminate.
+      clear SE; rename Heqb into H1.
+      apply Z.eqb_neq in H1.
+      destruct H; destruct H as [E M]; [lia |]; subst.
+      rewrite two_power_pos_equiv in H1.
+      rewrite Z.mod_mul in H1; auto.
+      generalize (Z.pow_pos_nonneg 2 (Z.pos p)); lia.
+  Qed.
+
+  Lemma float_eq_set_digits_m (f1 f2 : float) :
+    not_zero f1 ->
+    float_eq f1 f2 ->
+    set_digits_m f1 (digits (Fnum f2)) = Some f2.
+  Proof.
+    intros NZ1 H.
+    assert (NZ2 : not_zero f2) by apply (not_zero_eq f1 f2 NZ1 H).
+    destruct set_digits_m eqn:SDM.
+    - (* if successful, then equal *)
+      copy_apply set_digits_m_eq SDM; rename H0 into H1.
+      apply set_digits_m_correct in SDM; auto.
+      apply (float_eq_trans_l f1 f f2 H1) in H.
+      assert (NZ: not_zero f) by (apply not_zero_eq with (f1 := f1); assumption).
+      apply (digits_m_unique f f2 NZ H) in SDM.
+      subst; reflexivity.
+    - (* always successful *)
+      exfalso.
+      unfold float_eq, set_digits_m, shift_digits_m, shift_e, inc_e, dec_e in *.
+      destruct f1 as [m1 e1], f2 as [m2 e2]; simpl in *.
+      repeat break_match; try discriminate.
+      clear SDM; rename Heqb into H1.
+      apply Z.eqb_neq in H1.
+      destruct H; destruct H as [E M]; subst.
+      + destruct (Z.eq_dec e1 e2).
+        replace (e1 - e2) with 0 in Heqz by lia;
+          rewrite Z.mul_1_r in Heqz; lia.
+        assert (e2 < e1) by lia; clear E n.
+        apply Zcompare_Gt in H.
+        apply Zcompare_Gt_spec in H; destruct H.
+        replace (e1 - e2) with (Z.pos x) in *.
+        rewrite <-two_power_pos_equiv in *.
+        rewrite digits_mul_pow2 in Heqz.
+        lia.
+        auto.
+      + destruct (Z.eq_dec e1 e2).
+        replace (e2 - e1) with 0 in Heqz by lia;
+          rewrite Z.mul_1_r in Heqz; lia.
+        assert (e1 < e2) by lia; clear E n.
+        apply Zcompare_Gt in H.
+        apply Zcompare_Gt_spec in H; destruct H.
+        replace (e2 - e1) with (Z.pos x) in *.
+        rewrite <-two_power_pos_equiv in *.
+        rewrite digits_mul_pow2 in Heqz.
+        assert (x = p) by lia; subst.
+        rewrite two_power_pos_equiv in H1.
+        rewrite Z.mod_mul in H1; auto.
+        generalize (Z.pow_pos_nonneg 2 (Z.pos p)); lia.
+        auto.
+  Qed.
+
+  Lemma set_e_definition (f1 : float) (e : Z) {f2 : float} :
+    set_e f1 e = Some f2 <->
+    float_eq f1 f2 /\ Fexp f2 = e.
+  Proof.
+    split; intro.
+    - split.
+      apply (set_e_eq f1 e H). apply (set_e_correct f1 e H).
+    - destruct H as [EQ FEXP].
+      subst.
+      apply (float_eq_set_e f1 f2 EQ).
+  Qed.
+
+  Lemma set_digits_m_definition (f1 : float) (dm : Z) {f2 : float} :
+    not_zero f1 ->
+    set_digits_m f1 dm = Some f2 <->
+    float_eq f1 f2 /\ digits (Fnum f2) = dm.
+  Proof.
+    intros NZ1.
+    split; intro.
+    - split.
+      apply (set_digits_m_eq f1 dm H).
+      apply (set_digits_m_correct f1 dm NZ1 H).
+    - destruct H as [EQ FEXP].
+      subst.
+      apply (float_eq_set_digits_m f1 f2 NZ1 EQ).
+  Qed.
+  
   Theorem normalize_correct (prec emax : Z) (f : float) (NZ : not_zero f)
         (prec_gt_0 : FLX.Prec_gt_0 prec) (Hmax : prec < emax) :
     match (normalize_float prec emax f NZ) with
@@ -615,9 +795,13 @@ Section normalization.
           assumption.
         * (* valid float? *)
           apply Z.leb_le in Heqb.
-          rewrite valid_float_closed_form by admit.
+          rewrite valid_float_closed_form.
           apply set_e_correct in Heqo0.
           lia.
+          apply not_zero_eq with (f1 := f). assumption.
+          apply set_e_eq in Heqo0. assumption.
+          unfold FLX.Prec_gt_0; lia.
+          assumption.
       + (* normal *)
         split.
         * (* same float? *)
@@ -626,32 +810,34 @@ Section normalization.
         * (* valid float? *)
           apply andb_prop in Heqb0; destruct Heqb0 as [H1 H2].
           apply Z.leb_le in H1; apply Z.leb_le in H2.
-          rewrite valid_float_closed_form by admit.
+          rewrite valid_float_closed_form.
           right.
           apply set_e_correct in Heqo0.
           apply set_digits_m_correct in Heqo1.
           lia.
           assumption.
+          apply not_zero_eq with (f1 := f). assumption.
+          apply set_digits_m_eq in Heqo1. assumption.
+          unfold FLX.Prec_gt_0; lia.
+          assumption.
     - (* unsuccesful normalization - impossible to normalize? *)
       intros xf H.
       apply Bool.not_true_is_false.
-      intros V; contradict Heqo.
-      (* if there exists a valid float `xf` *)
-      (* that is equal to `f`, then `f` is normalizable *)
-      rewrite valid_float_closed_form in V by admit.
-      unfold normalize_float.
-      remember (3 - emax - prec) as emin.
-      destruct xf as [xm xe]; simpl in V.
-      remember {| Fnum := xm; Fexp := xe |} as xf.
-      destruct V; destruct H0 as [DXM XE].
-      + (* xf is subnormal *)
-        break_match.
-        copy_apply set_e_eq Heqo.
-        apply set_e_correct in Heqo.
-        admit.
-        admit.
+      intros V.
+      (* TODO: probably no need to copy *)
+      copy_apply valid_float_superset V; rename H0 into S.
+      destruct S as [S | S].
       + (* xf is normal *)
-        admit.
+        unfold normalize_float in Heqo.
+        repeat break_match; try discriminate.
+        * clear Heqo.
+          clear Heqo0 Heqb f0.
+          remember (3 - emax - prec) as emin.
+          copy_apply (not_zero_eq) H; [| assumption].
+          apply set_digits_m_definition in Heqo1; [| assumption]; destruct Heqo1.
+          copy_apply (float_eq_trans_l f f1 xf H1) H.
+          assert (f1 = xf).
+          apply digits_m_unique.
   Admitted.
   
 End normalization.
