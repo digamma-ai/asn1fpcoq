@@ -26,16 +26,15 @@ Section Flocq_bounded_IEEE.
   Lemma bounded_unfolded (prec emax : Z)
         (prec_gt_0 : Flocq.Core.FLX.Prec_gt_0 prec) (Hmax : (prec < emax)%Z)
         (m : positive) (e : Z) :
-    let emin := 3 - emax - prec in
     bounded prec emax m e = true
     <->
     or
-      (digits m < prec /\ e = emin)
-      (digits m = prec /\ emin <= e <= emax - prec).
+      (digits m < prec /\ e = 3 - emax - prec)
+      (digits m = prec /\ 3 - emax - prec <= e <= emax - prec).
   Proof.
-    intro.
     unfold FLX.Prec_gt_0, bounded, canonical_mantissa, FLT.FLT_exp in *.
     rewrite Bool.andb_true_iff, Z.leb_le, <-Zeq_is_eq_bool, digits2_pos_digits.
+    remember (3 - emax - prec) as emin.
     split; intro.
     all: destruct (Z_lt_le_dec (digits m + e - prec) emin).
     all: try rewrite Z.max_r in * by lia.
