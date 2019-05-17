@@ -509,3 +509,66 @@ Proof.
 Admitted.
 
  *)
+
+
+(* WRONG *)
+Lemma exec_trans1 : forall ge e m le len b ofs, 
+      le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
+      strlen_mem m b ofs (S len) ->
+      (exists t, exec_stmt ge e  (PTree.set _output (VintZ 1) le) m f_strlen_loop t (PTree.set _output (VintN len) le) m Out_normal) ->
+      
+      (exists p, Mem.load chunk m b ofs = Some (VintP p)) ->  
+      exists t, exec_stmt ge e (PTree.set _output (VintZ 0) le) m f_strlen_loop t (PTree.set _output (VintN (S len)) le) m Out_normal.
+Proof.
+  Hypothesis F: Archi.ptr64 = false.
+  intros.
+  destruct H2.
+  
+  induction len.
+  assert (exists t, exec_stmt ge e (PTree.set _output (VintN 1) le) m f_strlen_loop t
+                               (PTree.set _output (VintN 1) le) m Out_normal).
+        pose (strlen_loop_break_correct2).
+        
+        apply (strlen_loop_break_correct2 F ge e m b ofs 1 (PTree.set _output (VintN 1) le)).
+        1-3: admit.
+        repeat gso_assumption. apply gss.
+        inversion_clear H0. inversion_clear H3. simpl. assumption.
+        destruct  H3.                                               
+  - eexists. (* Base case *)
+   (* loop 1 *)
+        loop. repeat econstructor. repeat gso_assumption. eapply gss.        repeat econstructor. simpl. replace (Ptrofs.unsigned
+       (Ptrofs.add (Ptrofs.repr ofs) (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))) with (ofs).  apply H2. { (* pose (Ptrofs.modulus_eq32 H). ptrofs_compute_add_mul. all: nia.*) admit. } repeat econstructor. simpl.
+        replace (negb (Int.eq (Int.repr (Z.pos x)) (Int.repr 0))) with true.      
+        econstructor. admit. repeat econstructor. repeat econstructor. repeat econstructor. apply gss. repeat econstructor. fold f_strlen_loop.
+        replace  (Int.add (Int.repr 0) (Int.repr 1)) with (Int.repr 1) by (auto with ints).
+        replace (PTree.set _output (Vint (Int.repr 1)) (PTree.set _output (VintZ 0) le)) with
+            (PTree.set _output (VintN 1) le).
+        apply H3.
+
+        {rewrite PTree.set2. auto. }
+  -. (* Induction Step *)
+    
+        
+        
+  (*
+  induction len.
+  - (* Base case *)
+    destruct H0.
+    inversion e0. 
+    inversion H11. clear H11.
+    clear H0.
+    inversion H6. clear H6.
+    inversion H13. clear H13.
+    inversion H7.
+    inversion H29.
+    subst.
+    inversion H3.
+    
+    solve_by_inverts 5%nat.
+    
+    eapply strlen_loop_break_correct2.
+    1-4: admit.
+    repeat gso_assumption.
+    apply gss.
+    solve_by_inverts 5%nat. *)
+  Admitted.
