@@ -349,12 +349,12 @@ Section normalization.
   (** exponent can always be decreased *)
   Lemma can_decrease_exponent (f : float) (e : Z) :
     e < Fexp f ->
-    is_Some_b (set_e f e) = true.
+    set_e f e <> None.
   Proof.
     unfold set_e, shift_e.
     destruct f as [fm fe]; simpl; intro.
     break_match; try lia.
-    reflexivity.
+    discriminate.
   Qed.
 
   (* binary digits of m, disregarding the sign *)
@@ -643,13 +643,6 @@ Section normalization.
     - destruct H; subst; discriminate.
   Qed.
 
-  Lemma valid_float_superset (prec emax : Z) (f : float) :
-    valid_float prec emax f = true ->
-    Fexp f = 3 - emax - prec \/ digits (Fnum f) = prec.
-  Proof.
-    intros.
-  Admitted.
-
   Lemma float_eq_trans_l (f1 f2 f3 : float) :
     float_eq f1 f2 ->
     float_eq f1 f3 ->
@@ -823,20 +816,44 @@ Section normalization.
       intros xf H.
       apply Bool.not_true_is_false.
       intros V.
-      (* TODO: probably no need to copy *)
-      copy_apply valid_float_superset V; rename H0 into S.
-      destruct S as [S | S].
+      assert (XNZ: not_zero xf) by apply (not_zero_eq f xf NZ H).
+      rewrite valid_float_closed_form in V by assumption.
+      destruct V as [V | V]; destruct V as [D E].
+      + (* xf is subnormal *)
+        unfold normalize_float in Heqo.
+        repeat break_match; try discriminate; clear Heqo.
+        all: rewrite <-E in Heqo0.
+        all: rewrite float_eq_set_e in Heqo0 by assumption.
+        all: inversion Heqo0; subst.
+        all: rewrite Z.leb_gt in Heqb; lia.
       + (* xf is normal *)
         unfold normalize_float in Heqo.
-        repeat break_match; try discriminate.
-        * clear Heqo.
-          clear Heqo0 Heqb f0.
+        repeat break_match; try discriminate; clear Heqo.
+        * rewrite <-D in Heqo1.
+          rewrite float_eq_set_digits_m in Heqo1 by assumption.
+          inversion Heqo1; subst; clear Heqo1.
+          apply Bool.andb_false_elim in Heqb0; destruct Heqb0.
+          all: rewrite Z.leb_gt in e; lia.
+        * rewrite <-D in Heqo1.
+          rewrite float_eq_set_digits_m in Heqo1 by assumption.
+          inversion Heqo1.
+        * unfold set_e, shift_e, inc_e, dec_e in Heqo0.
+          repeat break_match; try discriminate; clear Heqo0.
           remember (3 - emax - prec) as emin.
-          copy_apply (not_zero_eq) H; [| assumption].
-          apply set_digits_m_definition in Heqo1; [| assumption]; destruct Heqo1.
-          copy_apply (float_eq_trans_l f f1 xf H1) H.
-          assert (f1 = xf).
-          apply digits_m_unique.
-  Admitted.
-  
+          rewrite Z.eqb_neq in Heqb.
+          destruct f as [m e], xf as [xm xe].
+          unfold float_eq, not_zero in *.
+          simpl in *.
+          destruct H; destruct H as [EXP NUM].
+          -- lia.
+          -- subst m.
+             replace (xe - e) with ((xe - emin) + Z.pos p) in Heqb by lia.
+             rewrite Z.pow_add_r in Heqb by lia.
+             rewrite Z.mul_assoc in Heqb.
+             rewrite two_power_pos_equiv in Heqb.
+             rewrite Z.mod_mul in Heqb.
+             contradict Heqb; reflexivity.
+             generalize (Z.pow_pos_nonneg 2 (Z.pos p)); lia.
+  Qed.
+
 End normalization.
