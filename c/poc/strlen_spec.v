@@ -527,32 +527,6 @@ Proof.
        replace (ofs + Z.of_nat (S i)) with  (ofs + 1 + Z.of_nat i) by nia.
        assumption.  
 Qed.    
- (* Ltac invert_clear :=
-        match goal with
-          | [H : context[exec_stmt] |- _] =>
-            inversion_clear H 
-          | [H : context[eval_expr] |- _] =>
-            inversion_clear H 
-          | [H : context[eval_lvalue] |- _] =>
-            inversion_clear H 
-          | [H : context[bool_val] |- _] =>
-            inversion_clear H  
-          | [H : context[deref_loc] |- _] =>
-            inversion_clear H  
-          | [H : context[sem_binary_operation] |- _] =>
-           inversion_clear H  
-          | [H : context[access_mode] |- _] =>
-            inversion_clear H  
-          | _ => idtac
-        end.    
-
-
- Ltac solve_by_inverts n :=
-   match n with
-   | O => subst
-   | S (?n') =>  invert_clear; solve_by_inverts n'
-   end.
-*)
 
 (* Lemma used in the induction step below *)
 
@@ -568,7 +542,6 @@ Qed.
     
     (exists t, exec_stmt ge e le m f_strlen_loop t (PTree.set _output (VintN len) le) m Out_normal) ->
     
-
     (exists p : positive, Mem.load chunk m b ofs = Some (VintP p)) ->
     
     exists t, exec_stmt ge e (PTree.set _input (Vptr b (Ptrofs.repr ofs)) le) m f_strlen_loop t (PTree.set _output (VintN (S len)) (PTree.set _input (Vptr b (Ptrofs.repr ofs)) le)) m Out_normal.
@@ -582,54 +555,17 @@ Qed.
   assert (exists t, exec_stmt ge e (PTree.set _output (VintN 1) (PTree.set _input (Vptr b (Ptrofs.repr ofs)) le)) m f_strlen_loop t
                                (PTree.set _output (VintN 1) (PTree.set _input (Vptr b (Ptrofs.repr ofs)) le)) m Out_normal).
         pose (strlen_loop_break_correct2).
-       (* 
-        apply (strlen_loop_break_correct2 F ge e m b ofs 1 (PTree.set _output (VintN 1) (PTree.set _input (Vptr b (Ptrofs.repr ofs)) le))).
-        1-3: admit.
-        admit. apply gss.
-       inversion_clear H2.  inversion_clear H4. simpl. assumption.
-        destruct  H4.
-        inversion_clear H2.   inversion_clear H5.
-        
-        
-  eexists. 
-   (* loop 1 *)
-        loop. repeat econstructor. eapply gss. repeat gso_assumption.        repeat econstructor. simpl. replace (Ptrofs.unsigned
-       (Ptrofs.add (Ptrofs.repr ofs) (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))) with (ofs).  apply H6. { (* pose (Ptrofs.modulus_eq32 F). ptrofs_compute_add_mul. all: nia. *) admit. } repeat econstructor. simpl.
-        replace (negb (Int.eq (Int.repr (Z.pos v)) (Int.repr 0))) with true.      
-        econstructor. admit. repeat econstructor. repeat econstructor. repeat econstructor.
-         repeat gso_assumption. repeat econstructor. fold f_strlen_loop.
-         replace  (Int.add (Int.repr 0) (Int.repr 1)) with (Int.repr 1) by (auto with ints).
-         apply H4.
-         (* done! *)
+    Admitted.
 
-    -.     intros.
-           pose (IHlen ge e le m b (ofs + 1) )
-*)
- 
- (* 
-  destruct H2. (* positive *)
-  destruct H1. (* trace *)
-  eexists.
- (* loop *)
-  loop. repeat econstructor. apply gss. repeat gso_assumption. simpl.
-  repeat econstructor. simpl. replace (Ptrofs.unsigned (Ptrofs.add (Ptrofs.repr ofs) (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))) with ofs.
    
-   apply H2.
-  { (* pose (Ptrofs.modulus_eq32 H). ptrofs_compute_add_mul. all: nia.  *)  admit. } repeat econstructor. simpl. repeat econstructor. simpl.
-        replace (negb (Int.eq (Int.repr (Z.pos x)) (Int.repr 0))) with true.      
-        econstructor. admit. repeat econstructor. econstructor. repeat econstructor.
-        repeat gso_assumption. repeat econstructor.
-
-        fold f_strlen_loop. replace (Int.add (Int.repr 0) (Int.repr 1)) with (Int.repr 1) by (auto with ints).
-
-        assert (( forall ge e le, (exists t, exec_stmt ge e  (PTree.set _output (VintZ 0) le) m f_strlen_loop t (PTree.set _output (VintN len) le) m Out_normal) -> exists t, exec_stmt ge e  (PTree.set _output (VintZ 1) le) m f_strlen_loop t (PTree.set _output (VintN (S len)) le) m Out_normal)).  
-        induction len.
-  - (* Base case *)
-    (* Break condition *)
-    apply strlen_loop_break_correct2. 
-*)
-  Admitted.
-
+Lemma exec_trans2 : forall ge e m le t _o n, exec_stmt ge e (PTree.set _o (VintN O) le) m f_strlen_loop t (PTree.set _o (VintN n) le) m Out_normal ->
+                                    exec_stmt ge e (PTree.set _o (VintN n) le) m f_strlen_loop t (PTree.set _o (VintN (S n)) le) m Out_normal ->
+   
+   exec_stmt ge e (PTree.set _o (VintN O) le) m f_strlen_loop t (PTree.set _o (VintN (S n)) le) m Out_normal.
+Proof.
+      Admitted.
+      
+          
 Lemma strlen_loop_correct : (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
   Archi.ptr64 = false ->
   forall len ge e m b ofs le,
@@ -658,7 +594,6 @@ Proof.
    
   (* Inductive Step *)  
    -  pose (strlen_trans4 (S len) m b ofs H5).
-
       assert (forall i ofs len, (exists t, exec_stmt ge e  (PTree.set _input (Vptr b (Ptrofs.repr (ofs + Z.of_nat i))) le) m f_strlen_loop t (PTree.set _output (VintN len) (PTree.set _input (Vptr b (Ptrofs.repr (ofs + Z.of_nat i))) le)) m Out_normal) -> (exists t, exec_stmt ge e  (PTree.set _input (Vptr b (Ptrofs.repr (ofs))) le) m f_strlen_loop t
        (PTree.set _output (VintN (len + i)%nat) (PTree.set _input (Vptr b (Ptrofs.repr (ofs))) le)) m
        Out_normal)).
@@ -674,30 +609,33 @@ Proof.
           replace (ofs0 + 1 + Z.of_nat i) with (ofs0 + Z.of_nat (S i)) in e1 by lia.
           pose (e1 H6).
           replace (len0 + S i)%nat with (len0 + 1 + i)%nat by lia.
-          apply (IHi (ofs0) (len0 + 1)%nat).
-
-  (* assert (exists t, exec_stmt ge e (PTree.set _input (Vptr b (Ptrofs.repr (ofs + 1))) le) m f_strlen_loop t
-       (PTree.set _output (VintN len) (PTree.set _input (Vptr b (Ptrofs.repr (ofs + 1))) le)) m
-       Out_normal). {
-  
-  (* assert (exists (t : trace) (le' : temp_env),
-            exec_stmt ge e (PTree.set _input (Vptr b (Ptrofs.repr (ofs + 1))) le) m f_strlen_loop t le' m Out_normal /\
-            le' ! _output = Some (VintN len)). *)
-  refine (IHlen ge e m b (ofs + 1) (PTree.set _input (Vptr b (Ptrofs.repr (ofs + 1))) le)  _ _ _ _ _ _). 1-3: nia.  apply gss. gso_assumption. assumption. gso_assumption.
+          apply (IHi (ofs0) (len0 + 1)%nat). admit. }
+      pose (H6 1%nat ofs len).
+      replace (len + 1)%nat with (S len) in e1 by omega.
+      replace le with (PTree.set _input (Vptr b (Ptrofs.repr ofs)) le) by admit.
+      apply e1.
+      refine (IHlen ge e m b (ofs + 1) (PTree.set _input (Vptr b (Ptrofs.repr (ofs + 1))) le)  _ _ _ _ _ _). 1-3: nia.  apply gss. gso_assumption. assumption. gso_assumption.
   inversion_clear H5.
-  assumption. }
-  destruct H6. (* destruct H6. destruct H6. *)
+      assumption. 
+Admitted.
 
-  (* using lemmas *)
-  assert (0 < S len)%nat as L by omega.
-  destruct (e0 O L).  replace (ofs + Z.of_nat 0) with ofs in H7 by nia.  
-  repeat eexists.
-     -- pose (exec_trans ge e le m x b ofs len H4).
-        assert (exists p : positive,
-        Mem.load chunk m b ofs = Some (VintP p)) as J. exists x0. assumption.
-        pose (e1 H6 H3 J).
-        apply e2. *) 
-Admitted.        
+(* Alternative loop correctness statement *)
+
+Lemma strlen_loop_continue_correct : Archi.ptr64 = false -> forall outp ge e m b ofs le,
+      
+      1 <= Z.of_nat (S outp) < Ptrofs.modulus ->
+      ofs + Z.of_nat (S outp) < Ptrofs.modulus ->
+      0 < ofs < Ptrofs.modulus ->
+      0 <= Z.of_nat outp < Ptrofs.modulus ->
+      
+      le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
+      le!_output = Some (VintN outp) ->
+      
+      (forall i, (i <= outp)%nat -> exists p, Mem.load Mint8signed m b (ofs + (Z_of_nat i)) = Some (VintP p)) -> exists t, exec_stmt ge e le m f_strlen_loop t (PTree.set _output (VintN (S outp)) le) m Out_normal.
+Proof.
+Admitted.
+
+(* Full correctness statement *)
 
 Lemma strlen_correct : (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
   Archi.ptr64 = false ->
@@ -718,7 +656,7 @@ Lemma strlen_correct : (* with this assumption Ptrofs.modulus = Int.modulus, pth
       exists t le', exec_stmt ge e le m f_strlen.(fn_body) t le' m (Out_return (Some ((VintN len),tuint))).
 Proof.
   intros.
-  destruct ( strlen_loop_correct H len ge e _ _ _ _ H0 H1 H2 H3 H4 H5).
+  destruct (strlen_loop_correct H len ge e _ _ _ _ H0 H1 H2 H3 H4 H5).
   eexists.
   exists (PTree.set _output (VintN len) le). 
    -- seq1.
