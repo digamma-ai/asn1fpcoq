@@ -1,5 +1,99 @@
 
+(* towards loop invariant *)
 
+
+ Inductive pre_strlen_mem (m : Mem.mem) (b : block) (ofs : Z) : Z -> nat -> Prop :=
+| PreLengthZeroMem: Mem.load Mint8signed m b ofs = Some (VintZ 0) -> pre_strlen_mem m b ofs ofs O
+| PreLengthOneMem: forall p, Mem.load Mint8signed m b ofs = Some (VintP p) -> pre_strlen_mem m b ofs ofs 1%nat
+| PreLengthSuccMem: forall n p z,
+    pre_strlen_mem m b ofs z n ->
+    Mem.load Mint8signed m b (z + 1) = Some (VintP p) ->
+    pre_strlen_mem m b ofs (z + 1) (S n).
+
+Lemma strlen_loop_correct_inv : (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
+  Archi.ptr64 = false ->
+  forall len ge e m b ofs le,
+                       
+    (* Preconditions on the length of the string and valid offset *)
+    0 < ofs < Ptrofs.modulus ->
+    Z_of_nat len < Int.modulus ->
+    ofs + Z_of_nat len < Ptrofs.modulus ->
+                       
+                       (* Initialize local variables *)
+    le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
+    le!_output = Some (VintN len) ->
+                       
+       (* Precondition: reading C pre-string of length len from memory *)
+    pre_strlen_mem m b ofs (ofs + Z.of_nat len) (S len) ->
+               
+      exists t, exec_stmt ge e le m f_strlen_loop t (PTree.set _output (VintN (S len)) le) m Out_normal.
+Proof.
+
+
+
+(* testing inversion: *)
+Goal forall len ge e le m x, exec_stmt ge e le m
+         (Sifthenelse
+            (Ebinop One
+               (Ederef
+                  (Ebinop Oadd (Etempvar _input (tptr tschar)) (Etempvar _output tuint)
+                     (tptr tschar)) tschar) (Econst_int (Int.repr 0) tint) tint) Sskip Sbreak) x
+         (PTree.set _output (VintN len) le) m Out_normal -> False.
+Proof.
+  intros.
+  inversion H ; subst ; clear H.
+  inversion H6 ; subst ; clear H6.
+  inversion H5 ; subst ; clear H5.
+  inversion H4 ; subst ; clear H4.
+  inversion H ; subst ; clear H.
+  inversion H0 ; subst ; clear H0.
+  inversion H5 ; subst ; clear H5.
+  inversion H8 ; subst ; clear H8.
+  inversion H9 ; subst ; clear H9.
+  destruct v2. admit.
+  assert (le ! _input = Some (Vint Int.zero)). admit.
+  assert (i <> Int.zero). admit.
+  congruence.
+Admitted.
+
+
+(* Lemma used in the induction step below *)
+
+(* if executing f_strlen_loop with output = 0 and input = [b,ofs + 1] outputs len
+    then executing f_strlen_loop with output = 0 and input = [b,ofs] outputs (S outp) *)
+
+
+Lemma exec_trans : forall len ge e le m b ofs,  strlen_mem m b ofs (S len) ->
+    
+    (exists t, exec_stmt ge e (PTree.set _output (VintN O) (PTree.set _input (Vptr b (Ptrofs.repr (ofs + 1))) le))  m f_strlen_loop t (PTree.set _output (VintN (len)) (PTree.set _input (Vptr b (Ptrofs.repr (ofs + 1))) le)) m Out_normal) ->
+    
+    (exists p : positive, Mem.load chunk m b ofs = Some (VintP p)) ->
+    
+    exists t, exec_stmt ge e (PTree.set _input (Vptr b (Ptrofs.repr ofs)) le) m f_strlen_loop t (PTree.set _output (VintN (S len)) (PTree.set _input (Vptr b (Ptrofs.repr ofs)) le)) m Out_normal.
+    
+    Proof.
+      intros.
+      destruct H0.
+      inversion_clear H.
+       solve_by_inverts 5%nat. solve_by_inverts 5%nat. rewrite gss in H.  inversion H. rewrite <- H10 in *. rewrite gso in H8. rewrite gss in H8. inversion H8. rewrite <- H11 in *. clear H H8 H10 H11.
+      inversion H9. rewrite <- H0 in *. rewrite <- H8 in *. clear H0 H8. clear v3 v4. inversion H6.
+                                                                                              
+      subst. clear ofs0 loc. 
+
+      
+      simpl in H0.
+      replace  (Ptrofs.unsigned
+            (Ptrofs.add (Ptrofs.repr (ofs + 1))
+                        (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))) with (ofs + 1) in H0 by (admit).
+     
+    Admitted.
+
+    Lemma exec_trans2 : forall ge e m le t _o n, exec_stmt ge e (PTree.set _o (VintN O) le) m f_strlen_loop t (PTree.set _o (VintN n) le) m Out_normal ->
+                                    exec_stmt ge e (PTree.set _o (VintN n) le) m f_strlen_loop t (PTree.set _o (VintN (S n)) le) m Out_normal ->
+   
+   exec_stmt ge e (PTree.set _o (VintN O) le) m f_strlen_loop t (PTree.set _o (VintN (S n)) le) m Out_normal.
+Proof.
+      Admitted.
 
 Lemma strlen_non_empty_corr : (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
   Archi.ptr64 = false ->
@@ -611,3 +705,120 @@ Proof.
     apply strlen_loop_break_correct2. 
 *)
     Admitted.
+
+(* Lemma strlen_correct_loop_empty_string_r :
+  (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
+  Archi.ptr64 = false ->
+  forall ge e m b ofs le len,                       
+    (* Preconditions on the length of the string and valid offset *)
+    0 < ofs < Ptrofs.modulus ->
+    Z_of_nat len < Int.modulus ->
+    ofs + Z_of_nat len < Ptrofs.modulus ->                      
+    (* Initialize local variables *)
+    le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
+    le!_output = Some (VintZ 0) ->
+       
+    (* C light expression f_strlen returns O and assigns O to output variable *)
+    (exists t, exec_stmt ge e le m f_strlen_loop t (PTree.set _output (VintZ 0) le) m Out_normal) ->
+         (* Precondition: reading empty C string from memory *)
+    strlen_mem m b ofs O.
+Proof.
+  intros.
+  destruct H5.
+  inversion_clear H5.
+  inversion H7. rewrite <- H5 in H6.
+  clear H5. clear H7.
+  clear out'.
+
+  inversion_clear H6.
+  inversion_clear H5.
+  inversion_clear H6.
+  inversion H5.
+  subst
+  
+  simpl in H8.
+  econstructor.
+  
+  
+                                                                                                                                                                         
+  econstructor.
+  assumption.
+Qed. *)
+
+
+    
+    (* Old stuff from strlen_spec *)
+
+    (** High-level functional specification *)
+
+Inductive string_length : string -> nat -> Prop :=
+| ZeroLen : string_length EmptyString 0
+| SuccLen : forall (n : nat) (s : string) (c : Ascii.ascii) , string_length s n -> string_length (String c s) (S n).
+    
+Definition strlen_fun := String.length.
+
+Parameter strlen_fun_correct : forall (s : string), string_length s (strlen_fun s).
+
+(* Strings as list of bytes *)
+
+Fixpoint string_to_list_byte (s: string) : list byte :=
+  match s with
+  | EmptyString => nil
+  | String a s' => Byte.repr (Z.of_N (Ascii.N_of_ascii a)) :: string_to_list_byte s'
+  end.
+
+Definition strlen_byte (bs : list byte) := List.length bs.
+
+Definition c_string (s : string) := (string_to_list_byte s)++(Byte.repr 0)::nil.
+Definition example := c_string "Hello".
+
+Lemma length_string_byte_equiv : forall s, String.length s = strlen_byte (string_to_list_byte s).
+Proof.
+  induction s.
+  - simpl. reflexivity.
+  - simpl. rewrite <- IHs. reflexivity.
+Qed.
+
+Parameter strlen_byte_correct : forall (s : string), string_length s (strlen_byte (string_to_list_byte s)).
+
+(* Connection high-level and low-level specification *)
+
+(* Address (b,ofs) is a block b an offset ofs *)
+
+Definition addr : Type := (Values.block*Z).
+Definition block_of (addr : addr) := match addr with (b,_) => b end.
+(* Valid block in m *)
+Definition valid_block_b (m : mem) (b : Values.block):=
+  plt b (Memory.Mem.nextblock m).
+
+(* Assume the low-level spec outputs the values read *)
+Parameter strlen_C_byte : mem -> addr -> option (Z*mem*list byte).
+
+Definition strlen_C_correct := forall m p z m' bs, strlen_C_byte m p = Some (z,m',bs) -> Z.of_nat (strlen_byte bs) = z.
+
+(** Low-level specification *)
+
+(* true if the integer value read is zero - end of string *)
+Definition is_null (v : Values.val) :=
+  match v with
+  | Vint zero => true
+  | _ => false
+  end.
+
+
+Definition INTSIZE := (nat_of_Z Int.modulus).
+
+Fixpoint strlen_fun_C (m : mem) (b : block) (ofs : Z) (l: Z) (intrange : nat) {struct intrange} : option (Z*mem):= (* maybe nat output? *)
+      match intrange with
+      | O => None (* out of int range *)
+      | S n => match Mem.load chunk m b ofs with (*  loading value from memory *)
+              | Some v =>
+                if is_null v
+                then Some (l, m) else strlen_fun_C m b (ofs + 1) (l + 1) n  
+              | None => None (* address not readable or b not allocated *)
+              end
+      end.
+
+Definition strlen_C_fun_spec (m : mem) (b: block) (ofs : Z) :=  strlen_fun_C m b ofs 0 INTSIZE.
+
+(* Coercion Int.intval : Int.int >-> Z.*)
