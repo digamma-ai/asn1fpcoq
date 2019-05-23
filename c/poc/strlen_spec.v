@@ -514,7 +514,7 @@ Proof.
   econstructor.    
 Qed.
 
-Lemma strlen_loop_correct_new : (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
+(*Lemma strlen_loop_correct_new : (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
   Archi.ptr64 = false ->
   forall len ge e m b ofs le,
                        
@@ -526,6 +526,7 @@ Lemma strlen_loop_correct_new : (* with this assumption Ptrofs.modulus = Int.mod
                        (* Initialize local variables *)
     le!_in = Some (Vptr b (Ptrofs.repr ofs)) ->
     le!_out = Some (VintZ 0) ->
+    
      (* Memory reads *)
     (forall i, (i < len)%nat ->
            exists p, Mem.load chunk m b (ofs + Z.of_nat i) = Some (VintP p)) ->
@@ -599,7 +600,7 @@ Proof.
           (PTree.set _input (Vptr b (Ptrofs.repr (ofs + 1))) le)  _ _ _ _ _ _). 1-3: nia.  apply gss. gso_assumption. assumption. gso_assumption.
   inversion_clear H5.
       assumption. 
-Admitted.
+Admitted. *)
 
 
 (* Helper lemmas about strlen_mem *)
@@ -627,7 +628,7 @@ Proof.
        assumption.
 Qed.  
    
-Lemma strlen_trans4 : forall len m b ofs, strlen_mem m b ofs len ->
+Lemma strlen_trans4 : forall len m b ofs, strlen_mem_u m b ofs len ->
                                      forall i, (i < len)%nat -> exists p : positive, Mem.load chunk m b (ofs + Z.of_nat i) = Some (VintP p).
 Proof.
   induction len.
@@ -654,18 +655,18 @@ Lemma strlen_loop_correct : (* with this assumption Ptrofs.modulus = Int.modulus
     le!_output = Some (VintZ 0) ->
                        
        (* Precondition: reading C string of length len from memory *)
-    strlen_mem m b ofs len ->
+    strlen_mem_u m b ofs len ->
                
       exists t, exec_stmt ge e le m f_strlen_loop t (PTree.set _output (VintN len) le) m Out_normal.
 Proof.
    induction len ; intros.
    (* Base case *)
    -
-     assert ((PTree.set _output (VintN 0) le) = le). (* true *)
+     (* assert ((PTree.set _output (VintN 0) le) = le). (* true *)
      admit.
      rewrite H6.  
      eapply (strlen_correct_loop_empty_string1 _ _ _ _ _ ofs _ O). 1-3: nia. 1,2: gso_assumption. assumption.
-   
+    *) admit.
   (* Inductive Step *)  
    -  pose (strlen_trans4 (S len) m b ofs H5).
       assert (forall i ofs len, (exists t, exec_stmt ge e  (PTree.set _input (Vptr b (Ptrofs.repr (ofs + Z.of_nat i))) le) m f_strlen_loop t (PTree.set _output (VintN len) (PTree.set _input (Vptr b (Ptrofs.repr (ofs + Z.of_nat i))) le)) m Out_normal) -> (exists t, exec_stmt ge e  (PTree.set _input (Vptr b (Ptrofs.repr (ofs))) le) m f_strlen_loop t
