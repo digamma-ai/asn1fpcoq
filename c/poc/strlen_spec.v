@@ -7,7 +7,7 @@ From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clight
 
 (* Some useful notation and tactics *)
 
-Definition chunk : memory_chunk := Mint8signed.
+Definition chunk : memory_chunk := Mint8unsigned.
 Definition VintZ := fun (z : Z) => Vint (Int.repr z).
 Definition VintN:= fun n => Vint (Int.repr(Z_of_nat n)).
 Definition VintP := fun p : positive => Vint (Int.repr (Z.pos p)).
@@ -285,10 +285,153 @@ Proof.
 Qed.
 
 
-(* Some tests *)
+Definition _out : ident := 4%positive.
+Definition _main : ident := 6%positive.
+Definition _in : ident := 3%positive.
+Definition _t'1 : ident := 7%positive.
+Definition _t'2 : ident := 8%positive.
+
+Definition f_strlen_new := {|
+  fn_return := tuint;
+  fn_callconv := cc_default;
+  fn_params := ((_in, (tptr tuchar)) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_out, tuint) :: (_t'1, (tptr tuchar)) :: (_t'2, tuchar) :: nil);
+  fn_body :=
+(Ssequence
+  (Sset _out (Econst_int (Int.repr 0) tint))
+  (Ssequence
+    (Sloop
+      (Ssequence
+        (Ssequence
+          (Ssequence
+            (Sset _t'1 (Etempvar _in (tptr tuchar)))
+            (Sset _in
+              (Ebinop Oadd (Etempvar _t'1 (tptr tuchar))
+                (Econst_int (Int.repr 1) tint) (tptr tuchar))))
+          (Ssequence
+            (Sset _t'2 (Ederef (Etempvar _t'1 (tptr tuchar)) tuchar))
+            (Sifthenelse (Etempvar _t'2 tuchar) Sskip Sbreak)))
+        (Sset _out
+          (Ebinop Oadd (Etempvar _out tuint) (Econst_int (Int.repr 1) tint)
+            tuint)))
+      Sskip)
+    (Sreturn (Some (Etempvar _out tuint)))))
+                          |}.
+
+Definition f_strlen_loop_new :=
+  (Sloop
+      (Ssequence
+        (Ssequence
+          (Ssequence
+            (Sset _t'1 (Etempvar _in (tptr tuchar)))
+            (Sset _in
+              (Ebinop Oadd (Etempvar _t'1 (tptr tuchar))
+                (Econst_int (Int.repr 1) tint) (tptr tuchar))))
+          (Ssequence
+            (Sset _t'2 (Ederef (Etempvar _t'1 (tptr tuchar)) tuchar))
+            (Sifthenelse (Etempvar _t'2 tuchar) Sskip Sbreak)))
+        (Sset _out
+          (Ebinop Oadd (Etempvar _out tuint) (Econst_int (Int.repr 1) tint)
+            tuint)))
+      Sskip).
+
+Inductive strlen_mem_u : mem -> block -> Z -> nat -> Prop :=
+| LengthZeroMemu m b ofs: Mem.load Mint8unsigned m b ofs = Some (VintZ 0) -> strlen_mem_u m b ofs 0
+| LengthSuccMemu m b ofs: forall p v,
+    strlen_mem_u m b (ofs+1) p ->
+    Mem.load Mint8unsigned m b ofs = Some (VintP v) ->
+    strlen_mem_u m b ofs (S p).
+
 
 (* On a string of length 2 C light function evaluates to 0 *)
 Lemma strlen_correct_test :
+  (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
+  Archi.ptr64 = false ->
+  forall ge e m b ofs le len,                       
+    (* Preconditions on the length of the string and valid offset *)
+    0 <= ofs < Ptrofs.modulus ->
+    Z_of_nat len < Int.modulus ->
+    ofs + Z_of_nat len < Ptrofs.modulus ->                      
+    (* Initialize local variables *)
+    le!_in = Some (Vptr b (Ptrofs.repr ofs)) ->
+    le!_out = Some (VintZ 0) ->                     
+    (* Precondition: reading  C string of length 2 from memory *)
+    strlen_mem_u m b ofs 2%nat ->
+    
+    (* C light expression f_strlen returns O and assigns O to output variable *)
+    exists t le', exec_stmt ge e le m f_strlen_new.(fn_body) t le' m (Out_return (Some ((VintZ 2),tuint))) /\ (le'!_out) = Some (VintZ 2).
+Proof.
+  intros.
+  inversion_clear H5. inversion_clear H6. inversion_clear H5.
+  repeat eexists.
+  - seq1.
+    -- sset. (* evaluate expression *) repeat econstructor.
+    -- seq1.   
+      * (* loop 1 *)
+        loop. repeat econstructor. repeat gso_assumption. eapply gss. repeat econstructor.
+        rewrite gso. apply gss. cbv. congruence. simpl. ptrofs_to_Z. apply H7. assumption.
+        apply gss.
+        simpl.
+        econstructor.
+        replace (negb (Int.eq (Int.repr (Z.pos v)) Int.zero)) with true by admit.      
+        econstructor.
+        repeat econstructor. repeat econstructor. repeat econstructor.
+        rewrite gso. rewrite gso. rewrite gso. apply gss. 1-3: cbv ;congruence.
+        repeat econstructor. econstructor. econstructor.
+
+        (* loop 1 *)
+        loop. repeat econstructor. repeat gso_assumption.
+        rewrite gso. rewrite gso. apply gss. 1-2: cbv ; congruence.
+        apply gss.
+        repeat econstructor.
+        rewrite gso. apply gss. cbv ; congruence.
+        simpl.
+        replace (Ptrofs.unsigned
+                   (Ptrofs.add (Ptrofs.repr ofs) (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_ints (Int.repr 1))))) with (ofs + 1) by admit.
+        apply H8.        
+        apply gss.
+        simpl.
+        econstructor.
+        replace (negb (Int.eq (Int.repr (Z.pos v0)) Int.zero)) with true by admit.      
+        econstructor.
+        rewrite gso. rewrite gso. rewrite gso. apply gss. 1-3: cbv ; congruence.
+        repeat econstructor. econstructor. econstructor.
+            
+         (* exit loop *)
+        eapply exec_Sloop_stop1.
+        Print exec_stmt.
+        (* break from the loop *)
+        seq2. seq1. seq1. econstructor. econstructor. rewrite gso. rewrite gso. apply gss. 1-2: cbv ; congruence.
+        repeat econstructor.
+        apply gss.
+        repeat econstructor.
+        seq1. repeat econstructor.
+        rewrite gso. apply gss. cbv ; congruence.
+        simpl.
+      
+        replace  (Ptrofs.unsigned
+       (Ptrofs.add
+          (Ptrofs.add (Ptrofs.repr ofs)
+             (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_ints (Int.repr 1))))
+          (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_ints (Int.repr 1))))) with (ofs + 1 + 1) by admit.        apply H6.
+        repeat econstructor.
+        apply gss.
+        simpl.
+        econstructor. 
+        replace (negb (Int.eq (Int.repr 0) Int.zero)) with false by (simpl).
+        econstructor.
+        cbv ; congruence.
+        econstructor.
+      * (* return statement *)
+        repeat econstructor.  rewrite gso.  rewrite gso.  rewrite gso.  eapply gss. all: cbv ; congruence.
+  - rewrite gso.  rewrite gso.  rewrite gso.  eapply gss. all: cbv ; congruence.
+Admitted.
+
+(* Some tests *)
+
+(* On a string of length 2 C light function evaluates to 0 *)
+Lemma strlen_correct_test_old :
   (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
   Archi.ptr64 = false ->
   forall ge e m b ofs le len,                       
@@ -336,6 +479,126 @@ Proof.
     + (* return statement *)
       repeat econstructor. eapply gss.
   - eapply gss.
+Admitted.
+
+
+Lemma strlen_correct_loop_empty_string_new :
+  (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
+  Archi.ptr64 = false ->
+  forall ge e m b ofs le len,                       
+    (* Preconditions on the length of the string and valid offset *)
+    0 < ofs < Ptrofs.modulus ->
+    Z_of_nat len < Int.modulus ->
+    ofs + Z_of_nat len < Ptrofs.modulus ->                      
+    (* Initialize local variables *)
+    le!_in = Some (Vptr b (Ptrofs.repr ofs)) ->
+    le!_out = Some (VintZ 0) ->                     
+    (* Precondition: reading empty C string from memory *)
+    strlen_mem_u m b ofs O ->
+    (* C light expression f_strlen returns O and assigns O to output variable *)
+    exists t le', exec_stmt ge e le m f_strlen_loop_new t le' m Out_normal.
+Proof.
+  intros.
+  inversion_clear H5.
+  repeat eexists.
+  eapply exec_Sloop_stop1.
+  seq2. repeat econstructor. gso_assumption. apply gss.
+  repeat econstructor. rewrite gso. apply gss. cbv; congruence. simpl.
+  replace (Ptrofs.unsigned (Ptrofs.repr ofs)) with ofs. 
+  apply H6.
+  { pose (Ptrofs.modulus_eq32 H). ptrofs_compute_add_mul. all: nia. }
+  apply gss. econstructor.
+  replace (negb (Int.eq (Int.repr 0) Int.zero)) with false by simpl.
+  econstructor.
+  cbv; congruence.
+  econstructor.    
+Qed.
+
+Lemma strlen_loop_correct_new : (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
+  Archi.ptr64 = false ->
+  forall len ge e m b ofs le,
+                       
+    (* Preconditions on the length of the string and valid offset *)
+    0 <= ofs < Ptrofs.modulus ->
+    Z_of_nat len < Int.modulus ->
+    ofs + Z_of_nat len < Ptrofs.modulus ->
+                       
+                       (* Initialize local variables *)
+    le!_in = Some (Vptr b (Ptrofs.repr ofs)) ->
+    le!_out = Some (VintZ 0) ->
+     (* Memory reads *)
+    (forall i, (i < len)%nat ->
+           exists p, Mem.load chunk m b (ofs + Z.of_nat i) = Some (VintP p)) ->
+           Mem.load chunk m b (ofs + Z.of_nat len) = Some (VintN O) ->
+                                          
+      exists t le', exec_stmt ge e le m f_strlen_loop_new t le' m Out_normal /\ le'!_out = Some (VintN len) /\ strlen_mem_u m b ofs len.
+Proof.
+   induction len ; intros.
+   (* Base case *)
+   - repeat eexists.
+     eapply exec_Sloop_stop1. seq2. repeat econstructor. apply H3. apply gss.
+     repeat econstructor.
+     rewrite gso. apply gss. cbv ; congruence.
+     simpl. 
+     replace  (Ptrofs.unsigned (Ptrofs.repr ofs)) with (ofs + Z.of_nat 0) by admit.
+     apply H6.
+     (* provable *) all: admit.
+   
+  (* Inductive Step *)  
+   - 
+     (*  pose (strlen_trans4 (S len) m b ofs H5).
+      assert (forall i ofs len, (exists t, exec_stmt ge e  (PTree.set _input (Vptr b (Ptrofs.repr (ofs + Z.of_nat i))) le) m f_strlen_loop t (PTree.set _output (VintN len) (PTree.set _input (Vptr b (Ptrofs.repr (ofs + Z.of_nat i))) le)) m Out_normal) -> (exists t, exec_stmt ge e  (PTree.set _input (Vptr b (Ptrofs.repr (ofs))) le) m f_strlen_loop t
+       (PTree.set _output (VintN (len + i)%nat) (PTree.set _input (Vptr b (Ptrofs.repr (ofs))) le)) m
+       Out_normal)).
+      { induction i.
+        - (* Base case *)
+          intros ofs0 len0.
+          replace (ofs0 + Z.of_nat 0) with ofs0 by lia.
+          replace (len0 + 0)%nat with len0 by lia.
+          auto.
+        - (* I.S.*)
+          intros.
+          pose (IHi (ofs0 + 1) len0).
+          replace (ofs0 + 1 + Z.of_nat i) with (ofs0 + Z.of_nat (S i)) in e1 by lia.
+          pose (e1 H6).
+          replace (len0 + S i)%nat with (len0 + 1 + i)%nat by lia.
+          apply (IHi (ofs0) (len0 + 1)%nat). admit. } *)
+    (*  pose (H6 1%nat ofs len).
+      replace (len + 1)%nat with (S len) in e1 by omega.
+      replace le with (PTree.set _input (Vptr b (Ptrofs.repr ofs)) le) by admit.
+      apply e1. *)
+     pose (IHlen ge e m b (ofs + 1)  (PTree.set _in (Vptr b (Ptrofs.repr (ofs + 1))) le)).
+
+    assert (0 <= ofs + 1 < Ptrofs.modulus) by lia.
+    assert (Z.of_nat len < Int.modulus) by lia.
+    assert (ofs + 1 + Z.of_nat len < Ptrofs.modulus) by lia.
+    assert ((PTree.set _in (Vptr b (Ptrofs.repr (ofs + 1))) le) ! _in =
+     Some (Vptr b (Ptrofs.repr (ofs + 1)))) by (apply gss).
+    assert ((PTree.set _in (Vptr b (Ptrofs.repr (ofs + 1))) le) ! _out = Some (VintZ 0)) by admit.
+    assert (forall i : nat,
+      (i < len)%nat ->
+      exists p : positive, Mem.load chunk m b (ofs + 1 + Z.of_nat i) = Some (VintP p)) by admit.
+    pose (e0 H7 H8 H9 H10 H11 H12).
+    replace (ofs + 1 + Z.of_nat len) with (ofs + Z.of_nat (S len)) in e1 by lia.
+    pose (e1 H6).
+    destruct e2. destruct H13. destruct H13. destruct H14.
+    repeat eexists
+    
+
+     loop. repeat econstructor. repeat gso_assumption. eapply gss. repeat econstructor.
+        rewrite gso. apply gss. cbv. congruence. simpl. ptrofs_to_Z. apply H7. assumption.
+        apply gss.
+        simpl.
+        econstructor.
+        replace (negb (Int.eq (Int.repr (Z.pos v)) Int.zero)) with true by admit.      
+        econstructor.
+        rewrite gso. rewrite gso. rewrite gso. apply H4.  1-3: cbv ;congruence.
+        repeat econstructor. econstructor. econstructor.
+        
+    
+          (PTree.set _input (Vptr b (Ptrofs.repr (ofs + 1))) le)  _ _ _ _ _ _). 1-3: nia.  apply gss. gso_assumption. assumption. gso_assumption.
+  inversion_clear H5.
+      assumption. 
 Admitted.
 
 
