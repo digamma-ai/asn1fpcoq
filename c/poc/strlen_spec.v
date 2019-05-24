@@ -144,6 +144,22 @@ Definition f_strlen_loop :=
             tuint)))
       Sskip).
 
+Print Sloop.
+
+Definition f_strlen_loop_body := (Ssequence
+        (Ssequence
+          (Ssequence
+            (Sset _t'1 (Etempvar _input (tptr tuchar)))
+            (Sset _input
+              (Ebinop Oadd (Etempvar _t'1 (tptr tuchar))
+                (Econst_int (Int.repr 1) tint) (tptr tuchar))))
+          (Ssequence
+            (Sset _t'2 (Ederef (Etempvar _t'1 (tptr tuchar)) tuchar))
+            (Sifthenelse (Etempvar _t'2 tuchar) Sskip Sbreak)))
+        (Sset _output
+          (Ebinop Oadd (Etempvar _output tuint) (Econst_int (Int.repr 1) tint)
+            tuint))).
+
 (* Correctness statements *)
 (* On empty string C light function evaluates to 0 *)
 
@@ -346,6 +362,43 @@ Proof.
        replace (ofs + Z.of_nat (S i)) with  (ofs + 1 + Z.of_nat i) by nia.
        assumption.  
 Qed.
+
+Lemma strlen_loop_body_correct: Archi.ptr64 = false -> forall len ge e m b ofs le,
+      0 <= ofs < Ptrofs.modulus ->
+      Z_of_nat len < Int.modulus ->
+      ofs + Z_of_nat len < Ptrofs.modulus ->
+                       
+      le!_input = Some (Vptr b (Ptrofs.repr (ofs + Z.of_nat len))) ->
+      le!_output = Some (VintN len) ->
+    
+      (exists p, Mem.load chunk m b (ofs + Z.of_nat len) = Some (VintP p)) ->
+                                         
+      exists t le', exec_stmt ge e le m f_strlen_loop_body t le' m Out_normal /\ le'!_output = Some (VintN (S len)).
+Proof.
+  intros.
+  destruct H5 as [p].
+  repeat eexists.
+  seq1.
+  seq1. repeat econstructor. apply H3. apply gss.
+  repeat econstructor.
+  seq1. repeat econstructor.
+  rewrite gso. apply gss. cbv; congruence.
+  simpl.
+  replace (Ptrofs.unsigned (Ptrofs.repr (ofs + Z.of_nat len))) with (ofs + Z.of_nat len) by admit.
+  apply H5.
+  repeat econstructor.
+  apply gss.
+  econstructor.
+  replace (negb (Int.eq (Int.repr (Z.pos p)) Int.zero)) with true by admit.
+  repeat econstructor.
+  repeat econstructor.
+  repeat (rewrite gso).
+  apply H4. 1-3: cbv; congruence.
+  repeat econstructor.
+  unfold VintN.
+  replace (Int.add (Int.repr (Z.of_nat len)) (Int.repr 1)) with (Int.repr (Z.of_nat (S len))) by admit.
+  apply gss.
+  Admitted.
 
 
 Lemma strlen_loop_continue_correct : (* with this assumption Ptrofs.modulus = Int.modulus, otherwise Ptrofs.modulus > Int.modulus *)
