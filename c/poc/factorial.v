@@ -143,11 +143,14 @@ Proof.
   Qed.
   
 Theorem factorial_loop_correct : forall ge e m, forall inp outp le,
+      
       Z.of_nat inp < Int.modulus ->
       1 <= Z.of_nat outp < Int.modulus ->
-      Z.of_nat ((fact inp)*outp) < Int.modulus -> 
+      Z.of_nat ((fact inp)*outp) < Int.modulus ->
+      
       le!_input = Some (Vint_of_nat inp) ->
       le!_output = Some (Vint_of_nat outp) ->
+      
       exists t le',
         exec_stmt ge e le m factorial_loop t le' m Out_normal
         /\ (le'!_output) = Some (Vint_of_nat ((fact inp)*outp)).
@@ -187,10 +190,9 @@ Proof.
            unfold Int.mul. f_equal. repeat rewrite Int.unsigned_repr_eq. repeat rewrite Zmod_small; nia.
            }
         rewrite <- H4. eapply H0.
-        + rewrite -> H1. simpl. f_equal. f_equal. ring.
+        + rewrite -> H1. simpl. f_equal. f_equal. nia.
 Qed.
 
-SearchAbout Int.modulus.
 
 Theorem factorial_correct : forall ge e m n le,
     Z.of_nat n < Int.modulus ->
