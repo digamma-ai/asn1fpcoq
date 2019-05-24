@@ -97,6 +97,10 @@ Fixpoint fact (n : nat) : nat :=
   | S n' => n * fact n'
   end.
 
+Inductive factorial : nat -> nat -> Prop :=
+| FactZero : factorial 0 1
+| FactSucc : forall n m, factorial n m -> factorial (S n) ((S n)*m).                      
+
 Definition factorial_loop := (Swhile
       (Etempvar _input tint)
       (Ssequence
