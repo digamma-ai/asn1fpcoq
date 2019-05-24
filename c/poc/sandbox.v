@@ -822,3 +822,70 @@ Fixpoint strlen_fun_C (m : mem) (b : block) (ofs : Z) (l: Z) (intrange : nat) {s
 Definition strlen_C_fun_spec (m : mem) (b: block) (ofs : Z) :=  strlen_fun_C m b ofs 0 INTSIZE.
 
 (* Coercion Int.intval : Int.int >-> Z.*)
+Definition f_strlen := {|
+  fn_return := tuint;
+  fn_callconv := cc_default;
+  fn_params := ((_s, (tptr tschar)) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_i, tuint) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Sset _i (Econst_int (Int.repr 0) tint))
+    (Sloop
+      (Sifthenelse (Ebinop One
+                     (Ederef
+                       (Ebinop Oadd (Etempvar _s (tptr tschar))
+                         (Etempvar _i tuint) (tptr tschar)) tschar)
+                     (Econst_int (Int.repr 0) tint) tint)
+        Sskip
+        Sbreak)
+      (Sset _i
+        (Ebinop Oadd (Etempvar _i tuint) (Econst_int (Int.repr 1) tint)
+          tuint))))
+  (Sreturn (Some (Etempvar _i tuint))))
+                      |}.
+
+
+(* Loop of f_strlen *)
+
+Definition f_strlen_loop :=  (Sloop
+      (Sifthenelse (Ebinop One (* comparison ([!=]) *)
+                     (Ederef (* pointer dereference (unary [*]) *)
+                       (Ebinop Oadd (Etempvar _input (tptr tschar))
+                         (Etempvar _output tuint) (tptr tschar)) tschar)
+                     (Econst_int (Int.repr 0) tint) tint)
+        Sskip
+        Sbreak)
+      (Sset _output
+        (Ebinop Oadd (Etempvar _output tuint) (Econst_int (Int.repr 1) tint)
+                tuint))).
+
+
+Lemma strlen_correct_loop_empty_string1 :
+  (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
+  Archi.ptr64 = false ->
+  forall ge e m b ofs le len,                       
+    (* Preconditions on the length of the string and valid offset *)
+    0 < ofs < Ptrofs.modulus ->
+    Z_of_nat len < Int.modulus ->
+    ofs + Z_of_nat len < Ptrofs.modulus ->                      
+    (* Initialize local variables *)
+    le!_input = Some (Vptr b (Ptrofs.repr ofs)) ->
+    le!_output = Some (VintZ 0) ->                     
+    (* Precondition: reading empty C string from memory *)
+    strlen_mem m b ofs O ->
+    (* C light expression f_strlen returns O and assigns O to output variable *)
+    exists t, exec_stmt ge e le m f_strlen_loop t le m Out_normal.
+Proof.
+  intros.
+  inversion_clear H5.
+   eexists.
+  - eapply exec_Sloop_stop1. (* break from the loop *)
+    repeat econstructor. 1,2: gso_assumption.
+    repeat econstructor. simpl.
+    replace (Ptrofs.unsigned
+               (Ptrofs.add (Ptrofs.repr ofs) (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_intu (Int.repr 0))))) with ofs. apply H6. { pose (Ptrofs.modulus_eq32 H). ptrofs_compute_add_mul. all: nia. }
+   repeat econstructor. simpl. repeat econstructor. econstructor. econstructor.    
+
+Qed.
