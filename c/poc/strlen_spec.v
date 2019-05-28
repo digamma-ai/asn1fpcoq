@@ -261,7 +261,7 @@ Proof.
         rewrite gso. apply gss. cbv ; congruence.
         simpl.
       
-        replace  (Ptrofs.unsigned
+        replace (Ptrofs.unsigned
        (Ptrofs.add
           (Ptrofs.add (Ptrofs.repr ofs)
              (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_ints (Int.repr 1))))
@@ -272,15 +272,14 @@ Proof.
         econstructor. 
         replace (negb (Int.eq (Int.repr 0) Int.zero)) with false by (simpl).
         econstructor.
-        cbv ; congruence.
+        cbv; congruence.
         econstructor.
       * (* return statement *)
-        repeat econstructor.  rewrite gso.  rewrite gso.  rewrite gso.  eapply gss. all: cbv ; congruence.
+        repeat econstructor.  rewrite gso.  rewrite gso.  rewrite gso.  eapply gss. all: cbv; congruence.
   - rewrite gso.  rewrite gso.  rewrite gso.  eapply gss. all: cbv ; congruence.
 Admitted.
 
 (* Conditions about the f_strlen loop *)
-
 (* If 0 is read from memory at [b,ofs + len] the output is set to len *)
 Lemma strlen_loop_break_correct : Archi.ptr64 = false -> forall ge e m b ofs outp le,
       
@@ -324,6 +323,7 @@ Proof.
   all: cbv; congruence.
 Admitted.
 
+Print exec_stmt.
 
 (* Helper lemmas about strlen_mem *)
 
@@ -398,7 +398,14 @@ Proof.
   unfold VintN.
   replace (Int.add (Int.repr (Z.of_nat len)) (Int.repr 1)) with (Int.repr (Z.of_nat (S len))) by admit.
   apply gss.
-  Admitted.
+Admitted.
+
+
+Lemma exec_succ_output : forall ge e le m b ofs n,
+    (exists t1 le1, exec_stmt ge e (PTree.set _output (VintZ 0) (PTree.set _input (Vptr b (Ptrofs.repr ofs)) le)) m f_strlen_loop t1  (PTree.set _output (VintN n) le1) m Out_normal) ->
+
+    exists t2 le2, exec_stmt ge e (PTree.set _output (VintZ 1) (PTree.set _input (Vptr b (Ptrofs.repr ofs)) le)) m f_strlen_loop t2 (PTree.set _output (VintN (S n)) le2) m Out_normal.
+Admitted.
 
 
 Lemma strlen_loop_correct : (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
@@ -421,9 +428,7 @@ Lemma strlen_loop_correct : (* with this assumption Ptrofs.modulus = Int.modulus
 Proof.
 Admitted.
 
-
 (* Full correctness statement *)
-
 Lemma strlen_correct : (* with this assumption Ptrofs.modulus = Int.modulus, ptherwise Ptrofs.modulus > Int.modulus *)
   Archi.ptr64 = false ->
   
