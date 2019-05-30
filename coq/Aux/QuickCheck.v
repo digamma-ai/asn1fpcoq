@@ -41,15 +41,15 @@ Require Import String. Open Scope string.
 
 Instance show_binary : Show (binary_float 24 128) := {
   show c := match c with
-              | B754_zero _ _ false => "+zero"
-              | B754_zero _ _ true => "-zero"
-              | B754_infinity _ _ false => "+inf"
-              | B754_infinity _ _ true => "-inf"
-              | B754_nan _ _ false _ _ => "+nan"
-              | B754_nan _ _ true _ _ => "-nan"
-              | B754_finite _ _ s m e _ => (if s then "+" else "-") 
-                                           ++ (show_Z (Z.pos m))
-                                           ++ (show_Z e)
+              | B754_zero false => "+zero"
+              | B754_zero true => "-zero"
+              | B754_infinity false => "+inf"
+              | B754_infinity true => "-inf"
+              | B754_nan false _ _ => "+nan"
+              | B754_nan true _ _ => "-nan"
+              | B754_finite s m e _ => (if s then "+" else "-")
+                                        ++ (show_Z (Z.pos m))
+                                        ++ (show_Z e)
             end
 }.
 
