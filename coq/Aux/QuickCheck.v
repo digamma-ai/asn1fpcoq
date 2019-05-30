@@ -193,12 +193,16 @@ Definition binary32_gen : G (option (binary_float 24 128)) :=
               (7, fing)%nat].
 
 Definition binary_float_eqb {prec emax : Z} (a1 a2 : binary_float prec emax) :=
-  match Bcompare prec emax a1 a2 with
-  | Some cmp => match cmp with
-               | Eq => true
-               | _ => false
-               end
-  | None => false
+  match a1, a2 with
+  | B754_nan _ _ _, B754_nan _ _ _ => true
+  | _,_ =>
+    match Bcompare prec emax a1 a2 with
+    | Some cmp => match cmp with
+                 | Eq => true
+                 | _ => false
+                 end
+    | None => false
+    end
   end.
 
 Definition binary_float_BER_exact_roundtrip (b32 : binary_float 24 128) : bool
