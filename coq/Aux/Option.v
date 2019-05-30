@@ -12,3 +12,10 @@ Definition is_Some_b {A : Type} (x : option A) : bool :=
 
 Definition option_filer {T : Type} (P : bool) : T -> option T :=
   fun x => if P then Some x else None.
+
+Definition eqb_bool_option_bool (v:bool) (x : option bool) : bool :=
+  match x,v with
+  | Some true, true => true
+  | Some false, false => true
+  | _,_ => false
+  end.

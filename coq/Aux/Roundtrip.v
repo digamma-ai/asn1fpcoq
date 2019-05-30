@@ -55,6 +55,29 @@ Definition roundtrip_option
    bool_het_inverse' option A1 B A2 f b e x = Some true.
 
 (*
+ *  "Round-trip" converting between types A1, B, A2:
+ *  A1 -> B -> A2
+ *
+ *  if
+ *    forward pass happens
+ *  then
+ *      backward pass happens
+ *    and
+ *      backward pass returns an element,
+ *      equivalent to the starting one
+ *)
+Definition roundtrip_bool
+           (A1 B A2 : Type)
+           (f: A1 -> option B) (* forward pass *)
+           (b: B -> option A2) (* backward pass *)
+           (e: A1 -> A2 -> bool) (* equivalence on A *)
+           (x: A1) (* value *)
+  : bool :=
+  implb
+   (is_Some_b (f x))
+   (eqb_bool_option_bool true (bool_het_inverse' option A1 B A2 f b e x)).
+
+(*
  * if
  *     b1 = f1^(-1)
  *   and
