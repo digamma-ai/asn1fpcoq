@@ -1,4 +1,32 @@
 
+
+ Ltac invert_clear :=
+        match goal with
+          | [H : context[exec_stmt] |- _] =>
+            inversion_clear H 
+          | [H : context[eval_expr] |- _] =>
+            inversion_clear H 
+          | [H : context[eval_lvalue] |- _] =>
+            inversion_clear H 
+          | [H : context[bool_val] |- _] =>
+            inversion_clear H  
+          | [H : context[deref_loc] |- _] =>
+            inversion_clear H  
+          | [H : context[sem_binary_operation] |- _] =>
+           inversion_clear H  
+          | [H : context[access_mode] |- _] =>
+            inversion_clear H
+          | [H : context[ out_break_or_return] |- _] => inversion_clear H                  
+          | _ => idtac
+        end.    
+
+
+Ltac solve_by_inverts n :=
+   match n with
+   | O => idtac
+   | S (?n') => invert_clear ; solve_by_inverts n'
+end.
+
 (* towards loop invariant *)
 
 
