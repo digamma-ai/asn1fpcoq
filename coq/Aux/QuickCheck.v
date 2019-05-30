@@ -194,37 +194,20 @@ Definition binary32_gen : G (option (binary_float 24 128)) :=
 
 Definition binary_float_eqb {prec emax : Z} (a1 a2 : binary_float prec emax) :=
   match Bcompare prec emax a1 a2 with
-    | Some cmp => match cmp with
-                   | Eq => true
-                   | _ => false
-                 end
-    | None => false
-  end. 
+  | Some cmp => match cmp with
+               | Eq => true
+               | _ => false
+               end
+  | None => false
+  end.
 
-Definition binary_float_BER_exact_roundtrip (b32 : binary_float 24 128) : Prop := roundtrip_option
-    (binary_float 24 128) ASN.BER_float (binary_float 24 128)
-    (BER_of_IEEE_exact 24 128)
-    Abstract.b32_of_BER_abstract_exact
-    binary_float_eqb
-    b32.
-
-Global Instance dec_prop : forall (b : binary_float 24 128), Dec (binary_float_BER_exact_roundtrip b).
-Proof.
-  intros b.
-  split.
-  unfold ssrbool.decidable,
-         binary_float_BER_exact_roundtrip,
-         roundtrip_option,
-         Option.is_Some_b,
-         bool_het_inverse'.
-  destruct (BER_of_IEEE_exact 24 128).
-Admitted.
-
-Global Instance dec_bin : forall (b : binary_float 24 128), Checkable (binary_float_BER_exact_roundtrip b).
-Proof.
-Admitted.
-
-SearchAbout "testDec".
+Definition binary_float_BER_exact_roundtrip (b32 : binary_float 24 128) : bool
+  := roundtrip_bool
+       (binary_float 24 128) ASN.BER_float (binary_float 24 128)
+       (BER_of_IEEE_exact 24 128)
+       Abstract.b32_of_BER_abstract_exact
+       binary_float_eqb
+       b32.
 
 QuickChick (forAllMaybe binary32_gen binary_float_BER_exact_roundtrip).
 
