@@ -206,7 +206,13 @@ Proof.
 Qed.
 (* Helper lemmas about the specification *)
 
-Hint Resolve Ptrofs.mul_one Ptrofs.add_zero : ptrofs. (* add more lemmas from Compcert to ptrofs hints *)
+ (* add more lemmas from Compcert to ptrofs hints *)
+Proposition int_ptrofs_mod_eq : (Int.modulus <= Ptrofs.modulus).
+Proof.
+  cbv. destruct Archi.ptr64; congruence.
+  Qed.
+
+Hint Resolve Ptrofs.mul_one Ptrofs.add_zero int_ptrofs_mod_eq : ptrofs.
 
 Lemma strlen_to_len_0 : forall len m b ofs, strlen_mem m b ofs len -> strlen_mem m b (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat len))) O.
 Proof.
@@ -218,8 +224,24 @@ Proof.
     replace (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat (S len)))) with
     (Ptrofs.add (Ptrofs.add ofs Ptrofs.one) (Ptrofs.repr (Z.of_nat len))).
     apply (IHlen m b (Ptrofs.add ofs Ptrofs.one) H2).
-    { admit. }
-Admitted.
+    { rewrite Nat2Z.inj_succ.
+      replace  (Z.succ (Z.of_nat len)) with ((Z.of_nat len) + 1) by (auto with zarith).
+
+      unfold Ptrofs.add; unfold Ptrofs.mul;
+      unfold Ptrofs.of_intu; unfold Ptrofs.of_int;
+      repeat rewrite Ptrofs.unsigned_repr_eq;
+      repeat rewrite Int.unsigned_repr_eq.
+      f_equal.
+      replace (Ptrofs.unsigned Ptrofs.one) with 1 by (auto with ptrofs).
+      rewrite Zplus_mod.
+      pose (Ptrofs.intrange ofs).
+      unfold Ptrofs.unsigned in *.
+       
+      repeat ptrofs_compute_add_mul.
+      replace (Ptrofs.intval Ptrofs.one) with 1 by (auto with ptrofs).
+       all: nia.
+        }
+Qed.
 
 Lemma strlen_to_mem : forall len m b ofs, strlen_mem m b ofs len ->
                                      forall i, (i < len)%nat -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat i)))) = Some (Vint c) /\ c <> Int.zero.
@@ -233,16 +255,24 @@ Proof.
     +  assert (i < len)%nat by omega. pose (IHlen m b (Ptrofs.add ofs Ptrofs.one) H3 i H).
        replace (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat (S i)))) with  (Ptrofs.add (Ptrofs.add ofs Ptrofs.one) (Ptrofs.repr (Z.of_nat i))).
        assumption.
-       { 
-         (* rewrite Zpos_P_of_succ_nat *)
-         ptrofs_compute_add_mul.
-         admit.
-         admit.
-         admit. (* true *)
-         admit.
-         
+       {
+         rewrite Nat2Z.inj_succ.
+         replace  (Z.succ (Z.of_nat i)) with ((Z.of_nat i) + 1) by (auto with zarith).
+
+         unfold Ptrofs.add; unfold Ptrofs.mul;
+         unfold Ptrofs.of_intu; unfold Ptrofs.of_int;
+         repeat rewrite Ptrofs.unsigned_repr_eq;
+         repeat rewrite Int.unsigned_repr_eq.
+         f_equal.
+         replace (Ptrofs.unsigned Ptrofs.one) with 1 by (auto with ptrofs).
+         rewrite Zplus_mod.
+         pose (Ptrofs.intrange ofs).
+         unfold Ptrofs.unsigned in *.
+       
+         repeat ptrofs_compute_add_mul.
+         all: nia.
        }
-Admitted. (* Need a way to manipulate nat within ptrofs. *)
+Qed. (* Need a way to manipulate nat within ptrofs. *)
 
 (* Correctness statements *)
 
