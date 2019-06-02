@@ -19,8 +19,6 @@ Open Scope program_scope.
 
 Notation "f <=< g" := (g >=> f) (at level 50).
 
-Search (Z -> Z).
-
 (* TODO: radix, scaling *)
 (* extraction-ready functions for the most common IEEE formats *)
 Section B32.
