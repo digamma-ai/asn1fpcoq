@@ -8,12 +8,14 @@ From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clight
 
 (* Specification of the strlen function *)
 
+Definition is_incrementable (ofs : ptrofs) : Prop :=
+  Ptrofs.unsigned ofs + Z.of_nat 1 < Ptrofs.modulus.
 
 Inductive strlen_mem (m : mem) (b : block) (ofs : ptrofs) : nat -> Prop :=
 | LengthZeroMem: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) -> strlen_mem m b ofs 0
 | LengthSuccMem: forall n c,
     Z.of_nat (S n) < Int.modulus ->
-    Ptrofs.unsigned ofs + Z.of_nat (S n) < Ptrofs.modulus -> 
+    is_incrementable ofs ->
     strlen_mem m b (Ptrofs.add ofs Ptrofs.one) n ->
     Mem.loadv Mint8unsigned m (Vptr b ofs)  = Some (Vint c) ->
     c <> Int.zero ->
@@ -235,12 +237,12 @@ Proof.
       replace (Ptrofs.unsigned Ptrofs.one) with 1 by (auto with ptrofs).
       rewrite Zplus_mod.
       pose (Ptrofs.intrange ofs).
+      unfold is_incrementable in *.
       unfold Ptrofs.unsigned in *.
        
       repeat ptrofs_compute_add_mul.
       replace (Ptrofs.intval Ptrofs.one) with 1 by (auto with ptrofs).
-       all: nia.
-        }
+     all: pose int_ptrofs_mod_eq; try nia. }
 Qed.
 
 Lemma strlen_to_mem : forall len m b ofs, strlen_mem m b ofs len ->
@@ -267,12 +269,13 @@ Proof.
          replace (Ptrofs.unsigned Ptrofs.one) with 1 by (auto with ptrofs).
          rewrite Zplus_mod.
          pose (Ptrofs.intrange ofs).
+         unfold  is_incrementable in *.
          unfold Ptrofs.unsigned in *.
        
          repeat ptrofs_compute_add_mul.
-         all: nia.
+         all: pose int_ptrofs_mod_eq; try nia.
        }
-Qed. (* Need a way to manipulate nat within ptrofs. *)
+Qed. 
 
 (* Correctness statements *)
 
@@ -398,7 +401,10 @@ Proof.
        f_equal.
        rewrite Zplus_mod.
        pose (Ptrofs.intrange ofs).
+       unfold is_incrementable in *.
        unfold Ptrofs.unsigned in *.
+       pose int_ptrofs_mod_eq.
+
        
        repeat ptrofs_compute_add_mul.
        replace (Ptrofs.intval Ptrofs.one) with 1 by (auto with ptrofs). lia.
