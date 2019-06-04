@@ -8,14 +8,16 @@ From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clight
 
 (* Specification of the strlen function *)
 
-Definition is_incrementable (ofs : ptrofs) : Prop :=
+(* Definition is_incrementable (ofs : ptrofs) : Prop :=
   Ptrofs.unsigned ofs + Z.of_nat 1 < Ptrofs.modulus.
+*)
 
 Inductive strlen_mem (m : mem) (b : block) (ofs : ptrofs) : nat -> Prop :=
-| LengthZeroMem: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) -> strlen_mem m b ofs 0
+| LengthZeroMem: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) ->   
+                 strlen_mem m b ofs 0
 | LengthSuccMem: forall n c,
     Z.of_nat (S n) < Int.modulus ->
-    is_incrementable ofs ->
+   (* is_incrementable ofs -> *)
     strlen_mem m b (Ptrofs.add ofs Ptrofs.one) n ->
     Mem.loadv Mint8unsigned m (Vptr b ofs)  = Some (Vint c) ->
     c <> Int.zero ->
@@ -149,14 +151,14 @@ Lemma strlen_correct_test: forall ge e m b ofs le,
     exists t le', exec_stmt ge e le m f_strlen.(fn_body) t le' m (Out_return (Some ((VintZ 2),tuint))) /\ (le'!_output) = Some (VintZ 2).
 Proof.
   intros until le. intro Spec.
-  inversion_clear Spec. inversion_clear H1. inversion_clear H6.
+  inversion_clear Spec. inversion_clear H0. inversion_clear H4.
   repeat eexists.
   - seq1.
     -- sset. (* evaluate expression *) repeat econstructor.
     -- seq1.   
       * (* loop 1 *)
         loop. repeat econstructor. repeat gso_assumption. eapply gss. repeat econstructor.
-        rewrite gso. apply gss. cbv. congruence. apply H2.
+        rewrite gso. apply gss. cbv. congruence. apply H1.
         apply gss.
         econstructor.
         replace (negb (Int.eq c Int.zero)) with true by (apply (char_not_zero c); assumption).
@@ -172,7 +174,7 @@ Proof.
         replace (Ptrofs.add ofs
           (Ptrofs.mul (Ptrofs.repr (sizeof ge tuchar))
              (ptrofs_of_int Signed (Int.repr 1)))) with (Ptrofs.add ofs Ptrofs.one) by (auto with ptrofs).
-        apply H7.
+        apply H5.
         apply gss.
         econstructor.
         replace (negb (Int.eq c0 Int.zero)) with true by (apply (char_not_zero c0); assumption).      
@@ -194,7 +196,7 @@ Proof.
                 (ptrofs_of_int Signed (Int.repr 1))))
           (Ptrofs.mul (Ptrofs.repr (sizeof ge tuchar))
              (ptrofs_of_int Signed (Int.repr 1))))  with (Ptrofs.add (Ptrofs.add ofs Ptrofs.one) Ptrofs.one) by (auto with ptrofs).
-        apply H1.
+        apply H0.
         repeat econstructor.
         apply gss.
         econstructor. 
@@ -224,56 +226,41 @@ Proof.
     assumption.
   - inversion_clear H.
     replace (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat (S len)))) with
-    (Ptrofs.add (Ptrofs.add ofs Ptrofs.one) (Ptrofs.repr (Z.of_nat len))).
-    apply (IHlen m b (Ptrofs.add ofs Ptrofs.one) H2).
+    (Ptrofs.add (Ptrofs.add ofs (Ptrofs.repr 1)) (Ptrofs.repr (Z.of_nat len))).
+    apply (IHlen m b (Ptrofs.add ofs Ptrofs.one) H1).
     { rewrite Nat2Z.inj_succ.
       replace  (Z.succ (Z.of_nat len)) with ((Z.of_nat len) + 1) by (auto with zarith).
-
-      unfold Ptrofs.add; unfold Ptrofs.mul;
-      unfold Ptrofs.of_intu; unfold Ptrofs.of_int;
-      repeat rewrite Ptrofs.unsigned_repr_eq;
-      repeat rewrite Int.unsigned_repr_eq.
+      rewrite Ptrofs.add_assoc.
       f_equal.
-      replace (Ptrofs.unsigned Ptrofs.one) with 1 by (auto with ptrofs).
-      rewrite Zplus_mod.
-      pose (Ptrofs.intrange ofs).
-      unfold is_incrementable in *.
-      unfold Ptrofs.unsigned in *.
-       
-      repeat ptrofs_compute_add_mul.
-      replace (Ptrofs.intval Ptrofs.one) with 1 by (auto with ptrofs).
-     all: pose int_ptrofs_mod_eq; try nia. }
+      unfold Ptrofs.add.
+      f_equal.
+      repeat rewrite Ptrofs.unsigned_repr_eq.
+      repeat rewrite Zmod_small.
+      all: (pose int_ptrofs_mod_eq) ; nia. }
 Qed.
 
 Lemma strlen_to_mem : forall len m b ofs, strlen_mem m b ofs len ->
                                      forall i, (i < len)%nat -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat i)))) = Some (Vint c) /\ c <> Int.zero.
 Proof.
   induction len.
-  - intros. omega.
+  - intros until ofs. intro Spec. intros.  omega.
   -  induction i; intro; inversion_clear H.
      +  replace (Ptrofs.repr (Z.of_nat 0)) with Ptrofs.zero by (simpl; auto with ptrofs).
         replace (Ptrofs.add ofs Ptrofs.zero) with ofs by (auto with ptrofs).
-       exists c. exact (conj H4 H5).
-    +  assert (i < len)%nat by omega. pose (IHlen m b (Ptrofs.add ofs Ptrofs.one) H3 i H).
-       replace (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat (S i)))) with  (Ptrofs.add (Ptrofs.add ofs Ptrofs.one) (Ptrofs.repr (Z.of_nat i))).
+       exists c. apply (conj H3 H4).
+    +  assert (i < len)%nat by omega. pose (IHlen m b (Ptrofs.add ofs (Ptrofs.repr 1)) H2 i H).
+       replace (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat (S i)))) with  (Ptrofs.add (Ptrofs.add ofs (Ptrofs.repr 1)) (Ptrofs.repr (Z.of_nat i))).
        assumption.
        {
-         rewrite Nat2Z.inj_succ.
-         replace  (Z.succ (Z.of_nat i)) with ((Z.of_nat i) + 1) by (auto with zarith).
-
-         unfold Ptrofs.add; unfold Ptrofs.mul;
-         unfold Ptrofs.of_intu; unfold Ptrofs.of_int;
-         repeat rewrite Ptrofs.unsigned_repr_eq;
-         repeat rewrite Int.unsigned_repr_eq.
-         f_equal.
-         replace (Ptrofs.unsigned Ptrofs.one) with 1 by (auto with ptrofs).
-         rewrite Zplus_mod.
-         pose (Ptrofs.intrange ofs).
-         unfold  is_incrementable in *.
-         unfold Ptrofs.unsigned in *.
-       
-         repeat ptrofs_compute_add_mul.
-         all: pose int_ptrofs_mod_eq; try nia.
+          rewrite Nat2Z.inj_succ.
+      replace  (Z.succ (Z.of_nat i)) with ((Z.of_nat i) + 1) by (auto with zarith).
+      rewrite Ptrofs.add_assoc.
+      f_equal.
+      unfold Ptrofs.add.
+      f_equal.
+      repeat rewrite Ptrofs.unsigned_repr_eq.
+      repeat rewrite Zmod_small.
+      all: (pose int_ptrofs_mod_eq) ; nia.
        }
 Qed. 
 
@@ -378,6 +365,7 @@ Proof.
   1-2: cbv; congruence.
 
   {  inversion Spec.
+    (* destruct Mem as [Mem C]. destruct C as [C Inc]. *)
 
     unfold le''.
     replace (Vint (Int.add (Int.repr (Z.of_nat i)) (Int.repr 1))) with (VintN (S i)).
@@ -387,33 +375,28 @@ Proof.
                 (Ptrofs.mul (Ptrofs.repr (sizeof ge tuchar))
                             (ptrofs_of_int Signed (Int.repr 1)))) with (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat (S i)))).
     reflexivity.
-    + rewrite Nat2Z.inj_succ.
-      replace  (Z.succ (Z.of_nat i)) with ((Z.of_nat i) + 1) by (auto with zarith).
-      simpl.
-      replace  (Ptrofs.repr 1) with Ptrofs.one by (auto with ptrofs).
-      replace  (Ptrofs.of_ints (Int.repr 1)) with Ptrofs.one by (auto with ptrofs).
-      replace  (Ptrofs.mul Ptrofs.one Ptrofs.one) with (Ptrofs.one) by (auto with ptrofs).
-      Print ptrofs_compute_add_mul.
-       unfold Ptrofs.add; unfold Ptrofs.mul;
-   unfold Ptrofs.of_intu; unfold Ptrofs.of_int;
-   repeat rewrite Ptrofs.unsigned_repr_eq;
-   repeat rewrite Int.unsigned_repr_eq.
+     + replace (Z.of_nat (S i)) with (Z.of_nat i + 1) by nia.
+       simpl.
+       replace (Ptrofs.mul (Ptrofs.repr 1) (Ptrofs.of_ints (Int.repr 1))) with (Ptrofs.repr 1) by (auto with ptrofs).
+       Search (Ptrofs.repr ( _ + _ )).
+       SearchAbout Ptrofs.add.
+       rewrite Ptrofs.add_assoc.
        f_equal.
-       rewrite Zplus_mod.
-       pose (Ptrofs.intrange ofs).
-       unfold is_incrementable in *.
-       unfold Ptrofs.unsigned in *.
-       pose int_ptrofs_mod_eq.
-
-       
-       repeat ptrofs_compute_add_mul.
-       replace (Ptrofs.intval Ptrofs.one) with 1 by (auto with ptrofs). lia.
+       unfold Ptrofs.add.
+       f_equal.
+       rewrite Ptrofs.unsigned_repr_eq.
+       rewrite Ptrofs.unsigned_repr_eq.
+       rewrite Zmod_small.
+       rewrite Zmod_small.
        all: nia.
-      + unfold VintN.
+  
+     + unfold VintN.
+       
       f_equal.
       ints_compute_add_mul.
       f_equal.
       lia.
+
       cbv. econstructor. 1-2: congruence.
       nia.
       }
