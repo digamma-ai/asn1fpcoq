@@ -28,6 +28,20 @@ Inductive strlen_mem_n (m : mem) (b : block) (ofs : ptrofs) : nat -> Prop :=
     c <> Int.zero ->
     strlen_mem_n m b ofs (S n).
 
+Print Z.succ.
+
+Definition Int_succ := fun i : int => Int.add i Int.one.
+
+Inductive strlen_mem_int (m : mem) (b : block) (ofs : ptrofs) : int -> Prop :=
+| LengthZeroMem_int: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) ->   
+                 strlen_mem_int m b ofs Int.zero
+| LengthSuccMem_int: forall n c,
+    strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) n ->
+    Mem.loadv Mint8unsigned m (Vptr b ofs)  = Some (Vint c) ->
+    c <> Int.zero ->
+    strlen_mem_int m b ofs (Int_succ n).
+
+
 (* strlen C light AST *)
 
 Definition _output : ident := 4%positive.
@@ -278,7 +292,9 @@ Proof.
       repeat rewrite Zmod_small.
       all: (pose int_ptrofs_mod_eq); try nia.
        }
-Qed. 
+Qed.
+
+
 Lemma strlen_to_mem : forall len, 0 <= len -> (forall m b ofs, strlen_mem m b ofs len ->
                                      forall i, 0 <= i -> i < len -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.repr i))) = Some (Vint c) /\ c <> Int.zero).
 Proof.
@@ -319,7 +335,69 @@ Proof.
       admit. (* intrange *)
       admit.
              }
-Admitted. 
+Admitted.
+
+
+Lemma strlen_to_mem_int : forall len m b ofs, strlen_mem_int m b ofs len ->
+                                         forall i, Int.lt i len = true -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) = Some (Vint c) /\ c <> Int.zero.
+Proof.
+  intro len. 
+    eapply (natlike_ind  (fun intval =>  intval = Int.intval len -> forall (m : mem) (b : block) (ofs : ptrofs),
+  strlen_mem_int m b ofs len ->
+  forall i : int,
+  Int.lt i len = true ->
+  exists c : int,
+    Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) = Some (Vint c) /\
+    c <> Int.zero)). 
+    (* Base len *)
+    intro.
+    - assert (len = Int.zero) by admit.
+     rewrite H0.
+     intros.
+     admit. (* contradiction *)
+    (* I.S. len *)
+    - intros until ofs. intro Spec.
+
+    (*  eapply (natlike_ind  (fun intval => forall i, intval = Int.intval i -> 
+          Int.lt i len = true ->
+  exists c : int,
+    Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) = Some (Vint c) /\
+    c <> Int.zero) ).
+      + (* Base i *)
+        intros.
+        assert (i = Int.zero) by admit.
+        rewrite H4.
+        inversion Spec.
+        admit. (* contradiction *)
+        rewrite <- H8 in Spec.
+        admit. (* same as in the case of Z *)
+      + (* Ind. step  i*)
+         intros. 
+         assert (x0 < x) by nia.
+      rename H0 into IHlen.
+      inversion Spec.
+      nia.
+      assert (n = x) by nia.
+      rewrite H8 in H5.
+      pose (IHlen m b (Ptrofs.add ofs Ptrofs.one) H5 x0 H1 H4).
+       replace  (Ptrofs.add ofs (Ptrofs.repr (Z.succ x0))) with (Ptrofs.add (Ptrofs.add ofs Ptrofs.one) (Ptrofs.repr x0)).
+       assumption.
+       { 
+    
+     (*  replace  (Z.succ (Z.of_nat i)) with ((Z.of_nat i) + 1) by (auto with zarith). *)
+      rewrite Ptrofs.add_assoc.
+      f_equal.
+      unfold Ptrofs.add.
+      f_equal.
+      unfold Ptrofs.one.
+      repeat rewrite Ptrofs.unsigned_repr_eq.
+      repeat rewrite Zmod_small.
+      nia.
+      admit. (* intrange *)
+      admit.
+             }
+        *)
+Admitted.
 
 (* Correctness statements *)
 
