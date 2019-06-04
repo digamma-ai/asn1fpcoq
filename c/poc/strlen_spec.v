@@ -3,25 +3,30 @@
 
 From Coq Require Import String List ZArith Psatz.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs Memory Values ClightBigstep Events Maps.
-(* Local Open Scope Z_scope.*)
-
 
 (* Specification of the strlen function *)
 
-(* Definition is_incrementable (ofs : ptrofs) : Prop :=
-  Ptrofs.unsigned ofs + Z.of_nat 1 < Ptrofs.modulus.
-*)
 
-Inductive strlen_mem (m : mem) (b : block) (ofs : ptrofs) : nat -> Prop :=
+Definition int_of_nat :=  fun n => Int.repr (Z.of_nat n).
+Inductive strlen_mem (m : mem) (b : block) (ofs : ptrofs) : Z -> Prop :=
 | LengthZeroMem: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) ->   
                  strlen_mem m b ofs 0
 | LengthSuccMem: forall n c,
-    Z.of_nat (S n) < Int.modulus ->
-   (* is_incrementable ofs -> *)
     strlen_mem m b (Ptrofs.add ofs Ptrofs.one) n ->
     Mem.loadv Mint8unsigned m (Vptr b ofs)  = Some (Vint c) ->
     c <> Int.zero ->
-    strlen_mem m b ofs (S n).
+    strlen_mem m b ofs (Z.succ n).
+
+
+Inductive strlen_mem_n (m : mem) (b : block) (ofs : ptrofs) : nat -> Prop :=
+| LengthZeroMem_n: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) ->   
+                 strlen_mem_n m b ofs 0
+| LengthSuccMem_n: forall n c,
+    Z.of_nat (S n) < Int.modulus ->
+    strlen_mem_n m b (Ptrofs.add ofs Ptrofs.one) n ->
+    Mem.loadv Mint8unsigned m (Vptr b ofs)  = Some (Vint c) ->
+    c <> Int.zero ->
+    strlen_mem_n m b ofs (S n).
 
 (* strlen C light AST *)
 
@@ -74,7 +79,6 @@ Definition f_strlen_loop :=
           (Ebinop Oadd (Etempvar _output tuint) (Econst_int (Int.repr 1) tint)
             tuint)))
       Sskip).
-
 
 Definition f_strlen_loop_body := (Ssequence
         (Ssequence
@@ -140,18 +144,20 @@ Proof.
   rewrite Int.eq_false; intuition.
 Qed.  
 
-(* Test *)
+(* Test 
 Lemma strlen_correct_test: forall ge e m b ofs le,
-
-    strlen_mem m b ofs 2%nat ->
-
+    strlen_mem m b ofs (int_of_nat 2) ->
     le!_input = Some (Vptr b ofs) ->
 
     (* C light expression f_strlen returns O and assigns O to output variable *)
     exists t le', exec_stmt ge e le m f_strlen.(fn_body) t le' m (Out_return (Some ((VintZ 2),tuint))) /\ (le'!_output) = Some (VintZ 2).
 Proof.
   intros until le. intro Spec.
-  inversion_clear Spec. inversion_clear H0. inversion_clear H4.
+  inversion Spec.
+  assert (i = (Int.add Int.one Int.one)).
+  
+
+  inver inversion_clear H4.
   repeat eexists.
   - seq1.
     -- sset. (* evaluate expression *) repeat econstructor.
@@ -239,16 +245,26 @@ Proof.
       all: (pose int_ptrofs_mod_eq) ; nia. }
 Qed.
 
-Lemma strlen_to_mem : forall len m b ofs, strlen_mem m b ofs len ->
+ *)
+
+
+ (* add more lemmas from Compcert to ptrofs hints *)
+Proposition int_ptrofs_mod_eq : (Int.modulus <= Ptrofs.modulus).
+Proof.
+  cbv. destruct Archi.ptr64; congruence.
+  Qed.
+
+Hint Resolve Ptrofs.mul_one Ptrofs.add_zero int_ptrofs_mod_eq : ptrofs.
+Lemma strlen_to_mem_n : forall len m b ofs, strlen_mem_n m b ofs len ->
                                      forall i, (i < len)%nat -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat i)))) = Some (Vint c) /\ c <> Int.zero.
 Proof.
   induction len.
   - intros until ofs. intro Spec. intros.  omega.
-  -  induction i; intro; inversion_clear H.
+  -  induction i. intro. inversion_clear H.
      +  replace (Ptrofs.repr (Z.of_nat 0)) with Ptrofs.zero by (simpl; auto with ptrofs).
         replace (Ptrofs.add ofs Ptrofs.zero) with ofs by (auto with ptrofs).
        exists c. apply (conj H3 H4).
-    +  assert (i < len)%nat by omega. pose (IHlen m b (Ptrofs.add ofs (Ptrofs.repr 1)) H2 i H).
+    +  intro. inversion_clear H. assert (i < len)%nat by omega. pose (IHlen m b (Ptrofs.add ofs (Ptrofs.repr 1)) H2 i H).
        replace (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat (S i)))) with  (Ptrofs.add (Ptrofs.add ofs (Ptrofs.repr 1)) (Ptrofs.repr (Z.of_nat i))).
        assumption.
        {
@@ -260,9 +276,50 @@ Proof.
       f_equal.
       repeat rewrite Ptrofs.unsigned_repr_eq.
       repeat rewrite Zmod_small.
-      all: (pose int_ptrofs_mod_eq) ; nia.
+      all: (pose int_ptrofs_mod_eq); try nia.
        }
 Qed. 
+Lemma strlen_to_mem : forall len, 0 <= len -> (forall m b ofs, strlen_mem m b ofs len ->
+                                     forall i, 0 <= i -> i < len -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.repr i))) = Some (Vint c) /\ c <> Int.zero).
+Proof.
+    eapply (natlike_ind  (fun len => (forall m b ofs, strlen_mem m b ofs len ->
+                                     forall i, 0 <= i -> i < len -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.repr i))) = Some (Vint c) /\ c <> Int.zero))) ; intros until ofs; intro Spec.
+  - (* Base len *) intros. nia.
+  - (* Ind. step len *) 
+    eapply (natlike_ind  (fun i => i < Z.succ x ->
+                                exists c : int, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.repr i))) = Some (Vint c) /\ c <> Int.zero)).
+    +  (* Base case i *)
+      intro Sn0.
+      replace (Ptrofs.add ofs (Ptrofs.repr 0)) with ofs by (simpl; auto with ptrofs).
+      inversion Spec.
+      nia.
+      exists c. apply (conj H3 H4).
+    +  (* Ind. step i *)
+      intros.
+      assert (x0 < x) by nia.
+      rename H0 into IHlen.
+      inversion Spec.
+      nia.
+      assert (n = x) by nia.
+      rewrite H8 in H5.
+      pose (IHlen m b (Ptrofs.add ofs Ptrofs.one) H5 x0 H1 H4).
+       replace  (Ptrofs.add ofs (Ptrofs.repr (Z.succ x0))) with (Ptrofs.add (Ptrofs.add ofs Ptrofs.one) (Ptrofs.repr x0)).
+       assumption.
+       { 
+    
+     (*  replace  (Z.succ (Z.of_nat i)) with ((Z.of_nat i) + 1) by (auto with zarith). *)
+      rewrite Ptrofs.add_assoc.
+      f_equal.
+      unfold Ptrofs.add.
+      f_equal.
+      unfold Ptrofs.one.
+      repeat rewrite Ptrofs.unsigned_repr_eq.
+      repeat rewrite Zmod_small.
+      nia.
+      admit. (* intrange *)
+      admit.
+             }
+Admitted. 
 
 (* Correctness statements *)
 
