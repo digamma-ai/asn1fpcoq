@@ -72,37 +72,45 @@ Lemma Int_eq
   :
     Int.mkint intval0 intrange0 = Int.mkint intval1 intrange1.
 Proof.
-Admitted.
+  apply Int.mkint_eq.
+  assumption.
+  Qed.
 
-Lemma impl_spec : forall i m b ofs, strlen_mem_int m b ofs (Int_succ i) -> strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) i.
+Lemma impl_spec : forall i m b ofs, (Int_succ i) <> Int.zero -> strlen_mem_int m b ofs (Int_succ i) -> strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) i.
 Proof.
-  intros.
+  intros until ofs; intros H0 H.
   inversion H.
-  -
+  -  Search Int.zero.
     admit.
-  -
-    destruct (Int_succ n) eqn: Sn.
+    
+  - destruct (Int_succ n) eqn: Sn.
     destruct (Int_succ i) eqn: Si.
 
-    assert(E: n = i).
+    assert(E: Int_succ n = Int_succ i).
     {
       Search (?f ?a = ?f ?b -> ?a = ?b). (* need this for int *)
+      rewrite Si, Sn.
       apply Int_eq.
-      admit.
+      assumption.
     }
-    rewrite <- E.
-    apply H1.
 
-    (* prove that n = i *)
-    unfold Int_succ in H0.
-  destruct (Int.add n Int.one) eqn: S2.
-  destruct (Int.add i Int.one) eqn: S3.
-  rewrite H0 in S2.
-  unfold Int.add in H0.
-  unfold Int.unsigned in H0.
-  unfold Int.intval in H0.
-  
-  
+    assert (J : n = i).
+    { unfold Int_succ in E.
+      destruct (Int.eq_dec n i).
+      assumption.
+      pose (Int.eq_false n i n0).
+      pose (Int.translate_eq n i Int.one).
+      rewrite e in e0.
+      Search Int.eq.
+      pose (Int.eq_spec (Int.add n Int.one) (Int.add i Int.one)).
+      rewrite e0 in y.
+      congruence.
+
+    }
+    rewrite <- J.
+    assumption.
+    
+    
   
 
 Scheme int_ind_auto := Induction for Int.int Sort Prop.
