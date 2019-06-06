@@ -61,14 +61,40 @@ Inductive strlen_mem_int (m : mem) (b : block) (ofs : ptrofs) : int -> Prop :=
     c <> Int.zero ->
     strlen_mem_int m b ofs (Int_succ n).
 
+Require Import Coq.Logic.FunctionalExtensionality.
+
+Lemma Int_eq
+      (intval1 : Z)
+      (intrange1 : and (Z.lt (Zneg xH) intval1) (Z.lt intval1 Int.modulus))
+      (intval0 : Z)
+      (intrange0 : and (Z.lt (Zneg xH) intval0) (Z.lt intval0 Int.modulus))
+      (H: intval0 = intval1)
+  :
+    Int.mkint intval0 intrange0 = Int.mkint intval1 intrange1.
+Proof.
+Admitted.
+
 Lemma impl_spec : forall i m b ofs, strlen_mem_int m b ofs (Int_succ i) -> strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) i.
 Proof.
   intros.
   inversion H.
-  admit.
-  
-  (* prove that n = i *)
-  unfold Int_succ in H0.
+  -
+    admit.
+  -
+    destruct (Int_succ n) eqn: Sn.
+    destruct (Int_succ i) eqn: Si.
+
+    assert(E: n = i).
+    {
+      Search (?f ?a = ?f ?b -> ?a = ?b). (* need this for int *)
+      apply Int_eq.
+      admit.
+    }
+    rewrite <- E.
+    apply H1.
+
+    (* prove that n = i *)
+    unfold Int_succ in H0.
   destruct (Int.add n Int.one) eqn: S2.
   destruct (Int.add i Int.one) eqn: S3.
   rewrite H0 in S2.
