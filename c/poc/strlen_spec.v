@@ -135,46 +135,32 @@ Qed.
 
 Lemma impl_spec : forall i m b ofs, (Int_succ i) <> Int.zero -> strlen_mem_int m b ofs (Int_succ i) -> strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) i.
 Proof.
-  intro i.
+  (* intro i.
   eapply (int_induction (fun i => forall (m : mem) (b : block) (ofs : ptrofs), Int_succ i <> Int.zero ->
   strlen_mem_int m b ofs (Int_succ i) ->
-  strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) i)).
+  strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) i)). *)
   intros.
   inversion H0.
   (* same strategy as before  to show that n = Int.zero *)
-  - destruct (Int.repr (Z.succ i)) eqn: Si.
+  - destruct (Int_succ i) eqn: Si.
     destruct (Int.zero) eqn: S0.
-    assert ({| Int.intval := intval1; Int.intrange := intrange1 |} =
-  {| Int.intval := intval0; Int.intrange := intrange0 |}).
-    apply (Int.mkint_eq intval1 intval0 intrange1 intrange0 H1).
+    assert ( {| Int.intval := intval0; Int.intrange := intrange0 |} = {| Int.intval := intval; Int.intrange := intrange |}
+ ).
+    apply (Int.mkint_eq intval0 intval intrange0 intrange H1).
     congruence. 
-  - destruct (Int.repr (Z.succ n)) eqn: Sn.
-    destruct (Int.repr (Z.succ i)) eqn: Si.
+  - destruct (Int_succ n) eqn: Sn.
+    destruct (Int_succ i) eqn: Si.
 
-    assert(E: Int.repr (Z.succ n) = Int.repr (Z.succ i)).
+    assert(E: Int_succ n = Int_succ i).
     {
       rewrite Si, Sn.
       apply Int_eq.
       assumption.
     }
 
-    assert (J : Int.repr n = Int.repr i).
-    { f_equal.
-      inversion E.
- Admitted.     
-(*
-      destruct (Int.eq_dec (Int.repr n) (Int.repr i)).
-      assumption.
-      pose (Int.eq_false (Int.repr n) (Int.repr i) n0) as E1.
-      Check Int.translate_eq.
-      replace (Z.succ n) with (n + 1) in E by nia.
-  
-      pose (Int.eq_spec (Int.repr n) (Int.repr i)).
-      rewrite E1 in y.
-      congruence.
-
-    } *)
-   (* { destruct (Int.eq_dec n i).
+    assert (J : n = i).
+    { 
+      destruct (Int.eq_dec n i).
       assumption.
       pose (Int.eq_false n i n0).
       pose (Int.translate_eq n i Int.one).
@@ -182,11 +168,12 @@ Proof.
       Search Int.eq.
       pose (Int.eq_spec (Int.add n Int.one) (Int.add i Int.one)).
       rewrite e0 in y.
+      unfold Int_succ in E.
       congruence.
-
     }
     rewrite <- J.
-    assumption. *)
+    assumption.
+    Qed.
 
     
     
