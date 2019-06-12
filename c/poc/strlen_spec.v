@@ -1,6 +1,5 @@
 (** This is a toy example to demonstrate how to specify and prove correct a C function using C light *)
 
-
 From Coq Require Import String List ZArith Psatz.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs Memory Values ClightBigstep Events Maps.
 
@@ -16,61 +15,22 @@ Proof.
   cbv. destruct Archi.ptr64; split; congruence.
 Qed.
 
+Hint Resolve int_ptrofs_mod_eq ptrofs_mod_1_0 : ptrofs.
+
 Definition int_of_nat :=  fun n => Int.repr (Z.of_nat n).
-
-(* automatically generated induction principle *)
-Hypothesis int_ind : forall P : int -> Prop,
-       (forall (intval : Z) (intrange : -1 < intval < Int.modulus),
-        P {| Int.intval := intval; Int.intrange := intrange |}) ->
-       forall m : int, P m.
-                            
-Inductive strlen_mem (m : mem) (b : block) (ofs : ptrofs) : Z -> Prop :=
-| LengthZeroMem: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) ->   
-                 strlen_mem m b ofs 0
-| LengthSuccMem: forall n c,
-    strlen_mem m b (Ptrofs.add ofs Ptrofs.one) n ->
-    Mem.loadv Mint8unsigned m (Vptr b ofs)  = Some (Vint c) ->
-    c <> Int.zero ->
-    strlen_mem m b ofs (Z.succ n).
-
-
-Inductive strlen_mem_n (m : mem) (b : block) (ofs : ptrofs) : nat -> Prop :=
-| LengthZeroMem_n: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) ->   
-                 strlen_mem_n m b ofs 0
-| LengthSuccMem_n: forall n c,
-    Z.of_nat (S n) < Int.modulus ->
-    strlen_mem_n m b (Ptrofs.add ofs Ptrofs.one) n ->
-    Mem.loadv Mint8unsigned m (Vptr b ofs)  = Some (Vint c) ->
-    c <> Int.zero ->
-    strlen_mem_n m b ofs (S n).
-
 
 Definition Int_succ := fun i : int => Int.add i Int.one.
 
+
+(* The specification with wrapping *)
 Inductive strlen_mem_int (m : mem) (b : block) (ofs : ptrofs) : int -> Prop :=
-| LengthZeroMem_int: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) ->   
-                 strlen_mem_int m b ofs Int.zero
+| LengthZeroMem_int: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) -> strlen_mem_int m b ofs Int.zero
 | LengthSuccMem_int: forall n c,
-    (Int_succ n) <> Int.zero -> 
+    (* (Int_succ n) <> Int.zero -> *)
     strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) n ->
-    Mem.loadv Mint8unsigned m (Vptr b ofs)  = Some (Vint c) ->
+    Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint c) ->
     c <> Int.zero ->
     strlen_mem_int m b ofs (Int_succ n).
-
-Require Import Coq.Logic.FunctionalExtensionality.
-
-Lemma Int_eq
-      (intval1 : Z)
-      (intrange1 : and (Z.lt (Zneg xH) intval1) (Z.lt intval1 Int.modulus))
-      (intval0 : Z)
-      (intrange0 : and (Z.lt (Zneg xH) intval0) (Z.lt intval0 Int.modulus))
-      (H: intval0 = intval1)
-  :
-    Int.mkint intval0 intrange0 = Int.mkint intval1 intrange1.
-Proof.
-  apply Int.mkint_eq.
-  assumption.
-  Qed.
 
 (* Induction principle for integers *)
 
@@ -93,7 +53,7 @@ Proof.
   nia. }
   
   destruct (Int.repr 0) eqn: S0.
-  apply Int_eq.
+  apply Int.mkint_eq.
   simpl in H1.
   nia.
   
@@ -122,7 +82,7 @@ Proof.
   nia.
 
   destruct (Int.repr (Z.succ x)) eqn: Sa.
-  apply Int_eq.
+  apply Int.mkint_eq.
   simpl in H4.
   assumption.
   rewrite <- H4 in p0.
@@ -130,20 +90,22 @@ Proof.
   -  nia.
 Qed.
 
+(* This doesn't hold for a spec with wrapping. Counterexample: Int_succ i = Int.zero, there is an empty string at ofs and another empty string after it *)
 
-Lemma impl_spec : forall i m b ofs, (Int_succ i) <> Int.zero -> strlen_mem_int m b ofs (Int_succ i) -> strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) i.
+Lemma impl_spec : forall i m b ofs, strlen_mem_int m b ofs (Int_succ i) -> strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) i.
 Proof.
-  intros.
-  inversion H0.
-  (* same strategy as before  to show that n = Int.zero *)
-  -  admit.
+  intros until ofs; intro H.
+  inversion H.
+  - (* we have that Int.zero = Int_succ i *)
+
+    admit.
   - destruct (Int_succ n) eqn: Sn.
     destruct (Int_succ i) eqn: Si.
 
     assert(E: Int_succ n = Int_succ i).
     {
       rewrite Si, Sn.
-      apply Int_eq.
+      apply Int.mkint_eq.
       assumption.
     }
 
@@ -221,19 +183,6 @@ Definition f_strlen_loop :=
             tuint)))
       Sskip).
 
-Definition f_strlen_loop_body := (Ssequence
-        (Ssequence
-          (Ssequence
-            (Sset _t'1 (Etempvar _input (tptr tuchar)))
-            (Sset _input
-              (Ebinop Oadd (Etempvar _t'1 (tptr tuchar))
-                (Econst_int (Int.repr 1) tint) (tptr tuchar))))
-          (Ssequence
-            (Sset _t'2 (Ederef (Etempvar _t'1 (tptr tuchar)) tuchar))
-            (Sifthenelse (Etempvar _t'2 tuchar) Sskip Sbreak)))
-        (Sset _output
-          (Ebinop Oadd (Etempvar _output tuint) (Econst_int (Int.repr 1) tint)
-                  tuint))).
 
 (* Our goal is to prove that the C light AST is equivalent satisfies the spec: in this context it means that the C light AST evaluates to the correct value wrt to big step operational semantics *)
 
@@ -286,31 +235,6 @@ Qed.
  (* add more lemmas from Compcert to ptrofs hints *)
 
 Hint Resolve Ptrofs.mul_one Ptrofs.add_zero int_ptrofs_mod_eq : ptrofs.
-
-Lemma strlen_to_mem_n : forall len m b ofs, strlen_mem_n m b ofs len ->
-                                     forall i, (i < len)%nat -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat i)))) = Some (Vint c) /\ c <> Int.zero.
-Proof.
-  induction len.
-  - intros until ofs. intro Spec. intros.  omega.
-  -  induction i. intro. inversion_clear H.
-     +  replace (Ptrofs.repr (Z.of_nat 0)) with Ptrofs.zero by (simpl; auto with ptrofs).
-        replace (Ptrofs.add ofs Ptrofs.zero) with ofs by (auto with ptrofs).
-       exists c. apply (conj H3 H4).
-    +  intro. inversion_clear H. assert (i < len)%nat by omega. pose (IHlen m b (Ptrofs.add ofs (Ptrofs.repr 1)) H2 i H).
-       replace (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat (S i)))) with  (Ptrofs.add (Ptrofs.add ofs (Ptrofs.repr 1)) (Ptrofs.repr (Z.of_nat i))).
-       assumption.
-       {
-          rewrite Nat2Z.inj_succ.
-      replace  (Z.succ (Z.of_nat i)) with ((Z.of_nat i) + 1) by (auto with zarith).
-      rewrite Ptrofs.add_assoc.
-      f_equal.
-      unfold Ptrofs.add.
-      f_equal.
-      repeat rewrite Ptrofs.unsigned_repr_eq.
-      repeat rewrite Zmod_small.
-      all: (pose int_ptrofs_mod_eq); try nia.
-       }
-Qed.
 
 
 Proposition int_intval_repr : forall i : Z, 0 <= Z.succ i < Int.modulus ->                               Int.intval (Int.repr (Z.succ i)) = Z.succ i.
@@ -378,7 +302,7 @@ Lemma strlen_to_mem_int : forall len m b ofs, strlen_mem_int m b ofs len -> fora
           { unfold Int_succ in *.
             destruct (Int.add n Int.one) eqn: Sn.
             destruct (Int.add len Int.one) eqn: Slen.
-            apply Int_eq.
+            apply Int.mkint_eq.
             assumption.
           }
           assert (n = len).
@@ -408,7 +332,7 @@ Lemma strlen_to_mem_int : forall len m b ofs, strlen_mem_int m b ofs len -> fora
      assert ( {| Int.intval := Z.succ x; Int.intrange := intrange1 |} = Int.repr (Z.succ x)). *)
       (* destruct (Int.repr (Z.succ x)) eqn: Sx.
         
-                                              apply Int_eq.
+                                              apply Int.mkint_eq.
 
         pose int_intval_repr.
         Search Int.unsigned.
@@ -434,7 +358,7 @@ Lemma strlen_to_mem_int : forall len m b ofs, strlen_mem_int m b ofs len -> fora
     assert(E: Int_succ n = Int_succ i).
     {
       rewrite Si, Sn.
-      apply Int_eq.
+      apply Int.mkint_eq.
       assumption.
     }
 
@@ -629,31 +553,56 @@ Admitted.
   *)
 (* Correctness statements *)
 
-  Lemma strlen_to_mem_0 : forall len m b ofs, strlen_mem_int m b (Ptrofs.add ofs (Ptrofs.of_int len)) Int.zero -> Mem.loadv Mint8unsigned m (Vptr b (Ptrofs.add ofs (Ptrofs.of_int len))) = Some (Vint Int.zero).
+Definition Int_max := Int.repr (Int.max_unsigned).
+
+Lemma int_max_zero : Int_succ Int_max = Int.zero.
+Proof.
+  unfold Int.zero.
+  
+  assert (-1 < 0 < Int.modulus) as intrange0 by admit.
+  assert ((Int.repr 0) = {| Int.intval := 0; Int.intrange := intrange0 |}).
+  assert (Int.unsigned  (Int.repr (0)) = Int.unsigned {| Int.intval := 0; Int.intrange := intrange0 |}).
+  { simpl.
+  rewrite Int.unsigned_repr.
+  auto.
+  unfold Int.max_unsigned.
+  nia. }
+  destruct (Int.repr 0) eqn: S0.
+  apply Int.mkint_eq.
+  simpl in H.
+  assumption.
+  unfold Int_succ.
+  unfold Int_max.
+  destruct (Int.add (Int.repr Int.max_unsigned) Int.one) eqn: Smax.  
+Admitted.
+  
+Lemma strlen_to_mem_0 : forall m b ofs, strlen_mem_int m b ofs Int.zero -> Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) \/ strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) Int_max.
   Proof.
     intros.
     inversion H.
-    * assumption.
-    *  replace (match Int_succ n with
-       | {| Int.intval := intval |} => intval
-                end) with  (Int.intval (Int_succ n)) in H0 by (auto with ints).
-       replace (match Int.zero with
-                                 | {| Int.intval := intval |} => intval
-                end) with 0 in H0 by (auto with ints).
-       assert (Int_succ n = Int.zero).
-       { unfold Int_succ in *.
-         unfold Int.zero.
+    * left. assumption.
+    *              assert (Int_succ n = Int.repr 0).
+        { unfold Int_succ in *.
+         
          destruct (Int.add n Int.one) eqn: Sn.
          destruct (Int.repr 0) eqn: S0.
+        
+         apply Int.mkint_eq.
          simpl in H0.
-         apply Int_eq.
          rewrite H0.
-         admit.
-       }
-       congruence.
-       Admitted.
-       
-       
+         assert (-1 < 0 < Int.modulus) as intrange1 by admit.
+  assert ((Int.repr 0) = {| Int.intval := 0; Int.intrange := intrange1 |}).
+  assert (Int.unsigned  (Int.repr (0)) = Int.unsigned {| Int.intval := 0; Int.intrange := intrange1 |}).
+  { simpl.
+  rewrite Int.unsigned_repr.
+  auto.
+  unfold Int.max_unsigned.
+  nia. }
+  rewrite S0.
+  apply Int.mkint_eq.
+  simpl in H4.
+ Admitted.
+              
 Lemma strlen_to_len_0 : forall len m b ofs,  (Int.add len Int.one <> Int.zero) -> strlen_mem_int m b ofs len -> strlen_mem_int m b (Ptrofs.add ofs (Ptrofs.of_int len)) Int.zero.
 Proof.
   induction len using int_induction; intros until ofs; intros H H0.
@@ -665,7 +614,7 @@ Proof.
           { unfold Int_succ in *.
             destruct (Int.add n Int.one) eqn: Sn.
             destruct (Int.add len Int.one) eqn: Slen.
-            apply Int_eq.
+            apply Int.mkint_eq.
             assumption.
           }
           assert (n = len).
@@ -677,7 +626,7 @@ Proof.
             pose (Int.eq_spec (Int.add n Int.one) (Int.add len Int.one)).
             rewrite e0 in y.
             congruence.
-          }
+          } (*
        rewrite H7 in H3.
           replace (Ptrofs.add ofs (Ptrofs.of_int (Int.add len Int.one))) with (Ptrofs.add (Ptrofs.add ofs Ptrofs.one) (Ptrofs.of_int len)).
           assert (Int.add len Int.one <> Int.zero) as E by admit.
@@ -700,7 +649,7 @@ Proof.
        nia.
        admit.
        admit. (* still need assumptions on the size  of len *)
-       {rewrite Ptrofs.add_assoc. auto. } 
+       {rewrite Ptrofs.add_assoc. auto. } *)
 Admitted.
 
 Hint Resolve  Int.add_commut  Int.add_zero Int.add_assoc: ints.
@@ -708,7 +657,7 @@ Hint Resolve  Int.add_commut  Int.add_zero Int.add_assoc: ints.
 
 Lemma strlen_loop_correct_gen :
   forall len i ge e m b ofs le,
-    (* we read a C string of length len + i from memory and len + i is a valid integer *)
+    (* we read a C string of integer length len + i from memory *)
 
     strlen_mem_int m b ofs (Int.add len i) ->
     
@@ -720,8 +669,6 @@ Lemma strlen_loop_correct_gen :
       le!_input = Some (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) ->     (* then loop of strlen function executes to le' with output assigned len + i *)
       exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ le'!_output = Some (Vint (Int.add len i)).
 Proof.
-  assert (Int.modulus <= Ptrofs.modulus) as B.
-  { cbv. destruct Archi.ptr64. 1-2: congruence. }
   induction len using int_induction; intros until le; intro Spec. 
   - (* Base case *)    
     replace  (Int.add Int.zero i) with i in Spec.
