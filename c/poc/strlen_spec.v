@@ -6,7 +6,6 @@ From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clight
 
 (* Specification of the strlen function *)
 
-
 Proposition int_ptrofs_mod_eq : (Int.modulus <= Ptrofs.modulus).
 Proof.
   cbv. destruct Archi.ptr64; congruence.
@@ -56,7 +55,6 @@ Inductive strlen_mem_int (m : mem) (b : block) (ofs : ptrofs) : int -> Prop :=
     Mem.loadv Mint8unsigned m (Vptr b ofs)  = Some (Vint c) ->
     c <> Int.zero ->
     strlen_mem_int m b ofs (Int_succ n).
-
 
 
 Require Import Coq.Logic.FunctionalExtensionality.
@@ -173,10 +171,11 @@ Proof.
     }
     rewrite <- J.
     assumption.
-    Qed.
+Qed.
 
-    
-    
+(* В C есть Undefined *) 
+(* pre-condition to guarantee not undefined *)
+        
 Scheme int_ind_auto := Induction for Int.int Sort Prop.
 Print Int.int.
 
