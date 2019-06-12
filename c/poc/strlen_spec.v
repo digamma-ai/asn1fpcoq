@@ -1,6 +1,5 @@
 (** This is a toy example to demonstrate how to specify and prove correct a C function using C light *)
 
-
 From Coq Require Import String List ZArith Psatz.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs Memory Values ClightBigstep Events Maps.
 
@@ -18,34 +17,9 @@ Qed.
 
 Definition int_of_nat :=  fun n => Int.repr (Z.of_nat n).
 
-(* automatically generated induction principle *)
-Hypothesis int_ind : forall P : int -> Prop,
-       (forall (intval : Z) (intrange : -1 < intval < Int.modulus),
-        P {| Int.intval := intval; Int.intrange := intrange |}) ->
-       forall m : int, P m.
-                            
-Inductive strlen_mem (m : mem) (b : block) (ofs : ptrofs) : Z -> Prop :=
-| LengthZeroMem: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) ->   
-                 strlen_mem m b ofs 0
-| LengthSuccMem: forall n c,
-    strlen_mem m b (Ptrofs.add ofs Ptrofs.one) n ->
-    Mem.loadv Mint8unsigned m (Vptr b ofs)  = Some (Vint c) ->
-    c <> Int.zero ->
-    strlen_mem m b ofs (Z.succ n).
-
-
-Inductive strlen_mem_n (m : mem) (b : block) (ofs : ptrofs) : nat -> Prop :=
-| LengthZeroMem_n: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) ->   
-                 strlen_mem_n m b ofs 0
-| LengthSuccMem_n: forall n c,
-    Z.of_nat (S n) < Int.modulus ->
-    strlen_mem_n m b (Ptrofs.add ofs Ptrofs.one) n ->
-    Mem.loadv Mint8unsigned m (Vptr b ofs)  = Some (Vint c) ->
-    c <> Int.zero ->
-    strlen_mem_n m b ofs (S n).
-
-
 Definition Int_succ := fun i : int => Int.add i Int.one.
+
+(* Int.int type is 32b integer type *) 
 
 Inductive strlen_mem_int (m : mem) (b : block) (ofs : ptrofs) : int -> Prop :=
 | LengthZeroMem_int: Mem.loadv Mint8unsigned m (Vptr b ofs) = Some (Vint Int.zero) ->   
@@ -56,119 +30,7 @@ Inductive strlen_mem_int (m : mem) (b : block) (ofs : ptrofs) : int -> Prop :=
     Mem.loadv Mint8unsigned m (Vptr b ofs)  = Some (Vint c) ->
     c <> Int.zero ->
     strlen_mem_int m b ofs (Int_succ n).
-
-Require Import Coq.Logic.FunctionalExtensionality.
-
-Lemma Int_eq
-      (intval1 : Z)
-      (intrange1 : and (Z.lt (Zneg xH) intval1) (Z.lt intval1 Int.modulus))
-      (intval0 : Z)
-      (intrange0 : and (Z.lt (Zneg xH) intval0) (Z.lt intval0 Int.modulus))
-      (H: intval0 = intval1)
-  :
-    Int.mkint intval0 intrange0 = Int.mkint intval1 intrange1.
-Proof.
-  apply Int.mkint_eq.
-  assumption.
-  Qed.
-
-(* Induction principle for integers *)
-
-Lemma int_induction : forall (P : int -> Prop), P Int.zero ->
-                                       (forall i, P i -> P (Int.add i Int.one)) -> forall i, P i.
-Proof.
-  induction i.
-  generalize intrange.
-  eapply (natlike_ind (fun intval0 => forall intrange0 : -1 < intval0 < Int.modulus,
-                           P {| Int.intval := intval0; Int.intrange := intrange0 |}) ).
-  (* Base case *)
-  - intro.
-  unfold Int.zero in H.
-  assert ((Int.repr 0) = {| Int.intval := 0; Int.intrange := intrange0 |}).
-  assert (Int.unsigned {| Int.intval := 0; Int.intrange := intrange0 |} = Int.unsigned  (Int.repr (0))).
-  { simpl.
-  rewrite Int.unsigned_repr.
-  auto.
-  unfold Int.max_unsigned.
-  nia. }
-  
-  destruct (Int.repr 0) eqn: S0.
-  apply Int_eq.
-  simpl in H1.
-  nia.
-  
-  rewrite  H1 in H.
-  assumption.
-  -
-  intros.
-  assert (-1 < x < Int.modulus) by nia.
-  pose (H2 H3).
-  pose (H0 {| Int.intval := x; Int.intrange := H3 |} p).
-  assert (  {| Int.intval := Z.succ x; Int.intrange := intrange0 |} =  (Int.add {| Int.intval := x; Int.intrange := H3 |}
-                                                                                Int.one)  ).
-  unfold Int.add.
-  unfold Int.one.
-  unfold Int.unsigned.
-  replace (Int.intval (Int.repr 1)) with 1 by (auto with ints).
-  simpl.
-  replace (x + 1) with (Z.succ x) by nia.
-  assert (Int.unsigned {| Int.intval := Z.succ x; Int.intrange := intrange0 |} = Int.unsigned
-                                                                                   (Int.repr (Z.succ x))).
-  simpl.
-  Search Int.repr.
-  rewrite Int.unsigned_repr.
-  auto.
-  unfold Int.max_unsigned.
-  nia.
-
-  destruct (Int.repr (Z.succ x)) eqn: Sa.
-  apply Int_eq.
-  simpl in H4.
-  assumption.
-  rewrite <- H4 in p0.
-  assumption.
-  -  nia.
-Qed.
-
-
-Lemma impl_spec : forall i m b ofs, (Int_succ i) <> Int.zero -> strlen_mem_int m b ofs (Int_succ i) -> strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) i.
-Proof.
-  intros.
-  inversion H0.
-  (* same strategy as before  to show that n = Int.zero *)
-  -  admit.
-  - destruct (Int_succ n) eqn: Sn.
-    destruct (Int_succ i) eqn: Si.
-
-    assert(E: Int_succ n = Int_succ i).
-    {
-      rewrite Si, Sn.
-      apply Int_eq.
-      assumption.
-    }
-
-    assert (J : n = i).
-   
-    { destruct (Int.eq_dec n i).
-      assumption.
-      pose (Int.eq_false n i n0).
-      pose (Int.translate_eq n i Int.one).
-      rewrite e in e0.
-      Search Int.eq.
-      pose (Int.eq_spec (Int.add n Int.one) (Int.add i Int.one)).
-      rewrite e0 in y.
-      unfold Int_succ in E.
-      congruence.
-    }
-    rewrite <- J.
-    assumption.
-Admitted.
-
-
-(* В C есть Undefined *) 
-(* pre-condition to guarantee not undefined *)
-        
-
+     
 (* strlen C light AST *)
 
 Definition _output : ident := 4%positive.
@@ -176,6 +38,7 @@ Definition _input : ident := 3%positive.
 Definition _t'1 : ident := 7%positive.
 Definition _t'2 : ident := 8%positive.
 
+(* *) 
 Definition f_strlen := {|
   fn_return := tuint;
   fn_callconv := cc_default;
@@ -204,6 +67,7 @@ Definition f_strlen := {|
     (Sreturn (Some (Etempvar _output tuint)))))
                           |}.
 
+
 Definition f_strlen_loop :=
   (Sloop
       (Ssequence
@@ -221,19 +85,6 @@ Definition f_strlen_loop :=
             tuint)))
       Sskip).
 
-Definition f_strlen_loop_body := (Ssequence
-        (Ssequence
-          (Ssequence
-            (Sset _t'1 (Etempvar _input (tptr tuchar)))
-            (Sset _input
-              (Ebinop Oadd (Etempvar _t'1 (tptr tuchar))
-                (Econst_int (Int.repr 1) tint) (tptr tuchar))))
-          (Ssequence
-            (Sset _t'2 (Ederef (Etempvar _t'1 (tptr tuchar)) tuchar))
-            (Sifthenelse (Etempvar _t'2 tuchar) Sskip Sbreak)))
-        (Sset _output
-          (Ebinop Oadd (Etempvar _output tuint) (Econst_int (Int.repr 1) tint)
-                  tuint))).
 
 (* Our goal is to prove that the C light AST is equivalent satisfies the spec: in this context it means that the C light AST evaluates to the correct value wrt to big step operational semantics *)
 
@@ -287,30 +138,6 @@ Qed.
 
 Hint Resolve Ptrofs.mul_one Ptrofs.add_zero int_ptrofs_mod_eq : ptrofs.
 
-Lemma strlen_to_mem_n : forall len m b ofs, strlen_mem_n m b ofs len ->
-                                     forall i, (i < len)%nat -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat i)))) = Some (Vint c) /\ c <> Int.zero.
-Proof.
-  induction len.
-  - intros until ofs. intro Spec. intros.  omega.
-  -  induction i. intro. inversion_clear H.
-     +  replace (Ptrofs.repr (Z.of_nat 0)) with Ptrofs.zero by (simpl; auto with ptrofs).
-        replace (Ptrofs.add ofs Ptrofs.zero) with ofs by (auto with ptrofs).
-       exists c. apply (conj H3 H4).
-    +  intro. inversion_clear H. assert (i < len)%nat by omega. pose (IHlen m b (Ptrofs.add ofs (Ptrofs.repr 1)) H2 i H).
-       replace (Ptrofs.add ofs (Ptrofs.repr (Z.of_nat (S i)))) with  (Ptrofs.add (Ptrofs.add ofs (Ptrofs.repr 1)) (Ptrofs.repr (Z.of_nat i))).
-       assumption.
-       {
-          rewrite Nat2Z.inj_succ.
-      replace  (Z.succ (Z.of_nat i)) with ((Z.of_nat i) + 1) by (auto with zarith).
-      rewrite Ptrofs.add_assoc.
-      f_equal.
-      unfold Ptrofs.add.
-      f_equal.
-      repeat rewrite Ptrofs.unsigned_repr_eq.
-      repeat rewrite Zmod_small.
-      all: (pose int_ptrofs_mod_eq); try nia.
-       }
-Qed.
 
 
 Proposition int_intval_repr : forall i : Z, 0 <= Z.succ i < Int.modulus ->                               Int.intval (Int.repr (Z.succ i)) = Z.succ i.
@@ -322,22 +149,144 @@ Proof.
   assumption.
   Qed.
 
-(* Clean up the proofs, remove redundant unfolds *)
+(* Induction principle for integers *)
+
+Lemma int_induction : forall (P : int -> Prop), P Int.zero ->
+                                       (forall i, P i -> P (Int.add i Int.one)) -> forall i, P i.
+Proof.
+  induction i.
+  generalize intrange.
+  eapply (natlike_ind (fun intval0 => forall intrange0 : -1 < intval0 < Int.modulus,
+                           P {| Int.intval := intval0; Int.intrange := intrange0 |}) ).
+  (* Base case *)
+  - intro.
+  unfold Int.zero in H.
+  assert ((Int.repr 0) = {| Int.intval := 0; Int.intrange := intrange0 |}).
+  assert (Int.unsigned {| Int.intval := 0; Int.intrange := intrange0 |} = Int.unsigned  (Int.repr (0))).
+  { simpl.
+  rewrite Int.unsigned_repr.
+  auto.
+  unfold Int.max_unsigned.
+  nia. }
+  
+  destruct (Int.repr 0) eqn: S0.
+  apply Int.mkint_eq.
+  simpl in H1.
+  nia.
+  
+  rewrite  H1 in H.
+  assumption.
+  -
+  intros.
+  assert (-1 < x < Int.modulus) by nia.
+  pose (H2 H3).
+  pose (H0 {| Int.intval := x; Int.intrange := H3 |} p).
+  assert (  {| Int.intval := Z.succ x; Int.intrange := intrange0 |} =  (Int.add {| Int.intval := x; Int.intrange := H3 |}
+                                                                                Int.one)  ).
+  unfold Int.add.
+  unfold Int.one.
+  unfold Int.unsigned.
+  replace (Int.intval (Int.repr 1)) with 1 by (auto with ints).
+  simpl.
+  replace (x + 1) with (Z.succ x) by nia.
+  assert (Int.unsigned {| Int.intval := Z.succ x; Int.intrange := intrange0 |} = Int.unsigned
+                                                                                   (Int.repr (Z.succ x))).
+  simpl.
+  Search Int.repr.
+  rewrite Int.unsigned_repr.
+  auto.
+  unfold Int.max_unsigned.
+  nia.
+
+  destruct (Int.repr (Z.succ x)) eqn: Sa.
+  apply Int.mkint_eq.
+  simpl in H4.
+  assumption.
+  rewrite <- H4 in p0.
+  assumption.
+  -  nia.
+Qed.
+
+
+Lemma impl_spec : forall i m b ofs, (Int_succ i) <> Int.zero -> strlen_mem_int m b ofs (Int_succ i) -> strlen_mem_int m b (Ptrofs.add ofs Ptrofs.one) i.
+Proof.
+  intros.
+  inversion H0.
+  -  destruct (Int_succ i) eqn: Si.
+     destruct (Int.zero) eqn: S0. 
+    assert (Int.zero = Int_succ i).
+    { rewrite Si, S0.
+      apply Int.mkint_eq.
+      assumption.      
+    }
+    congruence.
+  - destruct (Int_succ n) eqn: Sn.
+    destruct (Int_succ i) eqn: Si.
+
+    assert(E: Int_succ n = Int_succ i).
+    {
+      rewrite Si, Sn.
+      apply Int.mkint_eq.
+      assumption.
+    }
+
+    assert (J : n = i).
+   
+    { destruct (Int.eq_dec n i).
+      assumption.
+      pose (Int.eq_false n i n0).
+      pose (Int.translate_eq n i Int.one).
+      rewrite e in e0.
+      Search Int.eq.
+      pose (Int.eq_spec (Int.add n Int.one) (Int.add i Int.one)).
+      rewrite e0 in y.
+      unfold Int_succ in E.
+      congruence.
+    }
+    rewrite <- J.
+    assumption.
+Qed.
+
+Lemma ptrofs_induction : forall (P : ptrofs -> Prop), P Ptrofs.zero ->
+                                       (forall i, P i -> P (Ptrofs.add i Ptrofs.one)) -> forall i, P i.
+ Admitted.
+  
+Lemma non_zero_lt_mod1 : forall len, (Int_succ len <> Int.zero) -> Int.unsigned (Int_succ len) < Int.modulus.
+Proof.
+  intros.
+  destruct (Int_succ len) eqn: Slen.
+  simpl.
+  apply intrange.
+Qed.
+
 
 (* false, need assumptions on len *)
-Lemma strlen_to_mem_int : forall len m b ofs, strlen_mem_int m b ofs len -> forall i, Int.ltu i len = true -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) = Some (Vint c) /\ c <> Int.zero.
+
+Lemma strlen_to_mem_int : forall len m b ofs,
+    strlen_mem_int m b ofs len ->
+    forall i, Ptrofs.unsigned i < Int.unsigned len ->
+         Int_succ len <> Int.zero ->                                                                  exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs i)) = Some (Vint c) /\ c <> Int.zero.
   Proof.
     induction len using int_induction.
     - (* Base case len *)
-      intros.
+      intros until ofs.
+      intro Spec.
       unfold Int.zero in *.
-      pose (Int.ltu_inv _ _ H0) as A.                
-      rewrite Int.unsigned_repr in A.
-      + nia.
-      + cbv. split; congruence.  
+      intros i H0 F.               
+      rewrite Int.unsigned_repr in H0.
+      destruct i.
+      simpl in H0.
+      nia.
+      unfold Int.max_unsigned.
+      split.
+      nia.
+      auto with ints.
+      Search Int.modulus.
+      pose Int.modulus_pos.
+      nia.  
   - (* I.S. len *)
     intros until ofs.  intro Spec.
-    induction i using int_induction.
+    induction i using ptrofs_induction.
       + (* Base case i *)
         intro Ltu.
         unfold Int.ltu in Ltu.
@@ -356,304 +305,94 @@ Lemma strlen_to_mem_int : forall len m b ofs, strlen_mem_int m b ofs len -> fora
             unfold Int.intval.
             replace 0 with (Int.unsigned (Int.repr 0)) by (auto with ints). auto with ints. }
           
-        * replace (Ptrofs.add ofs (Ptrofs.of_int Int.zero)) with ofs by (auto with ptrofs).
-          exists c. (*apply (conj H1 H2).
-        * congruence.
+        * replace (Ptrofs.add ofs (Ptrofs.zero)) with ofs by (auto with ptrofs).
+          exists c. apply (conj H2 H3).
+          * admit.
       + (* I.S. i *)
         intros.
-        assert (Int.ltu i (Int.add len Int.one) = true) as Ltu.
-        unfold Int.ltu in *.
-        destruct (zlt (Int.unsigned (Int.add i Int.one)) (Int.unsigned (Int.add len Int.one))).
-        destruct  (zlt (Int.unsigned i) (Int.unsigned (Int.add len Int.one))).
-        auto.
-        unfold Int.add in l, g.
-        replace (Int.unsigned Int.one) with 1  in l, g by (auto with ints).
-        rewrite Int.unsigned_repr in l, g.
-        rewrite Int.unsigned_repr in l.
-        nia. *)
-       (* nia.
-
-
-         assert (Int.add n Int.one  = Int.add len Int.one ).
-          { unfold Int_succ in *.
-            destruct (Int.add n Int.one) eqn: Sn.
-            destruct (Int.add len Int.one) eqn: Slen.
-            apply Int_eq.
-            assumption.
-          }
-          assert (n = len).
-          { destruct (Int.eq_dec n len).
-            assumption.
-            pose (Int.eq_false n len n0).
-            pose (Int.translate_eq n len Int.one).
-            rewrite e in e0.
-            pose (Int.eq_spec (Int.add n Int.one) (Int.add len Int.one)).
-            rewrite e0 in y.
-            congruence.
-          }
-          rewrite H4 in H0.
-          pose (IHlen m b (Ptrofs.add ofs Ptrofs.one) H0 Int.zero).
+        assert (Int_succ len <> Int.zero) as B by admit.
+        pose (impl_spec _ _ _ _ B Spec) as Spec_impl.
+        pose (IHlen m b (Ptrofs.add ofs Ptrofs.one) Spec_impl i) as IHip.
+        replace (Ptrofs.add ofs (Ptrofs.add i Ptrofs.one))  with  (Ptrofs.add (Ptrofs.add ofs Ptrofs.one) i).
+        apply IHip.
+        unfold Ptrofs.add in H.
+        * (* Int.ltu i len = true : follows from H0 and H1 *) admit.     * assumption.
+        * (* Int_succ i <> Int.zero : follows from Int_succ (Int.add i Int.one) <> Int.zero *) admit.
+        * assert (Int_succ i <> Int.zero) as J by admit.
+          pose (non_zero_lt_mod1 _  J).
+          rewrite Ptrofs.add_assoc.
+          f_equal.
+          assert (Int.unsigned i < Int.modulus).
+          destruct i.
+          simpl.
+          apply intrange.
+          Search Ptrofs.of_int.
+          unfold Ptrofs.of_int.
+          unfold Ptrofs.add.
+          f_equal.
+          rewrite Ptrofs.unsigned_repr_eq.
+          rewrite Zmod_small.
+          unfold Int.add.
+          rewrite Int.unsigned_repr_eq.
+          Print Ptrofs.agree32.
+          Search Ptrofs.agree32.
+          unfold Int_succ in l.
+          unfold Int.add in l.
+          rewrite Int.unsigned_repr_eq in l.
+          rewrite Zmod_small in l.
+          replace (Int.unsigned Int.one) with 1 in l by (auto with ints). 
+          nia.
           
-      rename H0 into IHlen.
-      assert (intrange_x : -1 < x < Int.modulus) by nia.
-      assert (intrange_x0 : -1 < x0 < Int.modulus) by nia.
-      assert (Int.ltu
-         {|
-         Int.intval := x0;
-         Int.intrange := intrange_x0|}
-         {|
-         Int.intval := x;
-         Int.intrange := intrange_x |} = true) by admit. 
-      (* follows from H3 *)
-     assert ( {| Int.intval := Z.succ x; Int.intrange := intrange1 |} = Int.repr (Z.succ x)). *)
-      (* destruct (Int.repr (Z.succ x)) eqn: Sx.
-        
-                                              apply Int_eq.
-
-        pose int_intval_repr.
-        Search Int.unsigned.
-        pose (Int.eqm_repr_eq). (Z.succ x) _ Sx).
-
-        Search Int.repr.
-      }
-      
-      pose (impl_spec _ _ _ _ _ Spec).
-      replace (match Int.zero with
-       | {| Int.intval := intval |} => intval
-       end) with 0 in H4.
-  nia.
-  { unfold Int.zero.
-          unfold Int.intval.
-          replace 0 with (Int.unsigned (Int.repr 0)) by (auto with ints). auto with ints. }
-
-  destruct (Int_succ n) eqn: Sn.
-  unfold Int_succ in Sn.
-  unfold Int.add in Sn.
-     destruct (Int_succ i) eqn: Si.
-
-    assert(E: Int_succ n = Int_succ i).
-    {
-      rewrite Si, Sn.
-      apply Int_eq.
-      assumption.
-    }
-
-    assert (J : n = i).
-    { unfold Int_succ in E.
-      destruct (Int.eq_dec n i).
-      assumption.
-      pose (Int.eq_false n i n0).
-      pose (Int.translate_eq n i Int.one).
-      rewrite e in e0.
-      Search Int.eq.
-      pose (Int.eq_spec (Int.add n Int.one) (Int.add i Int.one)).
-      rewrite e0 in y.
-      congruence.
-
-    }
-    rewrite <- J.
-    assumption.
-  
-  (* We want to conclude that intval n = x from the fact that intval Int_succ n = Z.succ x *)
-  
-  replace (match Int.repr (Z.succ n) with
-       | {| Int.intval := intval |} => intval
-       end) with (Z.succ n) in H4.
-  assert (n = x) by nia.
-  rewrite H8 in H5.
-  assert (Int.repr x = {| Int.intval := x; Int.intrange := intrange_x |}) by admit. rewrite H9 in H5. *)
-    (*  rewrite H4 in Spec.
-      assert (Int.repr (Z.succ x) <> Int.zero) as A by admit.
-      pose (impl_spec _ _ _  _ A Spec).
-      pose (IHlen intrange_x m b (Ptrofs.add ofs Ptrofs.one) s {| Int.intval := x0; Int.intrange := intrange_x0 |} H0).
-       replace 
-       (Ptrofs.add ofs
-            (Ptrofs.of_int
-               {|
-               Int.intval := Z.succ x0;
-               Int.intrange := intrange2 |})) with  (Ptrofs.add (Ptrofs.add ofs Ptrofs.one)
-               (Ptrofs.of_int
-                  {|
-                  Int.intval := x0;
-                  Int.intrange := intrange_x0 |})).
-       assumption.
-
-       
-       { 
-    
-      rewrite Ptrofs.add_assoc.
-      f_equal.
-      unfold Ptrofs.add.
-      unfold Ptrofs.of_int.
-      f_equal.
-      unfold Ptrofs.one.
-      repeat rewrite Ptrofs.unsigned_repr_eq.
-      repeat rewrite Zmod_small.
-      unfold Int.unsigned.
-      unfold Int.intval.
-      nia.
-      unfold Int.unsigned.
-      unfold Int.intval.
-      pose (int_ptrofs_mod_eq).
-      nia.
-      apply ptrofs_mod_1_0.
-       }
-       {
-         
-      
-    admit.
-
-  }
-      + nia.
-  - nia.
-  
-*)
+          rewrite Ptrofs.add_commut.
+          apply Ptrofs.agree32_of_int_eq.
+          Search Ptrofs.agree32.
+          apply Ptrofs.agree32_add.
+          admit. (* Archi.ptr64 = false *)
+          auto with ptrofs.
+          unfold Ptrofs.one.
+          unfold Int.one.
+          auto with ptrofs.
 Admitted.
-
-
-  (*   induction len.
-  induction intval0.
-  - (* Base len *)
-    intros.
-    unfold Int.ltu in H0.
-    unfold Int.unsigned in H0.
-    simpl in H0.
-    destruct (zlt (Int.intval i) 0).
-    pose (Int.intrange i).
-    nia.
-    intuition.    
-  - (* I.S. len *)
-    intros until ofs. intro Spec.
-    induction i.
-    induction intval0.
-    + (* Base case i *)
-      intros.
-          induction p using positive_lt_ind.
-
-      inversion Spec.
-        replace (match Int.zero with
-       | {| Int.intval := intval |} => intval
-                 end) with 0 in H2.
-        nia.
-        { unfold Int.zero.
-          unfold Int.intval.
-          replace 0 with (Int.unsigned (Int.repr 0)) by (auto with ints). auto with ints. }
-          
-          
-      
-       replace (Ptrofs.add ofs
-            (Ptrofs.of_int
-               {|
-               Int.intval := 0;
-               Int.intrange := intrange2 |})) with ofs by (auto with ptrofs).
-       exists c. apply (conj H4 H5).
-
-      + (* Ind. step  i*)
-      intros. 
-      rename H0 into IHlen.
-      assert (intrange_x : -1 < x < Int.modulus) by nia.
-      assert (intrange_x0 : -1 < x0 < Int.modulus) by nia.
-      assert (Int.ltu
-         {|
-         Int.intval := x0;
-         Int.intrange := intrange_x0|}
-         {|
-         Int.intval := x;
-         Int.intrange := intrange_x |} = true) by admit.
-      inversion Spec.
-  replace (match Int.zero with
-       | {| Int.intval := intval |} => intval
-       end) with 0 in H4.
-  nia.
-  { unfold Int.zero.
-          unfold Int.intval.
-          replace 0 with (Int.unsigned (Int.repr 0)) by (auto with ints). auto with ints. }
-
-  unfold Int_succ in H4.
-  unfold Int.add in H4.
-  unfold Int.one in H4.
-  replace (Int.unsigned (Int.repr 1)) with 1 in H4 by (auto with ints).
-  replace (Int.unsigned n + 1) with (Z.succ (Int.unsigned n)) in H4 by (nia).
-  
-  (* We want to conclude that intval n = x from the fact that intval Int_succ = Z.succ x *)
-  
-  replace (match Int.repr (Z.succ n) with
-       | {| Int.intval := intval |} => intval
-       end) with (Z.succ n) in H4.
-  assert (n = x) by nia.
-  rewrite H8 in H5.
-  assert (Int.repr x = {| Int.intval := x; Int.intrange := intrange_x |}) by admit. rewrite H9 in H5. 
-      pose (IHlen intrange_x m b (Ptrofs.add ofs Ptrofs.one) H5 {| Int.intval := x0; Int.intrange := intrange_x0 |} H0).
-       replace 
-       (Ptrofs.add ofs
-            (Ptrofs.of_int
-               {|
-               Int.intval := Z.succ x0;
-               Int.intrange := intrange2 |})) with  (Ptrofs.add (Ptrofs.add ofs Ptrofs.one)
-               (Ptrofs.of_int
-                  {|
-                  Int.intval := x0;
-                  Int.intrange := intrange_x0 |})).
-       assumption.
-
        
-       { 
-    
-      rewrite Ptrofs.add_assoc.
-      f_equal.
-      unfold Ptrofs.add.
-      unfold Ptrofs.of_int.
-      f_equal.
-      unfold Ptrofs.one.
-      repeat rewrite Ptrofs.unsigned_repr_eq.
-      repeat rewrite Zmod_small.
-      unfold Int.unsigned.
-      unfold Int.intval.
-      nia.
-      unfold Int.unsigned.
-      unfold Int.intval.
-      pose (int_ptrofs_mod_eq).
-      nia.
-      apply ptrofs_mod_1_0.
-       }
-       {
-         
-      
-    admit.
-
-  }
-      + nia.
-  - nia.
-
-  
-  *)
 (* Correctness statements *)
 
-  Lemma strlen_to_mem_0 : forall len m b ofs, strlen_mem_int m b (Ptrofs.add ofs (Ptrofs.of_int len)) Int.zero -> Mem.loadv Mint8unsigned m (Vptr b (Ptrofs.add ofs (Ptrofs.of_int len))) = Some (Vint Int.zero).
+Lemma intval_eq_0 : forall (n : int), match Int_succ n with
+       | {| Int.intval := intval |} => intval
+       end =
+       match Int.zero with
+       | {| Int.intval := intval |} => intval
+       end -> (Int_succ n = Int.zero).
+Proof.
+  intros.
+   destruct (Int_succ n) eqn: Sn.
+     destruct (Int.zero) eqn: S0. 
+      apply Int.mkint_eq.
+      assumption.
+Qed.
+
+
+Lemma intval_eq : forall (n i : int), match  n with
+       | {| Int.intval := intval |} => intval
+       end =
+        match i with
+       | {| Int.intval := intval |} => intval
+       end ->  (n = i).
+  intros.
+   destruct (n) eqn: Sn.
+     destruct (i) eqn: Si. 
+      apply Int.mkint_eq.
+      assumption.
+Qed.
+
+Lemma strlen_to_mem_0 : forall len m b ofs, strlen_mem_int m b (Ptrofs.add ofs (Ptrofs.of_int len)) Int.zero -> Mem.loadv Mint8unsigned m (Vptr b (Ptrofs.add ofs (Ptrofs.of_int len))) = Some (Vint Int.zero).
   Proof.
     intros.
     inversion H.
     * assumption.
-    *  replace (match Int_succ n with
-       | {| Int.intval := intval |} => intval
-                end) with  (Int.intval (Int_succ n)) in H0 by (auto with ints).
-       replace (match Int.zero with
-                                 | {| Int.intval := intval |} => intval
-                end) with 0 in H0 by (auto with ints).
-       assert (Int_succ n = Int.zero).
-       { unfold Int_succ in *.
-         unfold Int.zero.
-         destruct (Int.add n Int.one) eqn: Sn.
-         destruct (Int.repr 0) eqn: S0.
-         simpl in H0.
-         apply Int_eq.
-         rewrite H0.
-         admit.
-       }
+    * pose (intval_eq_0 n  H0) as A.
        congruence.
-       Admitted.
-       
-       
+   Qed.
+              
 Lemma strlen_to_len_0 : forall len m b ofs,  (Int.add len Int.one <> Int.zero) -> strlen_mem_int m b ofs len -> strlen_mem_int m b (Ptrofs.add ofs (Ptrofs.of_int len)) Int.zero.
 Proof.
   induction len using int_induction; intros until ofs; intros H H0.
@@ -665,7 +404,7 @@ Proof.
           { unfold Int_succ in *.
             destruct (Int.add n Int.one) eqn: Sn.
             destruct (Int.add len Int.one) eqn: Slen.
-            apply Int_eq.
+            apply Int.mkint_eq.
             assumption.
           }
           assert (n = len).
@@ -709,7 +448,8 @@ Hint Resolve  Int.add_commut  Int.add_zero Int.add_assoc: ints.
 Lemma strlen_loop_correct_gen :
   forall len i ge e m b ofs le,
     (* we read a C string of length len + i from memory and len + i is a valid integer *)
-
+    Int.add (Int.add len i) Int.one <> Int.zero ->  
+   
     strlen_mem_int m b ofs (Int.add len i) ->
     
     (* THEN there is a trace t and local environment le' such that: *)
@@ -719,36 +459,35 @@ Lemma strlen_loop_correct_gen :
       (* if input is an address [b,ofs + i] in the starting local environment *)
       le!_input = Some (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) ->     (* then loop of strlen function executes to le' with output assigned len + i *)
       exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ le'!_output = Some (Vint (Int.add len i)).
-Proof.
-  assert (Int.modulus <= Ptrofs.modulus) as B.
-  { cbv. destruct Archi.ptr64. 1-2: congruence. }
-  induction len using int_induction; intros until le; intro Spec. 
-  - (* Base case *)    
-    replace  (Int.add Int.zero i) with i in Spec.
-    repeat eexists.
-    (* Exit the loop *)
-    eapply exec_Sloop_stop1. seq2. repeat econstructor.
-    apply H0.
-    eapply gss.
-    repeat econstructor.
-    rewrite gso. apply gss. cbv. congruence.
-    (* Derive memory assumptions from the specification *)
-    assert (Int.add i Int.one <> Int.zero) as  E by admit.
-    pose (Spec_mem := strlen_to_len_0 i m b ofs E Spec).
+  Proof.
+    assert  (Archi.ptr64 = false) as K by admit.
+  induction len using int_induction; intros until le; intros Bound Spec.
+  - (* Base case *)
+    
+    replace  (Int.add Int.zero i) with i in *.
+    pose (Spec_mem := strlen_to_len_0 i m b ofs Bound Spec).
     pose (Spec_mem0 := strlen_to_mem_0 i m b ofs Spec_mem).
-    apply Spec_mem0.
-    apply gss.
-    econstructor.
-    replace (negb (Int.eq Int.zero Int.zero)) with false by (auto with ints).      
-    econstructor.
-    cbv; congruence. econstructor.
-    repeat (rewrite gso).
-    replace  (Int.add Int.zero i) with i.
-    assumption.
+   
+    repeat eexists.
+      (* Exit the loop *)
+      eapply exec_Sloop_stop1. seq2. repeat econstructor.
+      apply H0.
+      eapply gss.
+      repeat econstructor.
+      rewrite gso. apply gss. cbv. congruence.
+      apply Spec_mem0.
+      apply gss.
+      econstructor.
+      replace (negb (Int.eq Int.zero Int.zero)) with false by (auto with ints).      
+      econstructor.
+      cbv; congruence. econstructor.
+      repeat (rewrite gso).
+      assumption.
+      1-3: cbv; congruence.
     { rewrite Int.add_commut. rewrite Int.add_zero. auto. }
-    1-3: cbv; congruence.
-    { rewrite Int.add_commut. rewrite Int.add_zero. auto. }
+   
   - (* Ind. Step *)
+    
     assert (exists char, Mem.loadv Mint8unsigned m (Vptr b  (Ptrofs.add ofs (Ptrofs.of_int i))) = Some (Vint char) /\ char <> Int.zero) as Mem.
     { refine (strlen_to_mem_int (Int.add (Int.add len Int.one) i) m b ofs Spec i _). (* i < i + len + 1 *) admit. }
     destruct Mem as [char Mem].
@@ -757,20 +496,28 @@ Proof.
        (PTree.set _t'2 (Vint char)
           (PTree.set _input (Vptr b  (Ptrofs.add ofs (Ptrofs.of_int (Int.add i Int.one))))
              (PTree.set _t'1 (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) le))))).
-    pose (IH := IHlen (Int.add i Int.one) ge e m b ofs le'').
+    pose (IH := IHlen (Int.add i Int.one) ge e m b ofs le'' ).
     assert ( exists (t : trace) (le' : temp_env),
        le'' ! _output = Some (Vint (Int.add i Int.one)) ->
        le'' ! _input = Some (Vptr b (Ptrofs.add ofs (Ptrofs.of_int (Int.add i Int.one)))) ->
        exec_stmt ge e le'' m f_strlen_loop t le' m Out_normal /\
        le' ! _output = Some (Vint (Int.add len (Int.add i Int.one)))) as Step.
-    { eapply IH.
-      replace (Int.add len (Int.add i Int.one)) with (Int.add (Int.add len Int.one) i).
+    { eapply IH;
+        replace (Int.add len (Int.add i Int.one)) with (Int.add (Int.add len Int.one) i).
+      
+      
+      
       assumption.
       rewrite Int.add_assoc.
       f_equal.
       rewrite Int.add_commut.
       auto.
-    }
+      assumption.
+      rewrite Int.add_assoc.
+      f_equal.
+      rewrite Int.add_commut.
+      auto. }
+     
     destruct Step as [s Step]. destruct Step as [t Step]. 
     (* Do one loop on the goal: then apply IH *)
     repeat eexists.
@@ -801,40 +548,47 @@ Proof.
   apply gss.
   1-2: cbv; congruence.
 
-  {  (* inversion Spec. *)
-    (* destruct Mem as [Mem C]. destruct C as [C Inc]. *)
-
+  {  
     unfold le''.
     replace (Ptrofs.add (Ptrofs.add ofs (Ptrofs.of_int i)) Ptrofs.one) with (Ptrofs.add ofs (Ptrofs.of_int (Int.add i Int.one))).
     reflexivity.
+    pose (Int64.int_unsigned_repr).
      rewrite Ptrofs.add_assoc.
-      f_equal.
-      unfold Ptrofs.of_int.
-      unfold Ptrofs.add.
-      f_equal.
-      rewrite Ptrofs.unsigned_repr_eq.
-      replace (Ptrofs.unsigned Ptrofs.one) with 1 by (auto with ptrofs).
-      admit. (* as before *)
+     f_equal.
+     Search Ptrofs.of_int.
+     apply Ptrofs.agree32_of_int_eq.
+     Search Ptrofs.agree32.
+     apply Ptrofs.agree32_add.
+     assumption.
+     auto with ptrofs.
+     auto with ptrofs.
+     unfold Ptrofs.one.
+     unfold Int.one.
+     auto with ptrofs.
       }
       
   destruct Step.
   apply gss.
   unfold le''. rewrite gso. rewrite gso. apply gss.
   1-2: cbv; congruence.
-  replace (Int.add (Int.add len Int.one) i) with (Int.add len (Int.add i Int.one)) by admit.
+  replace (Int.add (Int.add len Int.one) i) with (Int.add len (Int.add i Int.one)). 
   assumption.
+  { rewrite Int.add_assoc.
+      f_equal.
+      rewrite Int.add_commut.
+      auto. }
 Admitted.      
 
 (* On empty string C light function evaluates to 0 *)
 
 Lemma strlen_correct_loop_empty_string :
   forall ge e m b ofs le,                                           
-    strlen_mem m b ofs O ->
+    strlen_mem_int m b ofs Int.zero ->
 
     exists t le',
-      le!_output = Some (VintN O) ->
+      le!_output = Some (Vint Int.zero) ->
       le!_input = Some (Vptr b ofs) ->
-      exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ le'!_output = Some (VintN O).
+      exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ le'!_output = Some (Vint Int.zero).
 Proof.
   intros.
   replace O with (0 + 0)%nat by lia.
