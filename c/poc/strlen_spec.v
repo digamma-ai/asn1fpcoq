@@ -277,27 +277,60 @@ Proof.
     assumption.
 Qed.
 
+Lemma aux3 : forall z, 0 < z + 1 < Int.modulus -> Int.repr (z + 1) <> Int.zero.
+  intros.
+  unfold Int.zero.
+  SearchAbout Int.repr.
+    destruct (Int.eq (Int.repr (z + 1)) (Int.repr 0)) eqn: Sz.
+
+    pose (Int.eq_spec  (Int.repr (z + 1))  (Int.repr 0)).
+    unfold Int.eq in Sz.
+    destruct ( zeq (Int.unsigned (Int.repr (z + 1)))
+                   (Int.unsigned (Int.repr 0))).
+    repeat rewrite Int.unsigned_repr_eq in e.
+    rewrite Zmod_small in e.
+    rewrite  Zmod_small in e.
+    nia.
+    nia.
+    nia.
+    congruence.
+    Search Int.eq.
+        pose (Int.eq_spec  (Int.repr (z + 1))  (Int.repr 0)).
+        rewrite Sz in y.
+        assumption.
+        Qed.
+  
+
+Definition int_of_nat := fun n => Int.repr (Z.of_nat n).
 
 Lemma strlen_to_mem : forall len m b ofs,
     strlen m b ofs len ->
-    forall i, Int.unsigned i < Int.unsigned len -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) = Some (Vint c) /\ c <> Int.zero.
+    forall i, 0 <= i -> i < Int.unsigned len -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.repr i))) = Some (Vint c) /\ c <> Int.zero.
   Proof.
     induction len using int_induction.
     - (* Base case len *)
       intros until ofs.
       intros Spec.
       unfold Int.zero in *.
-      intros i Prec.               
-      rewrite Int.unsigned_repr in Prec.
+      intros i Prec1 Prec2.
+      
+      (* rewrite Int.unsigned_repr in Prec.
       destruct i.
       simpl in Prec.
-      nia.
-      unfold Int.max_unsigned.
+      nia. *)
+      
+      (* unfold Int.max_unsigned
       vm_compute. 
-      split; congruence. 
+      split; congruence. *)
+      admit.
+     
   - (* I.S. len *)
-    intros until ofs.  intro Spec. 
-    induction i using int_induction.
+    intros until ofs.  intro Spec.
+    apply (natlike_ind (fun i => i < Int.unsigned (Int.add len Int.one) ->
+  exists c : int,
+    Mem.loadv chunk m
+      (Vptr b (Ptrofs.add ofs (Ptrofs.repr i))) =
+    Some (Vint c) /\ c <> Int.zero)).
       + (* Base case i *)
         intro Ltu.
         inversion Spec.
@@ -307,18 +340,22 @@ Lemma strlen_to_mem : forall len m b ofs,
           congruence.
         *
           replace (Ptrofs.add ofs (Ptrofs.of_int Int.zero)) with ofs by (auto with ptrofs).
-          exists c. apply (conj H1 H2).
+          exists c. (* apply (conj H1 H2). *) admit.
       + (* I.S. i *)
         intros.
         pose (impl_spec  _ _ _ _ Spec) as Spec_impl.
-        pose (IHlen m b (Ptrofs.add ofs Ptrofs.one) Spec_impl i) as IHip.
-        replace  (Ptrofs.add (Ptrofs.add ofs Ptrofs.one)
-               (Ptrofs.of_int i))  with  (Ptrofs.add ofs (Ptrofs.of_int (Int.add i Int.one))) in IHip.
+        pose (IHlen m b (Ptrofs.add ofs Ptrofs.one) Spec_impl x) as IHip.
+        replace (Ptrofs.add ofs (Ptrofs.repr (Z.succ x)))  with (Ptrofs.add (Ptrofs.add ofs Ptrofs.one)
+               (Ptrofs.repr x)).
         apply IHip.
-        * (* follows from H and no_wrap int *)
+        * assumption.
+        * assert (x < Int.unsigned (Int.add len Int.one)) by nia. (* follows from H and no_wrap int *)
 
+          
+          
           pose (no_int_overflow len).
           pose (no_int_overflow i).
+          Print Int.ltu.
           unfold Int_succ in *.
           admit.
         * rewrite Ptrofs.add_assoc.
