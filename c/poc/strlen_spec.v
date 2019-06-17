@@ -246,16 +246,21 @@ Qed.
 
 Definition MaxInt (i : int) := Int_succ i = Int.zero.
 Definition MaxPtrofs (p : ptrofs) := Ptrofs_succ p = Ptrofs.zero.
+
+Hypothesis no_pointer_overflow : forall p, not ((Ptrofs_succ p) = Ptrofs.zero).
+
+Lemma no_int_overflow : forall i, not (Int_succ i = Int.zero).
+Admitted. 
   
+
 Lemma strlen_to_mem_int : forall len m b ofs,
     strlen m b ofs len ->
-    Ptrofs.unsigned ofs + Int.unsigned len < Ptrofs.modulus ->
     forall i, Int.unsigned i < Int.unsigned len -> exists c, Mem.loadv chunk m (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) = Some (Vint c) /\ c <> Int.zero.
   Proof.
     induction len using int_induction.
     - (* Base case len *)
       intros until ofs.
-      intros Spec Bound.
+      intros Spec.
       unfold Int.zero in *.
       intros i Prec.               
       rewrite Int.unsigned_repr in Prec.
@@ -266,19 +271,22 @@ Lemma strlen_to_mem_int : forall len m b ofs,
       vm_compute. 
       split; congruence. 
   - (* I.S. len *)
-    intros until ofs.  intros Spec Bound.
+    intros until ofs.  intro Spec. 
     induction i using int_induction.
       + (* Base case i *)
         intro Ltu.
         inversion Spec.
-        * pose (intval_eq Int.zero (Int.add len Int.one)).
-        replace (Ptrofs.add ofs (Ptrofs.zero)) with ofs by (auto with ptrofs).
-          exists c. apply (conj H2 H3).
-          * admit.
+        * pose (intval_eq Int.zero (Int.add len Int.one) H).
+          pose (no_int_overflow len).
+          unfold Int_succ in n.
+          congruence.
+        *
+          replace (Ptrofs.add ofs (Ptrofs.of_int Int.zero)) with ofs by (auto with ptrofs).
+          exists c. apply (conj H1 H2).
       + (* I.S. i *)
         intros.
-        assert (Int_succ len <> Int.zero) as B by admit.
-        pose (impl_spec _ _ _ _ B Spec) as Spec_impl.
+        pose (strlen_to_len_0  _ _ _ _ Spec) as Spec_impl.
+        replace (Ptrofs.of_int (Int.add len Int.one)) with 
         pose (IHlen m b (Ptrofs.add ofs Ptrofs.one) Spec_impl i) as IHip.
         replace (Ptrofs.add ofs (Ptrofs.add i Ptrofs.one))  with  (Ptrofs.add (Ptrofs.add ofs Ptrofs.one) i).
         apply IHip.
