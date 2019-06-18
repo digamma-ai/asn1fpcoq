@@ -1,0 +1,181 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+
+\usepackage{listings}
+
+\input{listings-coq}
+
+\title{Proving C program correct using C light operational semantics}
+\date{ }
+
+\begin{document}
+
+\maketitle
+
+\begin{frame}{Outline}
+\begin{enumerate}
+\item Formal verification - quick intro (high-level)
+\item Coq mini intro 
+
+\item Approach
+\begin{itemize}   
+\item Particular approach we consider: reasoning about C programs in Coq
+\item Base PL concepts mini intro: syntax, AST, semantics.
+\end{itemize}{}
+\item Toy example: strlen Informal specification (man page)
+\begin{itemize}
+
+\item Formal specification of strlen (relational)
+\item Simple implementation in C
+\item From C program to AST using clightgen
+\item Semantics of C program semantics and its equivalence to specification
+\item Undefined behaviours in C and guarding against them
+\end{itemize}{}
+\item Conclusions
+\end{enumerate} 
+\end{frame}{}
+
+% do the first two sections in the end, maybe ask boys
+\section{Formal verification - quick intro}
+\begin{frame}
+CompCert example
+\end{frame}
+\begin{frame}{Coq intro}
+\end{frame}
+
+\section{Approach}
+
+\begin{frame}
+Explain what was done before: disadvantages and advantages of purely functional approach (Illya)
+\end{frame}
+\begin{frame}
+What we try now and why.
+\begin{itemize}
+\item reason about the actual implementation
+\item parse C code into an abstract syntax tree using C light generator of CompCert (not verified)
+\item reason about the C light program using operational semantics
+\end{itemize}
+\end{frame}
+\begin{frame}{C light syntax}
+\begin{description}
+\item[types]
+\end{description}
+
+\end{frame}
+
+
+
+\begin{frame}{C light semantics}
+Operational semantics: bigstep
+\end{frame}
+
+
+\section{Toy example: length of a C string}
+
+\begin{frame}{Informal spec}
+
+$\ldots$
+DESCRIPTION        
+
+ The strlen() function calculates the length of the string pointed to
+ by s, excluding the terminating null byte.
+
+ \bigskip
+
+RETURN VALUE 
+
+ The strlen() function returns the number of bytes in the string
+ pointed to by s.
+
+ \bigskip
+
+CONFORMING TO 
+
+ POSIX.1-2001, POSIX.1-2008, C89, C99, C11, SVr4, 4.3BSD.
+
+
+
+\end{frame}
+
+\begin{frame}
+ To formalize the spec we need a formal model of C integers, pointers and memory model
+\end{frame}
+
+
+
+\begin{frame}[t,fragile]{Int and Pointer offset types}
+
+Formalizations of machine integers modulo $2^N$ defined as a module type in CompCert \url{lib/Integers.v}.\\
+
+\bigskip
+
+A machine integer (type int) is represented as a Coq arbitrary-precision
+integer (type Z) plus a proof that it is in the range 0 (included) to
+modulus (excluded).
+
+\bigskip
+
+\begin{lstlisting}[language=Coq]
+Record int: Type :=
+mkint { intval: Z; intrange: -1 < intval < modulus }.
+\end{lstlisting}
+
+8, 32, 64-bit integers are supported, as well as 32 and 64-bit pointer offsets
+
+\end{frame}
+
+\begin{frame}{Memory model}
+defined in CompCert \url{common/Memory.v}
+
+\bigskip
+a type [mem] of memory states, the following 4 basic
+operations over memory states, and their properties:
+\begin{itemize}
+\item [load]: read a memory chunk at a given address;
+\item [store]: store a memory chunk at a given address;
+\item [alloc]: allocate a fresh memory block;
+\item [free]: invalidate a memory block.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Formal spec}
+\lstinputlisting[language=Coq]{strlen_spec.v}     
+\end{frame}
+
+\begin{frame}{From C program to AST using clightgen}
+
+\lstinputlisting[language=C]{strlen.c}
+
+\end{frame}{}
+
+\begin{frame}[fragile]{C light AST (loop of strlen)}
+
+\begin{lstlisting}[language=Coq]
+Definition f_strlen_loop := {|
+fn_params := ((_s, (tptr tuchar)) :: nil);
+fn_temps := ((_i, tuint) :: (_t1, (tptr tuchar)) :: (_t2, tuchar) :: nil);
+fn_body := 
+(Sloop
+(Ssequence
+(Ssequence
+(Ssequence
+  (Sset _t1 (Etempvar _s (tptr tuchar)))
+  (Sset _s
+    (Ebinop Oadd (Etempvar _t1 (tptr tuchar))
+      (Econst_int (Int.repr 1) tint) (tptr tuchar))))
+(Ssequence
+  (Sset _t2 (Ederef (Etempvar _t1 (tptr tuchar)) tuchar))
+  (Sifthenelse (Etempvar _t2 tuchar) Sskip Sbreak)))
+(Sset _i
+(Ebinop Oadd (Etempvar _i tuint) (Econst_int (Int.repr 1)
+ tint)
+  tuint)))
+Sskip) |}.
+
+\end{lstlisting}
+
+\end{frame}
+
+\lstlistoflistings
+
+\end{document}

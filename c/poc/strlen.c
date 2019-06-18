@@ -1,4 +1,4 @@
-typedef unsigned int size_t;
+#include <stddef.h>
 
 size_t strlen(const unsigned char *s)
 {
