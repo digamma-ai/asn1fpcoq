@@ -1,3 +1,34 @@
+ Hypothesis no_overflow_pointer_addition : forall i j, 0 < Ptrofs.unsigned i + Ptrofs.unsigned j < Ptrofs.modulus.
+
+Lemma no_overflow_int_addition : forall i j, 0 < Int.unsigned i + Int.unsigned j < Int.modulus.
+Proof.
+pose (int_ptrofs_mod_eq).
+intros.
+pose (no_overflow_pointer_addition (Ptrofs.of_int i) (Ptrofs.of_int j)).
+unfold Ptrofs.of_int in a.
+repeat rewrite Ptrofs.unsigned_repr_eq in a.
+destruct j.
+destruct i.
+simpl in *.
+
+rewrite Zmod_small in a.
+rewrite Zmod_small in a.
+
+assumption.
+nia.
+nia.
+Qed.
+
+Lemma int_add_surj : forall i j, Int.unsigned (Int.add i j) = Int.unsigned i + Int.unsigned j.
+  intros.
+  unfold Int.add.
+  rewrite Int.unsigned_repr_eq.
+  replace (Int.unsigned Int.one) with 1 by (auto with ints).
+  pose ( no_overflow_int_addition i j).
+  rewrite Zmod_small.
+  auto.
+  nia.
+  Qed.
 
 
  Ltac invert_clear :=
