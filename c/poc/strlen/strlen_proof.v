@@ -229,6 +229,84 @@ Proof.
         auto with ptrofs. }
 Qed.
 
+Definition IntMax := Int.repr Int.max_unsigned.
+
+Lemma int_to_unsigned_eq : forall i j, i = j -> Int.unsigned i = Int.unsigned j.
+Proof.
+  intros.
+  destruct i.
+  destruct j.
+  simpl.
+  inversion H.
+  symmetry.
+  auto.
+Qed.
+
+Lemma  int_to_unsigned_neq  : forall i j, i <> j -> Int.unsigned i <> Int.unsigned j.
+Proof.
+  intros.
+  destruct (zeq (Int.unsigned i) (Int.unsigned j)) eqn : G.
+
+  Search Int.eq.
+  pose (Int.eq_false _ _ H).
+  unfold Int.eq in e0.
+  rewrite G in e0.
+  congruence.
+  assumption.
+Qed.
+
+Lemma non_zero_surj : forall i, Int.add i Int.one <> Int.zero -> Int.unsigned (Int.add i Int.one) = Int.unsigned i + 1.
+Proof.
+  intros.
+  destruct (Z.eq_dec (Int.unsigned (Int.add i Int.one)) (Int.unsigned i + 1)).
+  intuition.
+  unfold Int.add in n.
+  assert (i <> IntMax).
+  destruct (Int.eq_dec i IntMax).
+  rewrite e in H.
+  
+  assert (Int.add IntMax Int.one = Int.zero).
+  { unfold IntMax.
+    unfold Int.add.
+    unfold Int.zero.
+    ints_compute_add_mul.
+    replace (Int.max_unsigned + Int.unsigned Int.one) with (Int.modulus) by (auto with ints).
+    Search Int.mkint.
+    pose (Int.mkint_eq).
+    destruct  (Int.repr Int.modulus) eqn : IM.
+    destruct (Int.repr 0) eqn : S0.
+    apply Int.mkint_eq.
+
+    assert ( Int.repr Int.modulus = Int.mkint (Int.Z_mod_modulus Int.modulus) (Int.Z_mod_modulus_range' Int.modulus)) by (auto with ints).
+    rewrite H0 in IM.
+    inversion IM.
+    inversion S0.
+    replace (match Int.repr 0 with
+  | {| Int.intval := intval1 |} => intval1
+             end) with 0 by (auto with ints).
+    auto.
+    cbv.
+    split; congruence.
+  }
+  congruence.
+  assumption.
+
+  ints_compute_add_mul.
+  auto with ints.
+
+  assert (Int.unsigned i < Int.max_unsigned).
+  assert (Int.unsigned i <> Int.unsigned IntMax) by (eapply (int_to_unsigned_neq _ _ H0)).
+  destruct i; simpl in *.
+  unfold IntMax in *.
+  replace (Int.unsigned (Int.repr Int.max_unsigned)) with (Int.max_unsigned) in H1 by (auto with ints).
+  unfold Int.max_unsigned in *.
+  nia.
+  unfold Int.max_unsigned in *.
+  replace (Int.unsigned Int.one) with 1 by (auto with ints).
+ 
+  pose (Int.unsigned_range i).
+  nia.
+    Qed.
 
 Lemma int_overflow_unsigned_to_add : forall z, 0 < Int.unsigned z + 1 < Int.modulus ->
                        Int.add z Int.one <> Int.zero.
@@ -254,10 +332,11 @@ Lemma int_overflow_unsigned_to_add : forall z, 0 < Int.unsigned z + 1 < Int.modu
   
 Qed.
 
-Lemma int_overflow_unsigned_to_add_two : forall z v, 0 < Int.unsigned z + Int.unsigned v < Int.modulus ->
+Lemma int_overflow_unsigned_to_add_two : forall z v, 0 <= Int.unsigned z + Int.unsigned v < Int.modulus ->
                        Int.add z v <> Int.zero.
+Proof.
+ (* 
   intros.
-
   unfold Int.zero.
   destruct (Int.eq (Int.add z v) (Int.repr 0)) eqn: Sz.
   pose (Int.eq_spec (Int.add z v) (Int.repr 0)) as E.
@@ -278,8 +357,8 @@ Lemma int_overflow_unsigned_to_add_two : forall z v, 0 < Int.unsigned z + Int.un
   rewrite Sz in y.
   assumption.
   
-Qed.
-
+Qed. *)
+Admitted.
   
 (* This doesn't hold for a spec with wrapping. Counterexample: Int_succ i = Int.zero, there is an empty string at ofs and another empty string after it *)
 
@@ -419,7 +498,7 @@ Lemma strlen_loop_correct_gen :
     
     (* we read a C string of length len + i from memory and len + i is a valid integer *)
 
-    0 < Int.unsigned len + Int.unsigned i < Int.modulus ->
+    0 <= Int.unsigned len + Int.unsigned i < Int.modulus ->
     
     strlen m b ofs (Int.add len i) ->
     
@@ -482,7 +561,7 @@ Lemma strlen_loop_correct_gen :
     -- 
     assert (exists char, Mem.loadv Mint8unsigned m (Vptr b  (Ptrofs.add ofs (Ptrofs.of_int i))) = Some (Vint char) /\ char <> Int.zero) as Mem.
     { 
-
+      (* TODO *)
       pose (int_overflow_unsigned_to_add_two (Int.add len Int.one) i O).
       refine (strlen_to_mem (Int.add (Int.add len Int.one) i) m b ofs Spec (Int.unsigned i) _ _ ).
       destruct i; simpl; nia.
@@ -514,6 +593,7 @@ Lemma strlen_loop_correct_gen :
       rewrite Zmod_small.
       rewrite Zmod_small.
       destruct i; destruct len. replace (Int.unsigned Int.one) with 1 by (auto with ints). simpl in *. nia.
+      (* to show:  0 <= Int.unsigned len + Int.unsigned i < Int.modulus *)
 
       assert ( (Int.unsigned (Int.add len Int.one)) <> (Int.unsigned Int.zero)).
       
@@ -537,12 +617,38 @@ Lemma strlen_loop_correct_gen :
       
       assert (Int.unsigned (Int.add len Int.one) = Int.unsigned len + 1 ).
       { ints_compute_add_mul. auto.
-        admit.
+        pose (non_zero_surj _  n) as S.
+        replace (Int.unsigned Int.one) with 1 by (auto with ints).    rewrite <- S.
+        auto with ints.
+        
       }
+      rewrite H6 in *.
+      clear n0.
+      rewrite H6 in O.
+      assert  (0 <= Int.unsigned len).
+      destruct len; simpl in *. nia.
+      
+      assert      (0 <= Int.unsigned i).
+      destruct i; simpl in *. nia.
       nia.
+
       ints_compute_add_mul.
-      admit. (* follows from O *)
-      admit.
+      replace  (Int.unsigned Int.one) with 1 by (auto with ints).
+      pose (non_zero_surj _  n) as S.
+      clear n0.
+      rewrite S in O.
+      nia.
+
+      pose (non_zero_surj _  n) as S.
+      clear n0.
+      rewrite S in O.
+      assert  (0 <= Int.unsigned len).
+      destruct len; simpl in *. nia.
+      
+      assert      (0 <= Int.unsigned i).
+      destruct i; simpl in *. nia.
+      nia.
+
 
       symmetry.
       rewrite Int.add_assoc.
@@ -572,7 +678,18 @@ Lemma strlen_loop_correct_gen :
        le' ! _output = Some (Vint (Int.add len (Int.add i Int.one)))) as Step.
     { eapply IH;
         replace (Int.add len (Int.add i Int.one)) with (Int.add (Int.add len Int.one) i).
-      admit. (* follows from O *)
+      destruct (Int.eq_dec  (Int.add i Int.one) Int.zero).
+      rewrite e0.
+      replace (Int.unsigned len + Int.unsigned Int.zero) with (Int.unsigned len).
+      destruct len; simpl in *.
+      nia.
+      replace (Int.unsigned Int.zero) with 0 by (auto with ints).
+      nia.
+      pose (non_zero_surj _  n0) as S.
+      pose (non_zero_surj _  n) as S2.
+      rewrite S2 in O.
+      rewrite S.
+      nia.
       rewrite Int.add_assoc.
       f_equal.
       rewrite Int.add_commut.
@@ -638,7 +755,7 @@ Lemma strlen_loop_correct_gen :
       f_equal.
       rewrite Int.add_commut.
       auto. }
-Admitted.      
+Qed.      
 
 (* Correctness of the loop execution *)  
 Lemma strlen_loop_correct: forall len ge e m b ofs le, strlen m b ofs len -> exists t le', le!_output = Some (Vint Int.zero) ->
