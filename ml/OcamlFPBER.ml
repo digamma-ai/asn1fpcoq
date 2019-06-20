@@ -60,7 +60,7 @@ let float_of_big_int fbi =
 
 (* ocaml float <-> coq BER *)
 
-let ocaml_float64_to_BER_exact (radix:big_int) (scaled:bool) (f:float): string option =
+let ocaml_float64_to_BER_exact (radix:big_int) (scaled:bool) (f:float): float option =
   let fb = big_int_of_float f in
   match float64_to_BER_exact radix scaled fb with
   | None -> None
