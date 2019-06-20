@@ -99,6 +99,21 @@ Ltac seq2 := eapply exec_Sseq_2.
 Ltac sset := eapply exec_Sset.
 Ltac loop := eapply exec_Sloop_loop.
 
+Ltac ints_to_Z :=
+  repeat rewrite Int.unsigned_repr_eq; repeat rewrite Zmod_small.
+
+Ltac ptrofs_to_Z :=
+  repeat rewrite Ptrofs.unsigned_repr_eq; repeat rewrite Zmod_small.
+
+Ltac ptrofs_compute_add_mul :=
+      simpl; unfold Ptrofs.add; unfold Ptrofs.mul; unfold Ptrofs.of_intu; unfold Ptrofs.of_int;
+      repeat rewrite Ptrofs.unsigned_repr_eq;  repeat rewrite Int.unsigned_repr_eq; repeat rewrite Zmod_small.
+
+Ltac ints_compute_add_mul :=
+      simpl; unfold Int.add; unfold Int.mul;
+      repeat rewrite Int.unsigned_repr_eq;  repeat rewrite Int.unsigned_repr_eq; repeat rewrite Zmod_small.
+
+
 Proposition char_not_zero : forall c, c <> Int.zero -> true = (negb (Int.eq c Int.zero)).
 Proof.
   intros.
@@ -319,17 +334,35 @@ Proof.
         intro Ltu.
         inversion Spec.
         * pose (intval_eq Int.zero (Int.add len Int.one) H).
-          (* admit - contradiction with Ltu *)
-          admit.
+          assert (Int.unsigned Int.zero = Int.unsigned (Int.add len Int.one)).
+          auto with ints.
+          replace (Int.unsigned Int.zero) with 0 in H1 by (auto with ints).          
+          nia.
         *  
           replace (Ptrofs.add ofs (Ptrofs.repr 0)) with ofs by (auto with ptrofs).
           exists c.  apply (conj H1 H2).  
       + (* I.S. i *)
         intros.
         inversion Spec.
-        * (* contradiction *) admit.
-        * (* n = len, follows *) assert (no_int_overflow len) by admit.
-        pose (impl_spec  _ _ _  _ H7 Spec) as Spec_impl.
+        * destruct  (Int.add len Int.one).
+          simpl in H1.
+          assert (intval = 0) by (auto with ints).
+          nia.
+        * assert (E: n = len).
+          { pose (J := intval_eq (Int_succ n) (Int.add len Int.one) H2).
+            destruct (Int.eq_dec n len).
+            assumption.
+            pose (Int.eq_false n len n0).
+            pose (Int.translate_eq n len Int.one).
+            rewrite e in e0.
+            pose (Int.eq_spec (Int.add n Int.one) (Int.add len Int.one)).
+            rewrite e0 in y.
+            unfold Int_succ in J.
+            congruence.
+          }
+          rewrite E in H3.
+          
+        pose (impl_spec  _ _ _  _ H3 Spec) as Spec_impl.
         pose (IHlen m b (Ptrofs.add ofs Ptrofs.one) Spec_impl x) as IHip.
         replace (Ptrofs.add ofs (Ptrofs.repr (Z.succ x)))  with (Ptrofs.add (Ptrofs.add ofs Ptrofs.one)
                (Ptrofs.repr x)).
@@ -337,7 +370,7 @@ Proof.
         ** assumption.
         ** unfold Int.add in H1.
            rewrite Int.unsigned_repr_eq in H1.
-           unfold no_int_overflow  in H7.
+           unfold no_int_overflow  in H3.
            rewrite Zmod_small in H1.
            replace (Int.unsigned Int.one) with 1 in * by (auto with ints). nia.
            replace (Int.unsigned Int.one) with 1 in * by (auto with ints).  nia.
@@ -364,7 +397,7 @@ Proof.
           simpl.
           nia.          
           apply ptrofs_mod_1_0.
-Admitted. 
+          Qed. 
        
 (* Correctness statements *)
 
@@ -455,8 +488,22 @@ Lemma strlen_loop_correct_gen :
       destruct i; simpl; nia.
       inversion Spec.
       pose (intval_eq Int.zero (Int.add (Int.add len Int.one) i) H). congruence.
-      assert (n1 = (Int.add len i)) by admit. (* prove as above *)
-      rewrite H4 in H0.
+      replace (Int.add (Int.add len Int.one) i) with
+          (Int.add (Int.add len i) Int.one) in H.
+      assert (E: n1 = (Int.add len i)).
+          { pose (J := intval_eq (Int_succ n1)  (Int.add (Int.add len i) Int.one) H).
+            destruct (Int.eq_dec n1 (Int.add len i)).
+            assumption.
+            pose (Int.eq_false n1 (Int.add len i) n2).
+            pose (Int.translate_eq n1 (Int.add len i) Int.one).
+            rewrite e0 in e1.
+            pose (Int.eq_spec (Int.add n1 Int.one) (Int.add (Int.add len i) Int.one)).
+            rewrite e1 in y.
+            unfold Int_succ in J.
+            congruence.
+          }
+             (* prove as above *)
+      rewrite E in H0.
       unfold no_int_overflow in H0.
       replace (Int.add (Int.add len Int.one) i) with
           (Int.add (Int.add len i) Int.one).
@@ -466,15 +513,44 @@ Lemma strlen_loop_correct_gen :
 
       rewrite Zmod_small.
       rewrite Zmod_small.
-      admit. (* true *)
-      admit. (* true *)
+      destruct i; destruct len. replace (Int.unsigned Int.one) with 1 by (auto with ints). simpl in *. nia.
+
+      assert ( (Int.unsigned (Int.add len Int.one)) <> (Int.unsigned Int.zero)).
+      
+      { destruct (zeq (Int.unsigned (Int.add len Int.one)) (Int.unsigned Int.zero)) eqn: D.
+        pose (Int.eq_false (Int.add len Int.one) Int.zero n) as B.
+        unfold Int.eq in B.
+        rewrite D in B.
+        congruence.
+        assumption.
+       
+      }
       unfold Int.add in H0.
       rewrite Int.unsigned_repr_eq in H0.
-      replace  (Int.unsigned Int.one) with 1 by (auto with ints).
+      replace  (Int.unsigned Int.zero) with 0 in H4 by (auto with ints).
       (* true *)
+      assert ( Int.unsigned (Int.add len Int.one) > 0).
+      { destruct (Int.add len Int.one); simpl in *.
+        nia.
+      }
+      
+      
+      assert (Int.unsigned (Int.add len Int.one) = Int.unsigned len + 1 ).
+      { ints_compute_add_mul. auto.
+        admit.
+      }
       nia.
-      Check Int.add_assoc.
-      Check Int.add_commut.
+      ints_compute_add_mul.
+      admit. (* follows from O *)
+      admit.
+
+      symmetry.
+      rewrite Int.add_assoc.
+      rewrite Int.add_commut.
+      rewrite Int.add_assoc.
+      rewrite Int.add_commut.
+      replace (Int.add i len) with (Int.add len i) by (apply Int.add_commut). auto.
+
       symmetry.
       rewrite Int.add_assoc.
       rewrite Int.add_commut.
