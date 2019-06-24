@@ -76,11 +76,32 @@ Next Obligation.
   all: tuple_inversion.
   all: try unfold FLX.Prec_gt_0 in *.
 
-  (* solve easy subgoals *)
-  - admit.
-  - admit.
-  - reflexivity.
-  - lia.
+  (* main goals *)
+  (* first main goal *)
+  1,2: rewrite bounded_unfolded.
+  all: unfold Basics.compose, Z.succ, FLX.Prec_gt_0.
+  all: try lia.
+  1,2: rewrite <-Zlog2_log_inf.
+  1,2: rewrite Z2Pos.id.
+  2: lia.
+  assert (m < 2 ^ prec) by lia; clear B12; rename H into B12.
+  rewrite Z.log2_lt_pow2 in B12.
+  lia.
+  lia.
+  (* second main goal *)
+  assert (m < 2 ^ prec) by lia; clear B12; rename H into B12.
+  rewrite Z.log2_lt_pow2 in B12.
+  rewrite Z.log2_le_pow2 in B11.
+  right.
+  lia.
+  (* subgoals *)
+  1,2,3: clear Hmax e B21 B22 B12.
+  1,2,3: assert (0 <= prec - 1) by lia.
+  1,2,3: assert (0 < 2 ^ (prec - 1)).
+  1,3,5: apply Z.pow_pos_nonneg.
+  1,3,5: reflexivity.
+  1,2,3: auto.
+  1,2,3: lia.
   - 
     assert (T : (1) = (2 - 1)) by lia; rewrite T; clear T.
     rewrite <-Z.sub_le_mono_r.
@@ -88,41 +109,9 @@ Next Obligation.
     apply Z.pow_le_mono_r; lia; lia.
   -
     clear m b2 e b3 H Hmax emax.
-    apply Z.bi_induction with (P := fun prec => 2 ^ (prec - 1) <= 2 ^ prec - 1).
-    unfold Morphisms.Proper, Morphisms.respectful, Z.eq.
-    intros.
-    rewrite H.
-    lia.
-    reflexivity.
-    intros.
-    unfold Z.succ.
-    assert (T : x + 1 - 1 = x) by lia; rewrite T; clear T.
-    split.
-    intros.
-
-  (* simplify for main subgoals *)
-  all: assert (T : m < 16777216) by lia; clear B12; rename T into B12.
-  all: replace 16777216 with (2 ^ 24) in B12 by reflexivity.
-  all: rewrite bounded_unfolded; unfold FLX.Prec_gt_0, Basics.compose, Z.succ; try lia. (* solve 1 *)
-  replace (log_inf (Z.to_pos m)) with (Z.log2 m).
-  rewrite Z.log2_lt_pow2 in B12; lia.
-  destruct m; try lia.
-  rewrite Zlog2_log_inf.
-  reflexivity.
-
-  (* solve 2 *)
-  right.
-  rewrite Z.pow_pos_fold in B11.
-  assert (MP : 0 < m) by lia.
-  rewrite Z.log2_le_pow2 in B11 by lia.
-  rewrite Z.log2_lt_pow2 in B12 by lia.
-  replace (log_inf (Z.to_pos m)) with (Z.log2 m).
-  lia.
-  destruct m; try lia.
-  rewrite Zlog2_log_inf.
-  reflexivity.
+    assert (2 ^ (prec - 1) < 2 ^ prec); [| lia].
+    apply Z.pow_lt_mono_r; lia.
 Qed.
-Admitted.
 
 Theorem fing32_prec : FLX.Prec_gt_0 24.
 Proof. unfold FLX.Prec_gt_0; reflexivity. Qed.
