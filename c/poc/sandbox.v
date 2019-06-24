@@ -1,4 +1,118 @@
- Hypothesis no_overflow_pointer_addition : forall i j, 0 < Ptrofs.unsigned i + Ptrofs.unsigned j < Ptrofs.modulus.
+(* Other direction experiment *)
+Ltac invert_clear :=
+        match goal with
+          | [H : context[exec_stmt] |- _] =>
+            inversion_clear H 
+          | [H : context[eval_expr] |- _] =>
+            inversion_clear H 
+          | [H : context[eval_lvalue] |- _] =>
+            inversion_clear H 
+          | [H : context[bool_val] |- _] =>
+            inversion_clear H  
+          | [H : context[deref_loc] |- _] =>
+            inversion_clear H  
+          | [H : context[sem_binary_operation] |- _] =>
+           inversion_clear H  
+          | [H : context[access_mode] |- _] =>
+            inversion_clear H
+          | [H : context[ out_break_or_return] |- _] => inversion_clear H                  
+          | _ => idtac
+        end.    
+
+
+Ltac solve_by_inverts n :=
+   match n with
+   | O => idtac
+   | S (?n') => invert_clear ; solve_by_inverts n'
+end.
+  Lemma strlen_loop_correct_gen_r : forall len i ge e m b ofs le,
+    
+    (* we read a C string of length len + i from memory and len + i is
+    a valid integer *)
+
+      0 <= Int.unsigned len + Int.unsigned i < Int.modulus ->
+      le!_output = Some (Vint i) -> (* if input is an
+    address [b,ofs + i] in the starting local environment
+    *) le!_input = Some (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) ->
+ 
+    (* THEN there is a trace t and local environment le' such that:
+    *)( exists t le', (* if output equals i in the starting local
+    environment le *)  (*
+    then loop of strlen function executes to le' with output assigned
+    len + i
+                                                                        *) exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ le'!_output = Some (Vint (Int.add len i))) ->
+                      strlen m b ofs (Int.add len i).
+  
+  
+  Proof.
+    induction len using int_induction; intros until le; intros Bound Out In Exec.
+    replace  (Int.add Int.zero i) with i in *.
+    inversion_clear Exec.
+    inversion_clear H.
+    inversion_clear H0.
+
+    induction i using int_induction.
+    econstructor.
+    inversion H.
+    inversion H11.
+    rewrite <- H12 in H11, H6.
+    subst.
+    inversion_clear H6.
+    inversion H2.
+    inversion H0; clear H0; subst.
+    inversion H8; clear H8; subst.
+    inversion H7; clear H7; subst.
+    inversion H12.
+    replace v with  (Vptr b (Ptrofs.add ofs (Ptrofs.of_int Int.zero))) in *.
+    inversion H15; subst.
+    inversion H18; subst.
+    inversion H9; subst.
+    inversion H10.
+    inversion H8; subst.
+    replace v0 with  (Vptr b (Ptrofs.add ofs (Ptrofs.of_int Int.zero))) in *.
+    inversion H3; subst.
+    clear H8 H10 H9 H18 H15 H12 H7 H5 H3 H11 H2.
+
+    inversion H14; subst.
+    inversion H6; subst.
+    inversion H10.
+    inversion H2.
+
+    inversion H0; subst.
+    inversion H16.
+    replace loc with b in *.
+    replace (Ptrofs.add ofs (Ptrofs.of_int Int.zero)) with ofs in *.
+    replace ofs0 with ofs in *.
+    subst.
+
+    clear H9 H16 H5 H2 H0 loc ofs0.
+    clear H10.
+    clear H6.
+    clear H14.
+
+    inversion H11; subst.
+    destruct b0.
+    
+    inversion H15.
+    clear H15.
+    inversion H14.
+    inversion H8; subst.
+    unfold bool_val in H14.
+    inversion H14.
+    replace v1 with (Vint(Int.zero)) in *.
+    replace chunk0 with Mint8unsigned in *.
+    assumption.
+    admit.
+    admit.
+    (* other inversion branches *)
+    admit.
+    admit.
+    admit.
+    admit.
+    Admitted.
+
+
+Hypothesis no_overflow_pointer_addition : forall i j, 0 < Ptrofs.unsigned i + Ptrofs.unsigned j < Ptrofs.modulus.
 
 Lemma no_overflow_int_addition : forall i j, 0 < Int.unsigned i + Int.unsigned j < Int.modulus.
 Proof.

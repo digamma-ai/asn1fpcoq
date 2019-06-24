@@ -493,22 +493,24 @@ Lemma strlen_to_mem_0 : forall m b ofs, strlen m b ofs Int.zero -> Mem.loadv Min
    
 (* A generalization of loop correctness *)
 
-Lemma strlen_loop_correct_gen :
-  forall len i ge e m b ofs le,
+
+Lemma strlen_loop_correct_gen : forall len i ge e m b ofs le,
     
-    (* we read a C string of length len + i from memory and len + i is a valid integer *)
+    (* we read a C string of length len + i from memory and len + i is
+    a valid integer *)
 
     0 <= Int.unsigned len + Int.unsigned i < Int.modulus ->
     
     strlen m b ofs (Int.add len i) ->
     
-    (* THEN there is a trace t and local environment le' such that: *)
-    exists t le',
-      (* if output equals i in the starting local environment le *)
-      le!_output = Some (Vint i) ->
-      (* if input is an address [b,ofs + i] in the starting local environment *)
-      le!_input = Some (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) ->     (* then loop of strlen function executes to le' with output assigned len + i *)
-      exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ le'!_output = Some (Vint (Int.add len i)).
+    (* THEN there is a trace t and local environment le' such that:
+    *) exists t le', (* if output equals i in the starting local
+    environment le *) le!_output = Some (Vint i) -> (* if input is an
+    address [b,ofs + i] in the starting local environment
+    *) le!_input = Some (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) -> (*
+    then loop of strlen function executes to le' with output assigned
+    len + i
+    *) exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ le'!_output = Some (Vint (Int.add len i)).
   Proof.
   induction len using int_induction; intros until le; intros O Spec.
   - (* Base case *)
@@ -776,6 +778,8 @@ Proof.
   rewrite Int.add_zero_l.
   auto.
 Qed.
+
+ 
   
 (* Full correctness statement *)
 Lemma strlen_correct: forall len ge e m b ofs le, strlen m b ofs len -> exists t le', le!_input = Some (Vptr b ofs) ->
