@@ -564,11 +564,17 @@ Lemma strlen_loop_correct_gen : forall len i ge e m b ofs le,
     assert (exists char, Mem.loadv Mint8unsigned m (Vptr b  (Ptrofs.add ofs (Ptrofs.of_int i))) = Some (Vint char) /\ char <> Int.zero) as Mem.
     { 
       (* TODO *)
-      pose (int_overflow_unsigned_to_add_two (Int.add len Int.one) i O).
+      pose int_overflow_unsigned_to_add.
+      (* pose (int_overflow_unsigned_to_add_two (Int.add len Int.one) i O). *)
       refine (strlen_to_mem (Int.add (Int.add len Int.one) i) m b ofs Spec (Int.unsigned i) _ _ ).
       destruct i; simpl; nia.
       inversion Spec.
-      pose (intval_eq Int.zero (Int.add (Int.add len Int.one) i) H). congruence.
+      pose (intval_eq Int.zero (Int.add (Int.add len Int.one) i) H).
+      pose (non_zero_surj len n) as S.
+      rewrite S in O.
+      replace (Int.unsigned len + 1 + Int.unsigned i) with (Int.unsigned len + Int.unsigned i + 1) in O by nia.
+      ints_compute_add_mul.
+      1-4: replace (Int.unsigned Int.one) with 1 by (auto with ints); destruct i, len; simpl in *; try nia.
       replace (Int.add (Int.add len Int.one) i) with
           (Int.add (Int.add len i) Int.one) in H.
       assert (E: n1 = (Int.add len i)).
@@ -626,7 +632,6 @@ Lemma strlen_loop_correct_gen : forall len i ge e m b ofs le,
       }
       rewrite H6 in *.
       clear n0.
-      rewrite H6 in O.
       assert  (0 <= Int.unsigned len).
       destruct len; simpl in *. nia.
       
@@ -760,8 +765,9 @@ Lemma strlen_loop_correct_gen : forall len i ge e m b ofs le,
 Qed.      
 
 (* Correctness of the loop execution *)  
-Lemma strlen_loop_correct: forall len ge e m b ofs le, strlen m b ofs len -> exists t le', le!_output = Some (Vint Int.zero) ->
-                                                                                    le!_input = Some (Vptr b ofs) ->
+  Lemma strlen_loop_correct: forall len ge e m b ofs le,
+      strlen m b ofs len -> exists t le', le!_output = Some (Vint Int.zero) ->
+                                    le!_input = Some (Vptr b ofs) ->
       
       exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ le'!_output = Some (Vint len).
 Proof.
@@ -769,6 +775,9 @@ Proof.
   replace ofs with (Ptrofs.add ofs (Ptrofs.of_int Int.zero)) by (auto with ptrofs).
   replace len with (Int.add len Int.zero).
   eapply strlen_loop_correct_gen.
+  replace (Int.unsigned len + Int.unsigned Int.zero) with (Int.unsigned len + 0) by (auto with ints).
+  destruct len; simpl in *.
+  nia.
   replace (Int.add len Int.zero) with len.
   assumption.
   rewrite Int.add_commut.
@@ -779,8 +788,6 @@ Proof.
   auto.
 Qed.
 
- 
-  
 (* Full correctness statement *)
 Lemma strlen_correct: forall len ge e m b ofs le, strlen m b ofs len -> exists t le', le!_input = Some (Vptr b ofs) ->
                                                                                exec_stmt ge e le  m f_strlen.(fn_body) t le' m (Out_return (Some ((Vint len),tuint))).
