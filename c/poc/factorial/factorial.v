@@ -3,56 +3,105 @@ From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clight
 
 Local Open Scope Z_scope.
 
+(* Output of C light generator on factorial.c: *)
 
+(* We have to variables input and output represented as positive numbers *)
 Definition _input : ident := 53%positive.
 Definition _output : ident := 54%positive.
 
 Definition f_factorial := {|
-  fn_return := tint;
-  fn_callconv := cc_default;
-  fn_params := ((_input, tint) :: nil);
-  fn_vars := nil;
-  fn_temps := ((_output, tint) :: nil);
-  fn_body :=
+  fn_return := tint; (* the return type is integer *)
+  fn_callconv := cc_default; (* ignore this: relevant for small-step semantics *)
+  fn_params := ((_input, tint) :: nil); (* input variable is the parameter of the function *)
+  fn_vars := nil; 
+  fn_temps := ((_output, tint) :: nil); (* output is a local variable *)
+  fn_body := (* C light statement corresponding to the function *)
 (Ssequence
-  (Sset _output (Econst_int (Int.repr 1) tint))
-  (Ssequence
-    (Swhile
-      (Etempvar _input tint)
-      (Ssequence
+  (Sset _output (Econst_int (Int.repr 1) tint)) (* int output = 1 *)
+  (Ssequence 
+    (Swhile 
+      (Etempvar _input tint) (* while (input) *)
+      (Ssequence  
         (Sset _output
-          (Ebinop Omul (Etempvar _output tint) (Etempvar _input tint) tint))
+          (Ebinop Omul (Etempvar _output tint) (Etempvar _input tint) tint)) (* output = output*input *)
         (Sset _input
-          (Ebinop Osub (Etempvar _input tint) (Econst_int (Int.repr 1) tint)
+          (Ebinop Osub (Etempvar _input tint) (Econst_int (Int.repr 1) tint) (* input = input - 1 *)
             tint))))
-    (Sreturn (Some (Etempvar _output tint)))))
+    (Sreturn (Some (Etempvar _output tint))))) (* return output *)
 |}.
 
+(* Now we can evaluate the statement of the function fn_body using the big-step semantics relation exec_stmt *)
 
+(* We start in an empty environment *)
 Definition lempty := Maps.PTree.empty val.
 
-Ltac exec_loop_continue := 
-repeat match goal with
-       | [ |- exec_stmt _ _ _ (Sloop _) _ _ _ _ ] => idtac
-       | _ => econstructor ; exec_loop_continue
-       end. 
+(* And map _input to integer value 1 *)
+Definition input_1 := Maps.PTree.set _input (Vint (Int.repr 1)) lempty.
 
-(* runs on some inputs *)
-
-Definition input1 := Maps.PTree.set _input (Vint (Int.repr 1)) lempty.
+(* Then we can show that for any global and local environments and memory (these are irrelevant here), if input is mapped to 1, then the factorial statement evaluates to some environment in which output is mapped to 1 and outcome return 1 *)
+(* Basically we are running a test of factorial on input 1 *)
 Proposition fact1 :
-  forall ge e m, exists t le' out,  
-      exec_stmt ge e input1 m f_factorial.(fn_body) t le' m  out /\ (le'!_output) = Some (Vint (Int.repr 1)).
+  forall ge e m, exists t le',  
+      exec_stmt ge e input_1 m f_factorial.(fn_body) t le' m (Out_return (Some  ((Vint (Int.repr 1), tint))))  /\ (le'!_output) = Some (Vint (Int.repr 1)).
 Proof.
-  intros.
-  repeat eexists.
-  eapply exec_Sseq_1.
-  econstructor. econstructor.
-  eapply exec_Sseq_1.
-  eapply exec_Sloop_loop. exec_loop_continue. econstructor. econstructor.
-  eapply exec_Sloop_stop1.   (* stop the loop *)
-  eapply exec_Sseq_2. exec_loop_continue. discriminate. repeat econstructor. repeat econstructor. repeat econstructor.
+   intros.
+   repeat eexists.
+   (* unfold (fn_body f_factorial) *)
+   simpl.
+   (* search for a suitable constructor. we have a sequence of set and a while loop. set always has Out_normal as an outcome, so we need to apply exec_Sseq_1 *)
+   eapply exec_Sseq_1.
+    (* evaluate the set expression *)
+   eapply exec_Sset.
+   (* evaluate constant expression *)
+   eapply eval_Econst_int. (* we reached an axiom and evaluated _output to Value 1 *)
+   (* Now we have sequence of while and return. we want to execute one loop of the function with the normal outcome before the break *)
+   eapply exec_Sseq_1.
+   (* while is syntactic sugar for loop with an if then else condition *)
+   eapply exec_Sloop_loop.
+   eapply exec_Sseq_1.
+   (* Evaluating if then else statement *)
+   eapply exec_Sifthenelse.
+   (* Temp variable is evaluated according to the local environment input_1 *)
+   eapply eval_Etempvar.
+   simpl.
+   f_equal.
+   (* evaluate boolean condition *)
+   econstructor.
+   assert (negb (Int.eq (Int.repr 1) Int.zero) = true) by (auto with ints). (* ints are hints to work on CompCert's ineger type *)
+   rewrite H.
+   (* Now we reached an axiom about Skip statement *)
+   eapply exec_Sskip.
+   (* Set input and output variables to the new values *)
+   eapply exec_Sseq_1.
+   eapply exec_Sset.
+   (* evaluate multiplication expression input*output *)
+   eapply eval_Ebinop.
+   eapply eval_Etempvar.
+   simpl.
+   f_equal.
+   eapply eval_Etempvar.
+   simpl.
+   f_equal.
+   simpl.
+   econstructor.
+   (* evaluate substraction expression input - 1 *)
+   repeat econstructor. (* replace this by concrete steps *)
+   (* Axiom *) econstructor.
+   (* Axiom *) eapply exec_Sskip.
+   (* now break from the loop and return the output *)
+   eapply exec_Sloop_stop1.   (* stop the loop *)
+   (* The outcome of the loop is break so we choose a different sequence constructor *)
+   eapply exec_Sseq_2.
+   (* Here everything can be solved by econstructor *)
+    repeat econstructor. discriminate. all: repeat econstructor. 
 Qed.
+
+Ltac exec_loop_continue := 
+     repeat match goal with
+            | [ |- exec_stmt _ _ _ (Sloop _) _ _ _ _ ] => idtac
+            | _ => econstructor ; exec_loop_continue
+            end. 
+   
 
 
 Definition input2 := Maps.PTree.set _input (Vint (Int.repr 2)) lempty.
@@ -213,63 +262,3 @@ Proof.
       + eapply exec_Sseq_1. econstructor. econstructor. eapply exec_Sseq_1. apply H2. repeat econstructor; rewrite Nat.mul_1_r in H3 ; exact H3.
       + rewrite Nat.mul_1_r in H3. exact H3.
  Qed.
-
-
-(* Theorem factorial_loop_correct : forall ge e m, forall inp outp le,
-      le!_input = Some (Vint_of_nat inp) ->
-      le!_output = Some (Vint_of_nat outp) ->
-      exists t le',
-        exec_stmt ge e le m factorial_loop t le' m Out_normal
-        /\ (le'!_output) = Some (Vint_of_nat ((fact inp)*outp)).
-Proof.
-  induction inp ; intros.
-  (* Base case *)
-  - repeat eexists.
-    + eapply exec_Sloop_stop1. eapply exec_Sseq_2. repeat econstructor. apply H. simpl.  econstructor. unfold Vint_of_nat. simpl. econstructor. discriminate. econstructor.
-    + rewrite -> H0. simpl. unfold Vint_of_nat. simpl. rewrite Nat.add_0_r. reflexivity.
-  (* Induction step *)
-  - assert (exists (t : Events.trace) (le' : temp_env),
-       exec_stmt ge e (Maps.PTree.set _input (Vint_of_nat inp) (Maps.PTree.set _output (Vint_of_nat (outp*S inp)) le)) m factorial_loop t le' m Out_normal /\
-       le' ! _output =  Some (Vint_of_nat ((fact inp)*( outp * S inp)))).
-    { apply IHinp.
-      + apply PTree.gss.
-      + rewrite PTree.gso. apply PTree.gss. cbv. congruence. } 
-    + destruct H1. destruct H1. destruct H1. 
-      repeat eexists.
-      eapply exec_Sloop_loop. eapply exec_Sseq_1. repeat econstructor. apply H. econstructor.
-      cut (forall inp, ((Int.eq (Int.repr (Z.of_nat (S inp))) Int.zero)) = false). intro aux. rewrite aux. simpl.
-      econstructor.
-      { intro. SearchAbout (Int.eq). rewrite <- (Int.eq_false (Int.repr (Z.of_nat (S inp0))) Int.zero). auto. apply succ_not_zero_int. (* intrange assumption *) admit. } 
-        eapply exec_Sseq_1.
-      repeat econstructor. apply H0. apply H.
-      repeat econstructor. repeat econstructor.
-      cut ((PTree.set _output
-                      (Vint
-                         (Int.mul (cast_int_int I32 Signed (Int.repr (Z.of_nat outp)))
-                                  (cast_int_int I32 Signed (Int.repr (Z.of_nat (S inp)))))) le)
-             ! _input =  Some (Vint_of_nat (S inp))). intro aux.
-      apply aux.
-      { rewrite PTree.gso. apply H. cbv. congruence. }
-      repeat econstructor.
-      econstructor.
-      econstructor.
-      cut (
-          (PTree.set _input (Vint_of_nat inp)
-                     (PTree.set _output (Vint_of_nat (outp * S inp)) le)) =
-          (PTree.set _input
-                     (Vint
-                        (Int.sub (cast_int_int I32 Signed (Int.repr (Z.of_nat (S inp))))
-                                 (cast_int_int I32 Signed (Int.repr 1))))
-                     (PTree.set _output
-                                (Vint
-                                   (Int.mul (cast_int_int I32 Signed (Int.repr (Z.of_nat outp)))
-                                            (cast_int_int I32 Signed (Int.repr (Z.of_nat (S inp))))))
-                                le))
-        ). intro aux.
-      rewrite <- aux.
-      apply H1.
-      (* done! *)
-      { f_equal. simpl. admit. unfold Vint_of_nat. admit.  }   
-       rewrite -> H2. simpl. f_equal. f_equal. ring.
-Admitted.
- *)      
