@@ -96,16 +96,18 @@ Proof.
     repeat econstructor. discriminate. all: repeat econstructor. 
 Qed.
 
+
+(* Now we do the same for input = 2 *)
+Definition input2 := Maps.PTree.set _input (Vint (Int.repr 2)) lempty.
+
+(* We need to choose which loop constructor to apply, but in-between it is deterministic and we can use econstructor *)
+
 Ltac exec_loop_continue := 
      repeat match goal with
             | [ |- exec_stmt _ _ _ (Sloop _) _ _ _ _ ] => idtac
             | _ => econstructor ; exec_loop_continue
             end. 
    
-
-
-Definition input2 := Maps.PTree.set _input (Vint (Int.repr 2)) lempty.
-
 Proposition fact2 :
   forall ge e m, exists t le' out,  
                                exec_stmt ge e input2 m f_factorial.(fn_body) t le' m  out /\ (le'!_output) = Some (Vint (Int.repr 2)).
@@ -113,13 +115,12 @@ Proof.
   intros.
   repeat eexists.
   eapply exec_Sseq_1.
-  econstructor. econstructor.
-  eapply exec_Sseq_1.
-  
+  repeat econstructor.
+  econstructor.
   eapply exec_Sloop_loop. exec_loop_continue. econstructor. econstructor.
   eapply exec_Sloop_loop. exec_loop_continue. econstructor. econstructor.
   eapply exec_Sloop_stop1.   (* stop the loop *)
-  eapply exec_Sseq_2. exec_loop_continue. discriminate. progress econstructor. repeat econstructor. repeat econstructor.
+  eapply exec_Sseq_2.  exec_loop_continue. discriminate. progress econstructor. repeat econstructor. repeat econstructor.
 Qed.
 
 Definition input3 := Maps.PTree.set _input (Vint (Int.repr 3)) lempty.

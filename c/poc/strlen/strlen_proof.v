@@ -758,8 +758,10 @@ Proof.
   auto.
 Qed.
 
+Parameter ge : genv.
+
 (* Full correctness statement *)
-Lemma strlen_correct: forall len ge e m b ofs le,
+Lemma strlen_correct: forall len e m b ofs le,
       strlen m b ofs len -> exists t le',
       le!_input = Some (Vptr b ofs) ->
       exec_stmt ge e le  m f_strlen.(fn_body) t le' m (Out_return (Some ((Vint len),tuint))).

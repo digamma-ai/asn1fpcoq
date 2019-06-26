@@ -141,6 +141,8 @@ In C light everything is an abstract syntax tree. First, we want to assign meani
   value of an uninitialized variable.
 *)
 
+Check float.
+
 Inductive val: Type :=
   | Vundef: val
   | Vint: int -> val
