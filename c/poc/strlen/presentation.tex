@@ -16,7 +16,6 @@
 \begin{enumerate}
 \item Formal verification - quick intro (high-level)
 \item Coq mini intro 
-
 \item Approach
 \begin{itemize}   
 \item Particular approach we consider: reasoning about C programs in Coq
@@ -37,41 +36,59 @@
 
 % do the first two sections in the end, maybe ask boys
 \section{Formal verification - quick intro}
-\begin{frame}
+\begin{frame}{Formal verification - quick intro}
  
-   We want to have high assurance that our code works as intended. One of the methods is formal verification. It is a broad term that includes many techniques. Here I will talk about deductive verification. This means we want to produce a formal proof that our code works as intended. What does it mean exactly and how do we do it?
+  We want to have high assurance that our code works as intended. One of the methods is formal verification. It is a broad term that includes many techniques. Here I will talk about deductive verification. This means we want to produce a formal proof that our code works as intended. What does it mean exactly and how do we do it?
+  
+  \bigskip
   
    On one hand we have C implementation of some function,
    on the other hand we have our ideas about what it supposed to do -- its specification. To formally verify some function we need to:
+   
   \begin{enumerate}
-  \item Write it's specification in some formal language  
+  \item Write it's specification in a formal language  
   \item Write the implementation in the same formal language
   \item Formalize the notion of ``meeting the specification'' (partial correctness, total correctness)
   \item Prove that your implementation meets the specification
   \end{enumerate}
 \end{frame}
 
-
-
-\begin{frame}
-CompCert example
-\end{frame}
 \begin{frame}{Coq intro}
+ As a formal language we choose dependent type theory, which is a very expressive language well studied in mathematical logic. It is much more likely to make a mistake in a formal proof (which is typically way longer than the code), so we want an assurance that our proof is correct. Hence we use a proof assistant Coq: a program that checks that your proof is correct. It also provides an environment to make construction of the proofs easier. Coq's language is based on dependent type theory and is called Gallina.
+  
 \end{frame}
+\begin{frame}{Coq intro cont'd}
+  
+ 
+  
+  \end{frame}
+
+  \begin{frame}{CompCert}
+    Coq has been used to conduct some big verification projects. One of them is CompCert, a verfied compiler for C, almost entirely written in Coq and proved to work according to the specification.
+        \bigskip
+ To do this they formalized C syntax and semantics (C99 standard).
+
+    \bigskip
+    
+    Nice thing about Coq is that writing a specification is basically the same as writing a program that meets that specification, since Gallina is a functional programming language. One can extract the code to OCaml or Haskell to compile and run it.
+
+    
+    
+\end{frame}
+
 
 \section{Approach}
 
-\begin{frame}
-Explain what was done before: disadvantages and advantages of purely functional approach (Illya)
+\begin{frame}{Traditional approach}
+  Illya did something similar. He wrote a part of ASN.1 compiler in Coq and proved that it works correctly. Then he extracted the code to OCaml. The extracted code performed badly (cf. Illya). Moreover, the extraction mechanism of Coq is not verified so it can introduce bugs unless restricted to ML subset of Gallina.
 \end{frame}
 
-
- 
-\begin{frame}
+\begin{frame}{New approach}
+  We decided to try to verify the implementation of ASN1 compiler that already exists. This reduces TCB (TODO: explain) and moreover we could use the same techniques in other projects. We reuse parts of CompCert for this.
 \begin{itemize}
-\item reason about the actual implementation
 \item parse C code into an abstract syntax tree using C light generator of CompCert (not verified)
-\item reason about the C light program using operational semantics
+  \item write a functional specification using CompCert's model of C light 
+\item reason about the C light program using operational semantics defined in CompCert
 \end{itemize}
 \end{frame}
 \subsection{Base PL concepts mini intro: syntax, AST, semantics.}
@@ -86,12 +103,61 @@ Explain what was done before: disadvantages and advantages of purely functional 
   Deep embedding of C light to Coq := the abstract syntax is defined as inductive datatypes
   
 \end{frame}
-\begin{frame}{C light syntax}
-\begin{description}
-\item[types]
-\end{description}
+
+\section{C light syntax}
+\begin{frame}{Types of CompCert's C}
+
+  Compcert C light types include numeric types,
+  pointers, arrays, function types, and composite types (struct and union).  Numeric types (integers and floats) fully specify the
+  bit size of the type.  An integer type is a pair of a signed/unsigned
+  flag and a bit size: 8, 16, or 32 bits, or the special IBool size
+  standing for the C99 Bool type.  64-bit integers are treated separately.
 
 \end{frame}
+
+\begin{frame}[fragile]{Types of CompCert's C}
+  \begin{lstlisting}[language=Coq]
+ Inductive type : Type :=
+  | Tvoid: type 
+  | Tint: intsize -> signedness -> attr -> type 
+  | Tlong: signedness -> attr -> type 
+  | Tfloat: floatsize -> attr -> type 
+  | Tpointer: type -> attr -> type       
+  | Tarray: type -> Z -> attr -> type              
+  | Tfunction: typelist -> type -> calling_convention -> type   
+  | Tstruct: ident -> attr -> type                 
+  | Tunion: ident -> attr -> type                 
+  with typelist : Type :=
+  | Tnil: typelist
+  | Tcons: type -> typelist -> typelist.
+
+\end{lstlisting}
+
+
+\end{frame}
+
+\begin{frame}[fragile]{Types of C light}
+  \begin{lstlisting}[language=Coq]
+Definition tvoid := Tvoid.
+Definition tschar := Tint I8 Signed noattr.
+Definition tuchar := Tint I8 Unsigned noattr.
+Definition tshort := Tint I16 Signed noattr.
+Definition tushort := Tint I16 Unsigned noattr.
+Definition tint := Tint I32 Signed noattr.
+Definition tuint := Tint I32 Unsigned noattr.
+Definition tbool := Tint IBool Unsigned noattr.
+Definition tlong := Tlong Signed noattr.
+Definition tulong := Tlong Unsigned noattr.
+Definition tfloat := Tfloat F32 noattr.
+Definition tdouble := Tfloat F64 noattr.
+Definition tptr (t: type) := Tpointer t noattr.
+Definition tarray (t: type) (sz: Z) := Tarray t sz noattr.
+\end{lstlisting}
+
+
+\end{frame}
+
+
 
 \begin{frame}[fragile]{Expressions of C light}
   \begin{lstlisting}[language=Coq]
@@ -235,30 +301,17 @@ Ssequence s1 (Sloop (Ssequence (Sifthenelse e2 Sskip Sbreak) s3) s4).
 there are more - see p. 2-7 of Mechanized Sem. for details. (TODO)
   
   \end{frame}
-\begin{frame}
-  
-  Limitations
 
-  Partial correctness (safety? liveness?)
-  
-  \end{frame}
 
   \section{Operational semantics: bigstep}
 
   
-  \begin{frame}
+  \begin{frame}{Operational semantics}
 
-     Our goal is to prove that programs written in C light behave as intented. To do this we need to formalize the notion of meaning of a C light program. We do this using what is called operational semantics. We start from assigning primitive values to constants and then compositionally assign values to expressions and statement. 
-      
-   \end{frame}
+    Our goal is to prove that programs written in C light behave as intented. To do this we need to formalize the notion of meaning of a C light program. We do this using what is called operational semantics. We start from assigning primitive values to constants and then compositionally assign values to expressions and statements.
 
-   \begin{frame}
-    
-- final result of a program execution
-- trace of invocation of external functions
-- deterministic (since expressions are pure)
-
-Evaluation done in a context with global vars (G), local vars (E) and memory state (M). Rules described in Fig.6-10. of Mech Sem
+   \bigskip
+We evaluate a statement $s$ in a context with local variables $le$ and memory state $m$. Rules described in Fig.6-10. of Mech Sem. Here talk about CompCert's implementation.
     \end{frame}
 
   \begin{frame}
@@ -343,28 +396,54 @@ mkint { intval: Z; intrange: -1 < intval < modulus }.
 
 
 \begin{frame}{Memory model}
-defined in CompCert \url{common/Memory.v}
+See CompCert's \url{common/Memory.v}
+
+
 
 \bigskip
-a type \texttt{mem} of memory states, the following 4 basic
-operations over memory states, and their properties:
+There is a type \texttt{mem} of memory states with  the following 4 basic operations over memory states, and their properties:
 \begin{itemize}
 \item [load]: read a memory chunk at a given address;
 \item [store]: store a memory chunk at a given address;
 \item [alloc]: allocate a fresh memory block;
 \item [free]: invalidate a memory block.
 \end{itemize}
+
+Address is a pair $[b,ofs]$ of a memory block identifier and pointer offset (of integer type \texttt{ptrofs}), it has permissions associated to it that influence the behaviour of load and store.
+
 \end{frame}
+
+\begin{frame}{Local environment}
+  Local environment is modelled as applicative finite maps. The two main operations
+  are [set k d m], which returns a map identical to [m] except that [d]
+  is associated to [k], and [get k m] which returns the data associated
+  to key [k] in map [m].  In CompCert's Maps library, they distinguish two kinds of maps:
+  \begin{enumerate}
+\item Trees: the [get] operation returns an option type, either [None]
+  if no data is associated to the key, or [Some d] otherwise.
+\item Maps: the [get] operation always returns a data.  If no data was explicitly
+  associated with the key, a default data provided at map initialization time
+  is returned.
+  \end{enumerate}
+  \end{frame}
 
   
-\begin{frame}{C light semantics}
-We define evaluation relation between statements of C light and CompCert C values 
-\end{frame}
+  \begin{frame}{C light big-step semantics}
+    Now we can formalize evaluation of expressions to values and executions of statements that may modify local environment and memory states. 
 
+  \end{frame}
+  \begin{frame}{Evaluation of expressions}
+    See  Clight.eval\_expr.
+  \end{frame}
+  \begin{frame}{Execution of statements}
+    See ClightBigstep.exec\_stmt
+    \end{frame}
 
-\section{Toy example: length of a C string}
+  \begin{frame} {\huge \center Toy example: length of a C string} \end{frame}
+
 
 \begin{frame}{Informal spec: strlen}
+
 
   The GNU C Reference Manual:
  \bigskip
@@ -521,5 +600,12 @@ by \texttt{int}-induction on $len$ and $i$.
   
   \end{frame}
 
+  \begin{frame}
+  
+  Limitations
+
+  Partial correctness (safety? liveness?)
+  
+  \end{frame}
 
 \end{document}
