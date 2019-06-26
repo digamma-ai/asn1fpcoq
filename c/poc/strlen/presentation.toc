@@ -1,6 +1,0 @@
-\beamer@endinputifotherversion {3.36pt}
-\beamer@sectionintoc {1}{Formal verification - quick intro}{3}{0}{1}
-\beamer@sectionintoc {2}{Approach}{6}{0}{2}
-\beamer@subsectionintoc {2}{1}{Base PL concepts mini intro: syntax, AST, semantics.}{8}{0}{2}
-\beamer@sectionintoc {3}{Operational semantics: bigstep}{18}{0}{3}
-\beamer@sectionintoc {4}{Toy example: length of a C string}{26}{0}{4}
