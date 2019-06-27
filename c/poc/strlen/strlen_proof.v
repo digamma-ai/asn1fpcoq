@@ -2,19 +2,22 @@
 
 From Coq Require Import String List ZArith Psatz.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs Memory Values ClightBigstep Events Maps.
-From Hammer Require Import Hammer. (* Coq-hammer *)
+(*From Hammer Require Import Hammer. (* Coq-hammer *)*)
 
 (* Specification of the strlen function *)
 
 (* size_t *)
 Lemma int_ptrofs_mod_eq : (Int.modulus = Ptrofs.modulus).
 Proof.
-  Reconstr.scrush.
+  cbv; split; congruence.
 Qed.
 
 Lemma ptrofs_mod_1_0 : 0 <= 1 < Ptrofs.modulus.
 Proof.
-   Reconstr.scrush.
+  assert (Archi.ptr64 = false) by (simpl; auto).
+  cbv.
+  rewrite H.
+  split; congruence.
 Qed.
 
 Definition no_int_overflow (i : int) := 0 < Int.unsigned i + 1 < Int.modulus.

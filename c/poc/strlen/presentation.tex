@@ -5,8 +5,8 @@
 
 \input{listings-coq}
 
-\title{Proving C program correct using C light operational semantics}
-\date{ }
+\title{Formal Verification of C programs using C light Operational Semantics}
+\author{Nika Pona}
 
 \begin{document}
 
@@ -16,23 +16,25 @@
 \begin{enumerate}
 \item Formal verification - quick intro (high-level)
 \item Coq mini intro 
-\item Approach
-\begin{itemize}   
-\item Particular approach we consider: reasoning about C programs in Coq
-\item Base PL concepts mini intro: syntax, AST, semantics.
-\end{itemize}{}
-\item Toy example: strlen Informal specification (man page)
-\begin{itemize}
+\item CompCert
 
-\item Formal specification of strlen (relational)
+\item Reasoning about C programs in Coq
+  \begin{itemize}
+    \item C light syntax
+   \item Operational Semantics
+\end{itemize}
+\item Toy example: strlen 
+\begin{itemize}
+\item Informal specification 
+\item Formal specification of strlen 
 \item Simple implementation in C
 \item From C program to AST using clightgen
-\item Semantics of C program semantics and its equivalence to specification
+\item Correctness proof
 \item Undefined behaviours in C and guarding against them
-\end{itemize}{}
+\end{itemize}
 \item Conclusions
 \end{enumerate} 
-\end{frame}{}
+\end{frame}
 
 % do the first two sections in the end, maybe ask boys
 \section{Formal verification - quick intro}
@@ -42,8 +44,7 @@
   
   \bigskip
   
-   On one hand we have C implementation of some function,
-   on the other hand we have our ideas about what it supposed to do -- its specification. To formally verify some function we need to:
+    To deductively verify some function we need to:
    
   \begin{enumerate}
   \item Write it's specification in a formal language  
@@ -54,19 +55,32 @@
 \end{frame}
 
 \begin{frame}{Coq intro}
- As a formal language we choose dependent type theory, which is a very expressive language well studied in mathematical logic. It is much more likely to make a mistake in a formal proof (which is typically way longer than the code), so we want an assurance that our proof is correct. Hence we use a proof assistant Coq: a program that checks that your proof is correct. It also provides an environment to make construction of the proofs easier. Coq's language is based on dependent type theory and is called Gallina.
+  As a formal language we choose {\bf type theory}, which is a very expressive language well studied in mathematical logic.
+  \smallskip
+  
+  It is much more likely to make a mistake in a formal proof (which is typically way longer than the code), so we want assurance that our proof is correct.
+  \smallskip
+  
+  Hence we use a proof assistant Coq: a program that checks that your proof is correct. It also provides an environment to make the construction of proofs easier. Coq's language is based on dependent type theory and is called Gallina.
   
 \end{frame}
-\begin{frame}{Coq intro cont'd}
+\begin{frame}{Coq intro}
   
- 
+ [Show some basic Coq definitions and proofs]
   
   \end{frame}
 
   \begin{frame}{CompCert}
-    Coq has been used to conduct some big verification projects. One of them is CompCert, a verfied compiler for C, almost entirely written in Coq and proved to work according to the specification.
-        \bigskip
- To do this they formalized C syntax and semantics (C99 standard).
+    Coq has been used to conduct some big verification projects. One of them is CompCert, a verfied compiler for C, almost entirely written in Coq and proved to work according to the specification (\url{http://compcert.inria.fr/}).
+
+    \begin{quote}
+      The striking thing about our CompCert results is that the middle-end bugs we found in all other compilers are absent. As of early 2011,the under-development version of CompCert is the only compiler we have tested for which Csmith cannot find wrong-code errors.
+    \end{quote} ({\it Finding and Understanding Bugs in C Compilers}, Yang et al., 2011)
+
+  \end{frame}
+  \begin{frame}{CompCert}
+    
+ To achieve this they formalized C syntax and semantics (C99 standard).
 
     \bigskip
     
@@ -80,42 +94,176 @@
 \section{Approach}
 
 \begin{frame}{Traditional approach}
-  Illya did something similar. He wrote a part of ASN.1 compiler in Coq and proved that it works correctly. Then he extracted the code to OCaml. The extracted code performed badly (cf. Illya). Moreover, the extraction mechanism of Coq is not verified so it can introduce bugs unless restricted to ML subset of Gallina.
+  Illya did something similar. He wrote a part of ASN1C compiler in Coq and proved that it works correctly. Then he extracted the code to OCaml. The extracted code performed badly (cf. Illya). Moreover, the extraction mechanism of Coq is not verified so it can introduce bugs unless restricted to ML subset of Gallina.
 \end{frame}
 
 \begin{frame}{New approach}
-  We decided to try to verify the implementation of ASN1 compiler that already exists. This reduces TCB (TODO: explain) and moreover we could use the same techniques in other projects. We reuse parts of CompCert for this.
+  We decided to try to verify the implementation of ASN1C compiler that already exists. This reduces TCB and moreover we could use the same techniques in other projects. We reuse parts of CompCert for this.
 \begin{itemize}
 \item parse C code into an abstract syntax tree using C light generator of CompCert (not verified)
   \item write a functional specification using CompCert's model of C light 
 \item reason about the C light program using operational semantics defined in CompCert
 \end{itemize}
 \end{frame}
-\subsection{Base PL concepts mini intro: syntax, AST, semantics.}
+
+%\begin{frame}
+ % Concrete vs Abstract syntax
+
+  %We write a C program in concrete C syntax, which is designed to be used by a parser (a + b).
+  %Abstract syntax tree: nodes are constructors, leaves are atoms (plus (a,b)).
+  %todo: more on AST
+
+  %Deep embedding of C light to Coq := the abstract syntax is defined as inductive datatypes
+  
+%\end{frame}
+
+\begin{frame}{Back to CompCert}
+  CompCert formalizes C syntax and its semantics resulting in CompCert C and C light languages. In particular, they formalize C integers and memory model. I will briefly explain these since they are used throught whole development.
+ \end{frame}
+\section{Libraries of CompCert}
 
 \begin{frame}
-  Concrete vs Abstract syntax
 
-  We write a C program in concrete C syntax, which is designed to be used by a parser (a + b).
-  Abstract syntax tree: nodes are constructors, leaves are atoms (plus (a,b)).
-  todo: more on AST
+  \begin{center}
+    \huge Libraries of CompCert
+    \end{center}
+  \end{frame}
 
-  Deep embedding of C light to Coq := the abstract syntax is defined as inductive datatypes
+\begin{frame}[t,fragile]{CompCert Integers}
+
+  Machine integers modulo $2^N$ are defined as a module type in \url{CompCert/lib/Integers.v}. $8, 32, 64$-bit integers are supported, as well as 32 and 64-bit pointer offsets.\\
   
+\bigskip
+
+A machine integer (type \texttt{int}) is represented as a Coq arbitrary-precision
+integer (type \texttt{Z} ) plus a proof that it is in the range 0 (included) to
+modulus (excluded).
+
+
+\begin{lstlisting}[language=Coq]
+Record int: Type :=
+mkint { intval: Z; intrange: -1 < intval < modulus }.
+\end{lstlisting}
+
+The function \texttt{repr} takes a Coq integer and returns the corresponding machine integer. The argument is treated modulo \texttt{modulus}.
+
 \end{frame}
+
+\begin{frame}[t,fragile]{CompCert Integers}
+
+ Integer is basically a natural number with a bound, thus we can prove an induction principle for integers
+
+\bigskip
+
+\begin{lstlisting}[language=Coq]
+  Lemma int_induction :
+     forall (P : int -> Prop), P Int.zero ->
+          (forall i, P i -> P (Int.add i Int.one)) ->
+                 forall i, P i.
+\end{lstlisting}
+
+ \begin{proof}
+
+   By using induction principle for non-negative integers \texttt{natlike\_ind} for \texttt{Z}.
+                                       
+ \end{proof}
+
+ They prove some basic arithmetic theorems available through hints \texttt{ints} and \texttt{ptrofs}.
+
+\end{frame}
+
+\begin{frame}[fragile]{Memory Model}
+
+  A memory model is a specification of memory states and operations over memory. Cf. \url{CompCert/common/Memtype.v} (interface of the memory model)
+  
+\bigskip
+  
+   Memory states are accessed by addresses, pairs of a block
+  identifier $b$ and a byte offset $ofs$ within that block.
+  Each address is associated to permissions (current and maximal): \texttt{Freeable, Writable, Readable, Nonempty, Empty}, ranging from allowing all operations to allowing no operation respectively.
+\end{frame}
+
+\begin{frame}[fragile]{Memory Type}
+
+Implementation of the memory type in \url{CompCert/common/Memory.v}: 
+  
+  \begin{lstlisting}[language=Coq]
+Record mem : Type := mkmem {
+  mem_contents: PMap.t (ZMap.t memval);  
+  mem_access: PMap.t (Z -> perm_kind -> option permission);
+  nextblock: block;
+  access_max: forall b ofs, perm_order'' (mem_access#b ofs Max)
+                            (mem_access#b ofs Cur);
+  nextblock_noaccess: forall b ofs k, ~(Plt b nextblock) ->
+                            mem_access#b ofs k = None;
+  contents_default: forall b, fst mem_contents#b = Undef }.
+
+\end{lstlisting}
+
+
+\end{frame}
+
+\begin{frame}{Memory Model}
+  The type \texttt{mem} of memory states has  the following 4 basic operations over memory states:
+  \bigskip
+  
+\begin{itemize}
+\item [load]: read a memory chunk at a given address;
+\item [store]: store a memory chunk at a given address;
+\item [alloc]: allocate a fresh memory block;
+\item [free]: invalidate a memory block.
+\end{itemize}
+\bigskip
+A load succeeds if and only if the access is valid for reading. The value returned by \texttt{load} belongs to the type of the memory quantity accessed etc. 
+
+
+
+\end{frame}
+
+\begin{frame}{Applicative finite maps}
+  Memory model and environments used in evaluation of the statements are modelled as applicative finite maps. Cf. \url{CompCert/lib/Maps.v}
+
+  \bigskip
+  The two main operations are \texttt{set k d m}, which returns a map identical to \texttt{m} except that \texttt{d}
+  is associated to \texttt{k}, and \texttt{get k m} which returns the data associated
+  to key \texttt{k} in map \texttt{m}.  There are two distinguish two kinds of maps:
+  \begin{enumerate}
+\item Trees: the \texttt{get} operation returns an option type, either \texttt{None}
+  if no data is associated to the key, or \texttt{Some d} otherwise.
+\item Maps: the \texttt{get} operation always returns a data.  If no data was explicitly
+  associated with the key, a default data provided at map initialization time
+  is returned.
+  \end{enumerate}
+  \end{frame}
+
 
 \section{C light syntax}
-\begin{frame}{Types of CompCert's C}
+\begin{frame}
+  \begin{center}
+    \huge C light Syntax
+    \end{center}
+  \end{frame}
 
-  Compcert C light types include numeric types,
-  pointers, arrays, function types, and composite types (struct and union).  Numeric types (integers and floats) fully specify the
-  bit size of the type.  An integer type is a pair of a signed/unsigned
+
+\begin{frame}{C light types}
+  Each expression of CompCert C has a type. There are:
+  \begin{itemize}
+   \item numeric types (integers and floats)
+   \item pointers
+   \item arrays
+   \item function types
+     \item composite types (struct and union).
+ \end{itemize}
+  An integer type is a pair of a signed/unsigned
   flag and a bit size: 8, 16, or 32 bits, or the special IBool size
   standing for the C99 Bool type.  64-bit integers are treated separately.
+  
 
 \end{frame}
 
-\begin{frame}[fragile]{Types of CompCert's C}
+\begin{frame}[fragile]{C light types}
+
+  Cf. \url{CompCert/cfrontend/Ctypes.v}. 
   \begin{lstlisting}[language=Coq]
  Inductive type : Type :=
   | Tvoid: type 
@@ -124,19 +272,16 @@
   | Tfloat: floatsize -> attr -> type 
   | Tpointer: type -> attr -> type       
   | Tarray: type -> Z -> attr -> type              
-  | Tfunction: typelist -> type -> calling_convention -> type   
+  | Tfnction: typelist -> type -> calling_convention -> type   
   | Tstruct: ident -> attr -> type                 
   | Tunion: ident -> attr -> type                 
-  with typelist : Type :=
-  | Tnil: typelist
-  | Tcons: type -> typelist -> typelist.
-
 \end{lstlisting}
 
 
 \end{frame}
 
-\begin{frame}[fragile]{Types of C light}
+\begin{frame}[fragile]{C light types}
+  C light types are subset of CompCert C types, we ignore the attributes.
   \begin{lstlisting}[language=Coq]
 Definition tvoid := Tvoid.
 Definition tschar := Tint I8 Signed noattr.
@@ -145,7 +290,7 @@ Definition tshort := Tint I16 Signed noattr.
 Definition tushort := Tint I16 Unsigned noattr.
 Definition tint := Tint I32 Signed noattr.
 Definition tuint := Tint I32 Unsigned noattr.
-Definition tbool := Tint IBool Unsigned noattr.
+Definition t$\texttt{bool}$ := Tint IBool Unsigned noattr.
 Definition tlong := Tlong Signed noattr.
 Definition tulong := Tlong Unsigned noattr.
 Definition tfloat := Tfloat F32 noattr.
@@ -154,32 +299,55 @@ Definition tptr (t: type) := Tpointer t noattr.
 Definition tarray (t: type) (sz: Z) := Tarray t sz noattr.
 \end{lstlisting}
 
-
 \end{frame}
 
+\begin{frame}{C light Expressions}
+  \begin{itemize}
+  \item (long) integer constant
+  \item double/single float constant
+  \item (temporary) variable
+  \item pointer dereference ($*$)
+  \item address-of operator ($\&$)
+  \item unary operation
+  \item binary operation
+  \item type cast
+  \item access to a member of a struct or union
+  \item size of a type
+    \item alignment of a type
+    \end{itemize}
+  \end{frame}
 
+  \begin{frame}{C light Expressions}
+    All expressions and their sub-expressions
+are annotated by their static types. Within expressions, only side-effect free operators are supported, moreover, assignments and
+function calls are statements and cannot occur within expressions.
+\bigskip
 
-\begin{frame}[fragile]{Expressions of C light}
+As a
+consequence, all Clight expressions always terminate and are pure: their evaluation
+have no side effects. This ensures determinism of evaluation.
+    \end{frame}
+
+ \begin{frame}[fragile]{C light Expressions}
+   
   \begin{lstlisting}[language=Coq]
 Inductive expr : Type :=
-| Econst_int: int -> type -> expr  (* integer literal *)    
-| Econst_float: float -> type -> expr (* double float literal *)
-| Econst_single: float32 -> type -> expr (* single float *)
-| Econst_long: int64 -> type -> expr (* long integer literal *)
-| Evar: ident -> type -> expr (* variable *)
-| Etempvar: ident -> type -> expr (* temporary variable *)
-| Ederef: expr -> type -> expr (* pointer dereference (*) *)
-| Eaddrof: expr -> type -> expr (* address-of operator (&) *)
+| Econst_int: int -> type -> expr      
+| Econst_float: float -> type -> expr 
+| Econst_single: float32 -> type -> expr 
+| Econst_long: int64 -> type -> expr 
+| Evar: ident -> type -> expr 
+| Etempvar: ident -> type -> expr 
+| Ederef: expr -> type -> expr 
+| Eaddrof: expr -> type -> expr
 | Eunop: unary_operation -> expr -> type -> expr
-(* unary operation *)
 | Ebinop: binary_operation -> expr -> expr -> type -> expr
-(* binary operation *)
-| Ecast: expr -> type -> expr   (* type cast *)
+| Ecast: expr -> type -> expr   
 | Efield: expr -> ident -> type -> expr
-(* access to a member of a struct or union *)
-| Esizeof: type -> type -> expr (* size of a type *)
-| Ealignof: type -> type -> expr. (* alignment of a type *)
-\end{lstlisting}
+| Esizeof: type -> type -> expr 
+| Ealignof: type -> type -> expr
+}. 
+\end{lstlisting}\footnote{\url{CompCert/cfrontend/Clight.v}}
 
 
 \end{frame}
@@ -187,7 +355,7 @@ Inductive expr : Type :=
 
     
 
-\begin{frame}[fragile]{Examples}
+\begin{frame}[fragile]{C light Expressions: Examples}
 
   \begin{lstlisting}[language=Coq]
     (* 0 *)
@@ -210,14 +378,7 @@ Inductive expr : Type :=
 
 \end{frame}
 
-
-\begin{frame}
-
-Note that in C light all expressions are {\bf pure}. Variable assignements and function calls are statements.
-    
-\end{frame}
-
-\begin{frame}[fragile]{Statements}
+\begin{frame}[fragile]{C light Statements}
 
   \begin{lstlisting}[language=Coq]
 Inductive statement : Type :=
@@ -227,8 +388,8 @@ Inductive statement : Type :=
 | Sset : ident -> expr -> statement
 (* assignment tempvar = rvalue *)
 | Scall: option ident -> expr -> list expr -> statement
-| Sbuiltin: option ident -> external_function -> typelist -> list expr -> statement
-(* builtin invocation *)
+| Sbuiltin: option ident -> external_$\texttt{fun}$ction -> typelist
+-> list expr -> statement (* builtin invocation *)
 | Ssequence : statement -> statement -> statement
 | Sifthenelse : expr  -> statement -> statement -> statement
 | Sloop: statement -> statement -> statement (* infinite loop *)
@@ -247,7 +408,9 @@ Inductive statement : Type :=
 
 
 
-\begin{frame}[fragile]{Statements}
+\begin{frame}[fragile]{C light Statements}
+
+  C loops are derived:
 
   \begin{lstlisting}[language=Coq]
     
@@ -257,8 +420,9 @@ Definition Swhile (e: expr) (s: statement) :=
 Definition Sdowhile (s: statement) (e: expr) :=
   Sloop s (Sifthenelse e Sskip Sbreak).
 
-Definition Sfor (s1: statement) (e2: expr) (s3: statement) (s4: statement) :=
-Ssequence s1 (Sloop (Ssequence (Sifthenelse e2 Sskip Sbreak) s3) s4).
+  Definition Sfor (s1: statement) (e2: expr) (s3: statement)
+  (s4: statement) := Ssequence s1
+   (Sloop (Ssequence (Sifthenelse e2 Sskip Sbreak) s3) s4).
 
   \end{lstlisting}
   
@@ -267,7 +431,7 @@ Ssequence s1 (Sloop (Ssequence (Sifthenelse e2 Sskip Sbreak) s3) s4).
 \end{frame}
 
 
-\begin{frame}[fragile]{Examples}
+\begin{frame}[fragile]{C light Statements: Examples}
 
   \begin{lstlisting}[language=Coq]
      (* int s = 1; *)
@@ -289,33 +453,57 @@ Ssequence s1 (Sloop (Ssequence (Sifthenelse e2 Sskip Sbreak) s3) s4).
 
 \end{frame}
 
-\begin{frame}{Unsupported features}
+\begin{frame}{Unsupported Features}
   \begin{itemize}
-  \item `extern` declaration of arrays
+  \item \texttt{extern} declaration of arrays
 \item structs and unions cannot be passed by value
-\item  type qualifiers (`const`, `volatile`, `restrict`) are erased at parsing
+\item  type qualifiers (\texttt{const}, \texttt{volatile}, \texttt{restrict}) are erased at parsing
 \item within expressions no side-effects nor function calls (meaning all C light expressions always terminate and are pure)
-\item statements: in `for(s1, a, s2)` s1 and s2 are statements, that do not terminate by break
-\item `extern` functions are only declared and not defined, used to model system calls
+\item statements: in \texttt{for(s1, a, s2)} s1 and s2 are statements, that do not terminate by break
+\item \texttt{extern} functions are only declared and not defined, used to model system calls
 \end{itemize}
-there are more - see p. 2-7 of Mechanized Sem. for details. (TODO)
   
   \end{frame}
 
 
   \section{Operational semantics: bigstep}
+  \begin{frame}
+  \begin{center}
+    \huge Semantics of C light
+    \end{center}
+  \end{frame}
 
-  
-  \begin{frame}{Operational semantics}
+  \begin{frame}{Operational Semantics}
+    Our goal is to prove that programs written in C light behave as intented. To do this we need to formalize the notion of meaning of a C light program. We do this using what is called {\bf operational semantics}.
 
-    Our goal is to prove that programs written in C light behave as intented. To do this we need to formalize the notion of meaning of a C light program. We do this using what is called operational semantics. We start from assigning primitive values to constants and then compositionally assign values to expressions and statements.
+    \bigskip
+    
+    An operational semantics is a mathematical model of programming language execution. It is basically an interpreter defined formally.
+    \bigskip
+    
+    Here I will talk about the formalization of big-step operational semantics used for all intermediate languages of CompCert.
+  \end{frame}
+  \begin{frame}{Operational Semantics}
+ 
+    Each syntactic element (expressions and statements) is related to the indended result of executing this element.
 
-   \bigskip
-We evaluate a statement $s$ in a context with local variables $le$ and memory state $m$. Rules described in Fig.6-10. of Mech Sem. Here talk about CompCert's implementation.
+    \bigskip
+    
+    Expressions are deterministically mapped to memory locations or values (integers, bool etc).
+
+    \bigskip 
+    The execution of statements depends on memory state and values stored in the local environment and produces {\bf outcomes} (break, normal, return), updated memory and local environment. Moreover, {\bf trace} of external calls is recorded\footnote{       (cf. \url{CompCert/cfrontend/ClightBigstep.v}).}.
+     
     \end{frame}
 
-  \begin{frame}
-    A CompCert C value is either\footnote{This is a common semantics used for all intermediate languages of CompCert, such as C minor etc.}:
+    \begin{frame}{Semantic Elements: Values}
+      
+      We assign primitive values to constants and then compositionally compute values of expressions and outcomes of statements.
+
+      \bigskip
+      
+      A CompCert C value is either:
+      
     \begin{itemize}
     
 \item a machine integer;
@@ -327,10 +515,12 @@ We evaluate a statement $s$ in a context with local variables $le$ and memory st
  \end{itemize}
 \end{frame}
 
-\begin{frame}[t,fragile]{Values}
-  
-\begin{lstlisting}[language=Coq]
+\begin{frame}[t,fragile]{Semantic Elements: Values}
 
+ Definition of values in Coq: \url{CompCert/common/Values.v}
+  
+ \begin{lstlisting}[language=Coq]
+   
   Inductive val: Type :=
   | Vundef: val
   | Vint: int -> val
@@ -340,112 +530,172 @@ We evaluate a statement $s$ in a context with local variables $le$ and memory st
   | Vptr: block -> ptrofs -> val.
 \end{lstlisting}
 
+
+
 \begin{itemize}
 \item \texttt{float} type is formalized in Flocq library
-\item \texttt{int} and \texttt{ptrofs} types are defined in CompCert 
+\item \texttt{int} and \texttt{ptrofs} types are defined in CompCert's Integers library
 \end{itemize}
   
 \end{frame}  
 
 
-\begin{frame}[t,fragile]{Integers}
-
-Formalizations of machine integers modulo $2^N$ defined as a module type in CompCert \url{lib/Integers.v}.\\
-
-\bigskip
-
-A machine integer (type \texttt{int}) is represented as a Coq arbitrary-precision
-integer (type \texttt{Z} ) plus a proof that it is in the range 0 (included) to
-modulus (excluded).
-
-\bigskip
-
-\begin{lstlisting}[language=Coq]
-Record int: Type :=
-mkint { intval: Z; intrange: -1 < intval < modulus }.
-\end{lstlisting}
-
-8, 32, 64-bit integers are supported, as well as 32 and 64-bit pointer offsets.
-
-\end{frame}
-
-\begin{frame}[t,fragile]{Integers}
-
- Integer is basically a natural number with a bound, thus we can prove an induction principle for integers
-
-\bigskip
-
-\begin{lstlisting}[language=Coq]
-  Lemma int_induction :
-  forall (P : int -> Prop), P Int.zero ->
-       (forall i, P i -> P (Int.add i Int.one)) ->
-             forall i, P i.
-\end{lstlisting}
-
- \begin{proof}
-
-   By using induction principle for non-negative integers \texttt{natlike\_ind} for \texttt{Z}.
-                                       
- \end{proof}
-
-
-
-\end{frame}
 
 
 
 
-\begin{frame}{Memory model}
-See CompCert's \url{common/Memory.v}
 
 
 
-\bigskip
-There is a type \texttt{mem} of memory states with  the following 4 basic operations over memory states, and their properties:
-\begin{itemize}
-\item [load]: read a memory chunk at a given address;
-\item [store]: store a memory chunk at a given address;
-\item [alloc]: allocate a fresh memory block;
-\item [free]: invalidate a memory block.
-\end{itemize}
 
-Address is a pair $[b,ofs]$ of a memory block identifier and pointer offset (of integer type \texttt{ptrofs}), it has permissions associated to it that influence the behaviour of load and store.
-
-\end{frame}
-
-\begin{frame}{Local environment}
-  Local environment is modelled as applicative finite maps. The two main operations
-  are [set k d m], which returns a map identical to [m] except that [d]
-  is associated to [k], and [get k m] which returns the data associated
-  to key [k] in map [m].  In CompCert's Maps library, they distinguish two kinds of maps:
-  \begin{enumerate}
-\item Trees: the [get] operation returns an option type, either [None]
-  if no data is associated to the key, or [Some d] otherwise.
-\item Maps: the [get] operation always returns a data.  If no data was explicitly
-  associated with the key, a default data provided at map initialization time
-  is returned.
-  \end{enumerate}
-  \end{frame}
 
   
-  \begin{frame}{C light big-step semantics}
-    Now we can formalize evaluation of expressions to values and executions of statements that may modify local environment and memory states. 
 
+\begin{frame}[fragile]{Evaluation of expressions}
+ 
+The evaluation of constants is straightforward: map to the same integer/float value:
+  
+    \begin{lstlisting}[language=Coq]
+   
+  Inductive eval_expr: expr -> val -> Prop :=
+  | eval_Econst_int:   forall i ty,
+      eval_expr (Econst_int i ty) (Vint i)
+  | eval_Econst_float:   forall f ty,
+      eval_expr (Econst_float f ty) (Vfloat f)
+  | eval_Econst_single:   forall f ty,
+      eval_expr (Econst_single f ty) (Vsingle f)
+  | eval_Econst_long:   forall i ty,
+      eval_expr (Econst_long i ty) (Vlong i)
+\end{lstlisting}
+\end{frame}
+
+
+\begin{frame}[fragile]{Evaluation of expressions}
+ 
+The evaluation of constants is straightforward: map to the same integer/float value:
+  
+    \begin{lstlisting}[language=Coq]
+   
+ | eval_Etempvar:  forall id ty v,
+      le!id = Some v ->
+      eval_expr (Etempvar id ty) v
+\end{lstlisting}
+\end{frame}
+
+ \begin{frame}[fragile]{Evaluation of expressions}
+
+  For unary and binary expression, the semantics of each operation is defined and applied to the values of the operands:
+  
+    \begin{lstlisting}[language=Coq]
+   
+ | eval_Eunop:  forall op a ty v1 v,
+      eval_expr a v1 ->
+      sem_unary_operation op v1 (typeof a) m = Some v ->
+      eval_expr (Eunop op a ty) v
+\end{lstlisting}
+\end{frame}
+
+
+ \begin{frame}[fragile]{Evaluation of expressions}
+
+\texttt{eval\_lvalue ge e m a b ofs} defines the evaluation of expression a
+  in l-value position given global and local environments and memory m.  The result is the memory location $[b, ofs]$
+  that contains the value of the expression a.
+  
+    \begin{lstlisting}[language=Coq]
+   
+ eval_lvalue: expr -> block -> ptrofs -> Prop :=
+  | eval_Evar_local:   forall id l ty,
+      e!id = Some(l, ty) ->
+      eval_lvalue (Evar id ty) l Ptrofs.zero
+  | eval_Evar_global: forall id l ty,
+      e!id = None ->
+      Genv.find_symbol ge id = Some l ->
+      eval_lvalue (Evar id ty) l Ptrofs.zero
+  | eval_Ederef: forall a ty l ofs,
+      eval_expr a (Vptr l ofs) ->
+      eval_lvalue (Ederef a ty) l ofs
+\end{lstlisting}
+\end{frame}
+
+
+\begin{frame}{Execution of statements}
+  
+     \texttt{exec\_stmt ge e m1 s t m2 out} describes the execution of
+  the statement \texttt{s}.  \texttt{out} is the outcome for this execution.
+  \texttt{m1} is the initial memory state, \texttt{m2} the final memory state.
+  \texttt{t} is the trace of input/output events performed during this
+  evaluation\footnote{\url{CompCert/cfrontend/ClightBigstep.v}}
+\end{frame}
+
+\begin{frame}[fragile]{Evaluation of expressions}
+
+  ``Do nothing'' always evaluated to normal outcome: 
+
+  \begin{lstlisting}[language=Coq]
+   
+  | exec_Sskip:   forall e le m,
+      exec_stmt e le m Sskip
+               E0 le m Out_normal
+\end{lstlisting}
+
+Setting a value $v$ to some $id$ results in modified temporary environment:
+  
+    \begin{lstlisting}[language=Coq]
+   
+ | exec_Sset:     forall e le m id a v,
+      eval_expr ge e le m a v ->
+      exec_stmt e le m (Sset id a)
+               E0 (PTree.set id v le) m Out_normal
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Evaluation of expressions}
+
+  A more complicated example: loop. If we reached a break or return on the first (or second) statement, then the loop output is normal or return:
+  
+  \begin{lstlisting}[language=Coq]
+   
+   | exec_Sloop_stop1: forall e le m s1 s2 t le' m' out' out,
+      exec_stmt e le m s1 t le' m' out' ->
+      out_break_or_return out' out ->
+      exec_stmt e le m (Sloop s1 s2) t le' m' out
+\end{lstlisting}
+
+Or we loop again if both statements result in normal outcome:
+  
+    \begin{lstlisting}[language=Coq]
+   
+      | exec_Sloop_loop: forall e le m s1 s2 t1 le1 m1 out1 t2 le2
+      m2 t3 le3 m3 out,
+      exec_stmt e le m s1 t1 le1 m1 out1 ->
+      out_normal_or_continue out1 ->
+      exec_stmt e le1 m1 s2 t2 le2 m2 Out_normal ->
+      exec_stmt e le2 m2 (Sloop s1 s2) t3 le3 m3 out ->
+      exec_stmt e le m (Sloop s1 s2)
+                (t1**t2**t3) le3 m3 out
+\end{lstlisting}
+\end{frame}
+
+\begin{frame} To see operational semantics in action, see factorial example in \url{asn1fpcoq/c/poc/factorial}.
   \end{frame}
-  \begin{frame}{Evaluation of expressions}
-    See  Clight.eval\_expr.
+
+           
+
+  \begin{frame}
+  \begin{center}
+    \huge Toy example: \texttt{strlen} function
+  \end{center}
   \end{frame}
-  \begin{frame}{Execution of statements}
-    See ClightBigstep.exec\_stmt
+
+  \begin{frame}{Toy example: \texttt{strlen} function}
+    A more interesting example that involves memory model is \texttt{strlen} function that calculates the length of a C string.
     \end{frame}
 
-  \begin{frame} {\huge \center Toy example: length of a C string} \end{frame}
+\begin{frame}{Informal Specification}
 
 
-\begin{frame}{Informal spec: strlen}
-
-
-  The GNU C Reference Manual:
+  From the GNU C Reference Manual:
  \bigskip
 
 
@@ -453,34 +703,31 @@ Address is a pair $[b,ofs]$ of a memory block identifier and pointer offset (of 
 
 \bigskip
 
-$\ldots$
-DESCRIPTION        
-
- The strlen() function calculates the length of the string pointed to
+$\ldots$ The strlen() function calculates the length of the string pointed to
  by s, excluding the terminating null byte.
 
  \bigskip
 
-RETURN VALUE 
-
+ 
+$\ldots$ 
  The strlen() function returns the number of bytes in the string
  pointed to by s.
 
  \bigskip
 
-CONFORMING TO 
-
- POSIX.1-2001, POSIX.1-2008, C89, C99, C11, SVr4, 4.3BSD.
+Conforming to $\ldots$ C99, C11, SVr4, 4.3BSD.
 
 
 
 \end{frame}
 
-\begin{frame}
- To formalize the spec we need a formal model of C integers, pointers and memory model
+\begin{frame}{C Implementation}
+
+\lstinputlisting[language=C]{strlen.c}
+
 \end{frame}
 
-\begin{frame}[t,fragile]{Formal spec}
+\begin{frame}[t,fragile]{Formal Specification}
 
   \begin{lstlisting}[language=Coq]
     
@@ -490,44 +737,33 @@ Inductive strlen (m : mem) (b : block) (ofs : ptrofs) : int -> Prop :=
                       strlen m b ofs + 1 n ->
                       load m [b,ofs] = Vint c ->
                       c <> Int.zero ->
-                      n + 1 <= MaxInteger ->
+                      n + 1 <= UINT MAX ->
                       strlen m b ofs n + 1.
-  \end{lstlisting}
+                    \end{lstlisting}
+                    
+Note that we are guarding against integer overflow here.  
   
-  
-  
-      
 \end{frame}
 
-\begin{frame}{From C program to AST using clightgen}
-
-\lstinputlisting[language=C]{strlen.c}
-
-\end{frame}
 
 \begin{frame}[fragile]{C light AST (loop of strlen)}
 
 \begin{lstlisting}[language=Coq]
-Definition f_strlen_loop := {|
-fn_params := ((_s, (tptr tuchar)) :: nil);
-fn_temps := ((_i, tuint) :: (_t1, (tptr tuchar)) :: (_t2, tuchar) :: nil);
-fn_body := 
-(Sloop
+Definition f_strlen_loop := 
+(Sloop (Ssequence
 (Ssequence
-(Ssequence
-(Ssequence
+ (Ssequence
   (Sset _t1 (Etempvar _s (tptr tuchar)))
   (Sset _s
     (Ebinop Oadd (Etempvar _t1 (tptr tuchar))
       (Econst_int (Int.repr 1) tint) (tptr tuchar))))
-(Ssequence
+ (Ssequence
   (Sset _t2 (Ederef (Etempvar _t1 (tptr tuchar)) tuchar))
   (Sifthenelse (Etempvar _t2 tuchar) Sskip Sbreak)))
 (Sset _i
 (Ebinop Oadd (Etempvar _i tuint) (Econst_int (Int.repr 1)
  tint)
-  tuint)))
-Sskip) |}.
+  tuint))) Sskip) |}.
 
 \end{lstlisting}
 
@@ -596,16 +832,31 @@ by \texttt{int}-induction on $len$ and $i$.
 
 \begin{frame}{Conclusion}
   Thus we have proved that on all strings of length smaller than
-  \texttt{UINT\_MAX}, \texttt{strlen} works correctly.
+  \texttt{UINT\_MAX}, \texttt{strlen} works correctly. 
   
   \end{frame}
 
-  \begin{frame}
-  
-  Limitations
+ 
 
-  Partial correctness (safety? liveness?)
+\begin{frame}
+    \begin{thebibliography}{9}
+
+ \bibitem{blazy} 
+    {Sandrine Blazy and Xavier Leroy},
+    {Mechanized Semantics for the Clight Subset of the C Language},
+    {2009}
+      
+\bibitem{leroy}
+    Xavier Leroy and Sandrine Blazy and Gordon Stewart,
+    {The CompCert Memory Model, Version 2},
+    {2012}
+
+   
+
+\end{thebibliography}
   
   \end{frame}
+    
+
 
 \end{document}

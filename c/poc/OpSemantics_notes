@@ -1,8 +1,7 @@
 An operational semantics is a mathematical model of programming language execution. It is, in essence, an interpreter defined mathematically.
-Anoperational semanticsfor a program-ming language is a mathematical definition of its computation relation,e)v, whereeis a program in the language
-e)vis mathematically a 2-place relation between expressions of the language,e, andvalues of the language,v. Integers and booleans are values.
-An operational semantics for a programming language is a means for understanding inprecise detail the meaning of an expression in the language
-It is the formal specificationof the language that is used when writing compilers and interpreters, and it allows us torigorously verify things about the language.
+An operational semantics for a program-ming language is a mathematical definition of its computation relation,e)v, where e is a program in the language
+e)v is mathematically a 2-place relation between expressions of the language,e, and values of the language,v. 
+
 
 Operational semantics rules discuss how pieces of code evaluate
 
