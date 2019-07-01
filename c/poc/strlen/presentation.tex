@@ -6,7 +6,9 @@
 \input{listings-coq}
 
 \title{Formal Verification of C programs using C light Operational Semantics}
-\author{Nika Pona}
+\author{Nika Pona// Digamma.ai}
+
+
 
 \begin{document}
 
@@ -30,7 +32,7 @@
 \item Simple implementation in C
 \item From C program to AST using clightgen
 \item Correctness proof
-\item Undefined behaviours in C and guarding against them
+%\item Undefined behaviours in C and guarding against them
 \end{itemize}
 \item Conclusions
 \end{enumerate} 
@@ -40,22 +42,20 @@
 \section{Formal verification - quick intro}
 \begin{frame}{Formal verification - quick intro}
  
-  We want to have high assurance that our code works as intended. One of the methods is formal verification. It is a broad term that includes many techniques. Here I will talk about deductive verification. This means we want to produce a formal proof that our code works as intended. What does it mean exactly and how do we do it?
+  We want to have high assurance that our code works as intended. One of the methods is formal verification. This means we want to produce a formal proof that our code works as intended. What does it mean exactly and how do we do it?
   
-  \bigskip
-  
-    To deductively verify some function we need to:
-   
   \begin{enumerate}
-  \item Write it's specification in a formal language  
-  \item Write the implementation in the same formal language
-  \item Formalize the notion of ``meeting the specification'' (partial correctness, total correctness)
-  \item Prove that your implementation meets the specification
-  \end{enumerate}
+  \item We start by writing a \emph{specification} in a formal language (like Coq or HOL) which strictly defines how our program should behave.
+  \item Then we derive the \emph{semantics} of our program which describes how it actually behaves. 
+  \item Finally we mathematically prove that semantics of our program matches our specification.
+\end{enumerate}
+  
 \end{frame}
 
 \begin{frame}{Coq intro}
-  As a formal language we choose {\bf type theory}, which is a very expressive language well studied in mathematical logic.
+  As a formal language we choose {\bf Gallina}, mechanized version of Calculus of Inductive Constructions (aka dependent type theory), which is a very expressive theory well studied in mathematical logic.
+
+
   \smallskip
   
   It is much more likely to make a mistake in a formal proof (which is typically way longer than the code), so we want assurance that our proof is correct.
@@ -94,15 +94,22 @@
 \section{Approach}
 
 \begin{frame}{Traditional approach}
-  Illya did something similar. He wrote a part of ASN1C compiler in Coq and proved that it works correctly. Then he extracted the code to OCaml. The extracted code performed badly (cf. Illya). Moreover, the extraction mechanism of Coq is not verified so it can introduce bugs unless restricted to ML subset of Gallina.
+   A function that needs to be verified can be written and proven in Coq directly. Then the Coq code can be extracted to OCaml.
+   
+   This approach, while being (possibly) easier, has some downsides:
+\begin{itemize}
+  \item Extracted OCaml code shows low performance
+  \item Coq's extraction mechanism is itself not verified so it can produce bugs uless restricted to ML subset of gallina
+  \item The extracted portion generally requires a pure-OCaml wrapper to be used with real-life data. Therefore, extraction necessarily adds a layer that cannot be verified - only unit-tested
+\end{itemize}
 \end{frame}
-
+   
 \begin{frame}{New approach}
   We decided to try to verify the implementation of ASN1C compiler that already exists. This reduces TCB and moreover we could use the same techniques in other projects. We reuse parts of CompCert for this.
 \begin{itemize}
-\item parse C code into an abstract syntax tree using C light generator of CompCert (not verified)
+  \item parse C code into an abstract syntax tree using C light generator of CompCert (not verified)
   \item write a functional specification using CompCert's model of C light 
-\item reason about the C light program using operational semantics defined in CompCert
+  \item reason about the C light program using operational semantics defined in CompCert
 \end{itemize}
 \end{frame}
 
@@ -228,9 +235,9 @@ A load succeeds if and only if the access is valid for reading. The value return
   is associated to \texttt{k}, and \texttt{get k m} which returns the data associated
   to key \texttt{k} in map \texttt{m}.  There are two distinguish two kinds of maps:
   \begin{enumerate}
-\item Trees: the \texttt{get} operation returns an option type, either \texttt{None}
-  if no data is associated to the key, or \texttt{Some d} otherwise.
-\item Maps: the \texttt{get} operation always returns a data.  If no data was explicitly
+\item  the \texttt{get} operation returns an option type, either \texttt{None} 
+  \item 
+the {get} operation always returns a data.  If no data was explicitly
   associated with the key, a default data provided at map initialization time
   is returned.
   \end{enumerate}
@@ -721,7 +728,7 @@ Conforming to $\ldots$ C99, C11, SVr4, 4.3BSD.
 
 \end{frame}
 
-\begin{frame}{C Implementation}
+\begin{frame}{Simple C Implementation}
 
 \lstinputlisting[language=C]{strlen.c}
 
@@ -729,6 +736,7 @@ Conforming to $\ldots$ C99, C11, SVr4, 4.3BSD.
 
 \begin{frame}[t,fragile]{Formal Specification}
 
+Here we use relational specification. It has an advantage that we only describe what is true and we don't have to worry about termination. Moreover, we can use \texttt{inversion} to prove lemmas about the spec. Alternatively, we could specify the same function using a functional spec. 
   \begin{lstlisting}[language=Coq]
     
 Inductive strlen (m : mem) (b : block) (ofs : ptrofs) : int -> Prop :=
@@ -743,6 +751,37 @@ Inductive strlen (m : mem) (b : block) (ofs : ptrofs) : int -> Prop :=
                     
 Note that we are guarding against integer overflow here.  
   
+\end{frame}
+
+\begin{frame}[fragile]{Formal Specification}
+
+ 
+  \begin{lstlisting}[language=Coq]
+    
+Fixpoint strlen_$fun$ (m : mem) (b : block) (ofs : Z) (l: int)
+    (intrange : nat) {struct intrange} : option int:= 
+      match intrange with
+      | O => None (* out of int range *)
+      | S n => match load m b ofs with 
+              | Some v =>
+                if is_null v
+                then Some l else strlen_$fun$ m b (ofs + 1) (l + 1) n  
+              | None => None 
+              end
+      end.
+
+      Definition strlen_$fun$_spec (m : mem) (b: block) (ofs : Z)
+      :=  strlen m b ofs 0 INTSIZE.
+                    \end{lstlisting}
+                    
+                    %Then we could show that the functional spec is equivalent to the relational spec.
+
+                    % \begin{lstlisting}[language=Coq]    
+%Lemma strlen_$fun$_corr:
+     % strlen_$fun$_spec m b ofs = Some n <-> strlen m b ofs n. 
+      
+               %     \end{lstlisting}
+                    
 \end{frame}
 
 
