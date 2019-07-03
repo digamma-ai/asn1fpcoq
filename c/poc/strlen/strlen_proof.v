@@ -463,11 +463,14 @@ Lemma strlen_to_mem_0 : forall m b ofs, strlen m b ofs Int.zero -> Mem.loadv Min
       unfold Int_succ in A.
        congruence.
   Qed.
-   
+
+
+  
 (* A generalization of loop correctness *)
+Parameter ge : genv.
+Parameter e : env.
 
-
-Lemma strlen_loop_correct_gen : forall len i ge e m b ofs le,
+Lemma strlen_loop_correct_gen : forall len i m b ofs le,
     
     (* we read a C string of length len + i from memory and len + i is
     a valid integer *)
@@ -532,24 +535,22 @@ Lemma strlen_loop_correct_gen : forall len i ge e m b ofs le,
         assumption.
         1-3: cbv; congruence.
         { rewrite Int.add_commut. rewrite Int.add_zero. auto. } 
-
     -- 
     assert (exists char, Mem.loadv Mint8signed m (Vptr b  (Ptrofs.add ofs (Ptrofs.of_int i))) = Some (Vint char) /\ char <> Int.zero) as Mem.
-    { 
-      (* TODO *)
-      pose int_overflow_unsigned_to_add.
-      (* pose (int_overflow_unsigned_to_add_two (Int.add len Int.one) i O). *)
+    { pose int_overflow_unsigned_to_add as n0.
       refine (strlen_to_mem (Int.add (Int.add len Int.one) i) m b ofs Spec (Int.unsigned i) _ _ ).
       destruct i; simpl; nia.
       inversion Spec.
+      ++
       pose (intval_eq Int.zero (Int.add (Int.add len Int.one) i) H).
       pose (non_zero_surj len n) as S.
       rewrite S in O.
       replace (Int.unsigned len + 1 + Int.unsigned i) with (Int.unsigned len + Int.unsigned i + 1) in O by nia.
       ints_compute_add_mul.
       1-4: replace (Int.unsigned Int.one) with 1 by (auto with ints); destruct i, len; simpl in *; try nia.
+      ++ 
       replace (Int.add (Int.add len Int.one) i) with
-          (Int.add (Int.add len i) Int.one) in H.
+          (Int.add (Int.add len i) Int.one) in *.
       assert (E: n1 = (Int.add len i)).
           { pose (J := intval_eq (Int_succ n1)  (Int.add (Int.add len i) Int.one) H).
             destruct (Int.eq_dec n1 (Int.add len i)).
@@ -562,19 +563,12 @@ Lemma strlen_loop_correct_gen : forall len i ge e m b ofs le,
             unfold Int_succ in J.
             congruence.
           }
-             (* prove as above *)
+             
       rewrite E in H0.
       unfold no_int_overflow in H0.
-      replace (Int.add (Int.add len Int.one) i) with
-          (Int.add (Int.add len i) Int.one).
-      unfold Int.add.
-      rewrite Int.unsigned_repr_eq.
-      rewrite Int.unsigned_repr_eq.
-
-      rewrite Zmod_small.
-      rewrite Zmod_small.
-      destruct i; destruct len. replace (Int.unsigned Int.one) with 1 by (auto with ints). simpl in *. nia.
-      (* to show:  0 <= Int.unsigned len + Int.unsigned i < Int.modulus *)
+      ints_compute_add_mul.  
+      1: destruct i; destruct len ;replace (Int.unsigned Int.one) with 1 by (auto with ints); simpl in *; nia.
+      
 
       assert ( (Int.unsigned (Int.add len Int.one)) <> (Int.unsigned Int.zero)).
       
@@ -583,25 +577,21 @@ Lemma strlen_loop_correct_gen : forall len i ge e m b ofs le,
         unfold Int.eq in B.
         rewrite D in B.
         congruence.
-        assumption.
-       
+        assumption.     
       }
       unfold Int.add in H0.
       rewrite Int.unsigned_repr_eq in H0.
       replace  (Int.unsigned Int.zero) with 0 in H4 by (auto with ints).
-      (* true *)
       assert ( Int.unsigned (Int.add len Int.one) > 0).
       { destruct (Int.add len Int.one); simpl in *.
         nia.
       }
-      
-      
+ 
       assert (Int.unsigned (Int.add len Int.one) = Int.unsigned len + 1 ).
       { ints_compute_add_mul. auto.
         pose (non_zero_surj _  n) as S.
         replace (Int.unsigned Int.one) with 1 by (auto with ints).    rewrite <- S.
-        auto with ints.
-        
+        auto with ints.      
       }
       rewrite H6 in *.
       clear n0.
@@ -637,20 +627,14 @@ Lemma strlen_loop_correct_gen : forall len i ge e m b ofs le,
       rewrite Int.add_commut.
       replace (Int.add i len) with (Int.add len i) by (apply Int.add_commut). auto.
 
-      symmetry.
-      rewrite Int.add_assoc.
-      rewrite Int.add_commut.
-      rewrite Int.add_assoc.
-      rewrite Int.add_commut.
-      replace (Int.add i len) with (Int.add len i) by (apply Int.add_commut). auto.
-   }
+      }
     destruct Mem as [char Mem].
     (* apply I.H. to le' after one step when starting with i and [b,ofs + i]  *)
     pose (le'' := (PTree.set _output (Vint (Int.add i (Int.repr 1)))
        (PTree.set _t'2 (Vint char)
           (PTree.set _input (Vptr b  (Ptrofs.add ofs (Ptrofs.of_int (Int.add i Int.one))))
              (PTree.set _t'1 (Vptr b (Ptrofs.add ofs (Ptrofs.of_int i))) le))))).
-    pose (IH := IHlen (Int.add i Int.one) ge e m b ofs le'' ).
+    pose (IH := IHlen (Int.add i Int.one)  m b ofs le'' ).
     assert ( exists (t : trace) (le' : temp_env),
        le'' ! _output = Some (Vint (Int.add i Int.one)) ->
        le'' ! _input = Some (Vptr b (Ptrofs.add ofs (Ptrofs.of_int (Int.add i Int.one)))) ->
@@ -719,7 +703,6 @@ Lemma strlen_loop_correct_gen : forall len i ge e m b ofs le,
      apply Ptrofs.agree32_add.
      vm_compute; auto.
      auto with ptrofs.
-     auto with ptrofs.
      unfold Ptrofs.one.
      unfold Int.one.
      auto with ptrofs.
@@ -738,11 +721,10 @@ Lemma strlen_loop_correct_gen : forall len i ge e m b ofs le,
 Qed.      
 
 (* Correctness of the loop execution *)  
-  Lemma strlen_loop_correct: forall len ge e m b ofs le,
-      strlen m b ofs len -> exists t le', le!_output = Some (Vint Int.zero) ->
+  Lemma strlen_loop_correct: forall len m b ofs le, strlen m b ofs len ->
+                            exists t le', le!_output = Some (Vint Int.zero) ->
                                       le!_input = Some (Vptr b ofs) ->
-      
-      exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ le'!_output = Some (Vint len).
+exec_stmt ge e le m f_strlen_loop t le' m Out_normal /\ le'!_output = Some (Vint len).
 Proof.
   intros.
   replace ofs with (Ptrofs.add ofs (Ptrofs.of_int Int.zero)) by (auto with ptrofs).
@@ -753,24 +735,21 @@ Proof.
   nia.
   replace (Int.add len Int.zero) with len.
   assumption.
-  rewrite Int.add_commut.
-  rewrite Int.add_zero_l.
-  auto.
-  rewrite Int.add_commut.
-  rewrite Int.add_zero_l.
+  all:
+  rewrite Int.add_commut;
+  rewrite Int.add_zero_l;
   auto.
 Qed.
 
-Parameter ge : genv.
 
 (* Full correctness statement *)
-Lemma strlen_correct: forall len e m b ofs le,
+Lemma strlen_correct: forall len m b ofs le,
       strlen m b ofs len -> exists t le',
       le!_input = Some (Vptr b ofs) ->
       exec_stmt ge e le  m f_strlen.(fn_body) t le' m (Out_return (Some ((Vint len),tuint))).
 Proof.
   intros.
-  pose (Loop := strlen_loop_correct len ge e  _ _ _ (PTree.set _output (Vint Int.zero) le) H). destruct Loop as [t Loop]. destruct Loop as [le' Loop].
+  pose (Loop := strlen_loop_correct len  _ _ _ (PTree.set _output (Vint Int.zero) le) H). destruct Loop as [t Loop]. destruct Loop as [le' Loop].
   repeat eexists.
   intro input.
   assert ((PTree.set _output (Vint Int.zero) le) ! _output =
@@ -779,10 +758,12 @@ Proof.
           Some (Vptr b ofs)) as I.
   { rewrite gso. assumption. cbv; congruence. }
   destruct (Loop O I) as [Exec Out].
-  seq1. 
+  econstructor.
   repeat econstructor.
-  seq1. fold f_strlen_loop.
+  econstructor.
+  fold f_strlen_loop.
   eapply Exec.
   repeat econstructor.
   eapply Out.
 Qed.
+
