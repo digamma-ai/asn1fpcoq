@@ -10,25 +10,26 @@ Definition _input : ident := 53%positive.
 Definition _output : ident := 54%positive.
 
 Definition f_factorial := {|
-  fn_return := tint; (* the return type is integer *)
+  fn_return := tuint; (* the return type is integer *)
   fn_callconv := cc_default; (* ignore this: relevant for small-step semantics *)
-  fn_params := ((_input, tint) :: nil); (* input variable is the parameter of the function *)
+  fn_params := ((_input, tuint) :: nil); (* input variable is the parameter of the function *)
   fn_vars := nil; 
-  fn_temps := ((_output, tint) :: nil); (* output is a local variable *)
+  fn_temps := ((_output, tuint) :: nil); (* output is a local variable *)
   fn_body := (* C light statement corresponding to the function *)
 (Ssequence
-  (Sset _output (Econst_int (Int.repr 1) tint)) (* int output = 1 *)
+  (Sset _output (Econst_int (Int.repr 1) tuint)) (* int output = 1 *)
   (Ssequence 
     (Swhile 
-      (Etempvar _input tint) (* while (input) *)
+      (Etempvar _input tuint) (* while (input) *)
       (Ssequence  
         (Sset _output
-          (Ebinop Omul (Etempvar _output tint) (Etempvar _input tint) tint)) (* output = output*input *)
+          (Ebinop Omul (Etempvar _output tuint) (Etempvar _input tuint) tuint)) (* output = output*input *)
         (Sset _input
-          (Ebinop Osub (Etempvar _input tint) (Econst_int (Int.repr 1) tint) (* input = input - 1 *)
-            tint))))
-    (Sreturn (Some (Etempvar _output tint))))) (* return output *)
-|}.
+          (Ebinop Osub (Etempvar _input tuint) (Econst_int (Int.repr 1) tuint) (* input = input - 1 *)
+            tuint))))
+    (Sreturn (Some (Etempvar _output tuint))))) (* return output *)
+                         |}.
+
 
 (* Now we can evaluate the statement of the function fn_body using the big-step semantics relation exec_stmt *)
 
@@ -42,7 +43,7 @@ Definition input_1 := Maps.PTree.set _input (Vint (Int.repr 1)) lempty.
 (* Basically we are running a test of factorial on input 1 *)
 Proposition fact1 :
   forall ge e m, exists t le',  
-      exec_stmt ge e input_1 m f_factorial.(fn_body) t le' m (Out_return (Some  ((Vint (Int.repr 1), tint))))  /\ (le'!_output) = Some (Vint (Int.repr 1)).
+      exec_stmt ge e input_1 m f_factorial.(fn_body) t le' m (Out_return (Some  ((Vint (Int.repr 1), tuint))))  /\ (le'!_output) = Some (Vint (Int.repr 1)).
 Proof.
    intros.
    repeat eexists.
@@ -152,13 +153,14 @@ Inductive factorial : nat -> nat -> Prop :=
 | FactSucc : forall n m, factorial n m -> factorial (S n) ((S n)*m).                      
 
 Definition factorial_loop := (Swhile
-      (Etempvar _input tint)
+      (Etempvar _input tuint)
       (Ssequence
         (Sset _output
-          (Ebinop Omul (Etempvar _output tint) (Etempvar _input tint) tint))
+          (Ebinop Omul (Etempvar _output tuint) (Etempvar _input tuint) tuint))
         (Sset _input
-          (Ebinop Osub (Etempvar _input tint) (Econst_int (Int.repr 1) tint)
-                  tint)))).
+          (Ebinop Osub (Etempvar _input tuint) (Econst_int (Int.repr 1) tuint)
+                  tuint)))).
+
 
 (* Map from nat to values *)
 Definition Vint_of_nat := fun n => Vint (Int.repr(Z_of_nat n)).
@@ -259,7 +261,7 @@ Proof.
     + rewrite PTree.gso. apply H1. cbv. congruence.
     + apply PTree.gss. }
    destruct H2. destruct H2.  destruct H2.
-   eexists. eexists. exists (Out_return (Some (Vint_of_nat (fact n), tint))). split.
+   eexists. eexists. exists (Out_return (Some (Vint_of_nat (fact n), tuint))). split.
       + eapply exec_Sseq_1. econstructor. econstructor. eapply exec_Sseq_1. apply H2. repeat econstructor; rewrite Nat.mul_1_r in H3 ; exact H3.
       + rewrite Nat.mul_1_r in H3. exact H3.
  Qed.

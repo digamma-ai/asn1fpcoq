@@ -1,5 +1,5 @@
-int factorial (int input) {
-  int output = 1;
+unsigned int factorial (unsigned int input) {
+  unsigned int output = 1;
   while (input){
       output = output*input ;
       input = input - 1 ;
