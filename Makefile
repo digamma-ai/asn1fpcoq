@@ -51,7 +51,7 @@ $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 	touch $(TSTAMP)
 
 install-dep:
-	opam instal coq coq-flocq
+	opam install coq coq-ext-lib coq-flocq coq-bbv dune num core coq-compcert
 
 config Makefile.coq: _CoqProject Makefile
 	coq_makefile -f _CoqProject $(VFILES) -o Makefile.coq
